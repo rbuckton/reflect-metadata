@@ -16,44 +16,35 @@ var Reflect;
     function isPropertyKey(x) {
         return typeof x === "string" || typeof x === "symbol";
     }
-    /**
-      * Applies a set of decorators to a target object.
-      * @param target The target object.
-      * @param decorators An array of decorators.
-      * @remarks Decorators are applied in reverse order.
-      */
-    function decorate(target, ...decorators) {
+    function decorateTarget(decorators, target) {
         for (let i = decorators.length - 1; i >= 0; i--) {
             let decorator = decorators[i];
             let decorated = decorator(target);
-            if (decorated === null || decorated === undefined) {
-                continue;
-            }
-            target = decorated;
+            target = decorated != null ? decorated : target;
         }
         return target;
     }
-    Reflect.decorate = decorate;
-    /**
-      * Applies a set of decorators to a property of a target object.
-      * @param target The target object.
-      * @param propertyKey The property key to decorate.
-      * @param decorators An array of decorators.
-      * @remarks Decorators are applied in reverse order.
-      */
-    function decorateProperty(target, propertyKey, ...decorators) {
-        let descriptor = Reflect.getOwnPropertyDescriptor(target, propertyKey);
-        if (descriptor === undefined) {
-            descriptor = { enumerable: true, configurable: true, writable: true };
+    function decorateParameter(decorators, target, paramIndex) {
+        for (let i = decorators.length - 1; i >= 0; i--) {
+            let decorator = decorators[i];
+            let decorated = decorator(target, paramIndex);
+            target = decorated != null ? decorated : target;
         }
-        let { enumerable, configurable, writable, get, set, value } = descriptor;
+        return target;
+    }
+    function decorateProperty(decorators, target, propertyKey) {
+        let descriptor = Reflect.getOwnPropertyDescriptor(target, propertyKey);
+        let enumerable = descriptor ? descriptor.enumerable : true;
+        let configurable = descriptor ? descriptor.configurable : true;
+        let writable = descriptor ? descriptor.writable : true;
+        let value = descriptor ? descriptor.value : undefined;
+        let get = descriptor ? descriptor.get : undefined;
+        let set = descriptor ? descriptor.set : undefined;
+        descriptor = descriptor ? descriptor : { enumerable, configurable, writable, value };
         for (let i = decorators.length - 1; i >= 0; i--) {
             let decorator = decorators[i];
             let decorated = decorator(target, propertyKey, descriptor);
-            if (decorated === null || decorated === undefined) {
-                continue;
-            }
-            descriptor = decorated;
+            descriptor = decorated != null ? decorated : descriptor;
         }
         if (enumerable !== descriptor.enumerable ||
             configurable !== descriptor.configurable ||
@@ -61,60 +52,78 @@ var Reflect;
             value !== descriptor.value ||
             get !== descriptor.get ||
             set !== descriptor.set) {
-            Object.defineProperty(target, propertyKey, descriptor);
-        }
-        return target;
-    }
-    Reflect.decorateProperty = decorateProperty;
-    /**
-      * Applies a set of decorators to a function parameter.
-      * @param target The target function.
-      * @param parameterIndex The index of the parameter to decorate.
-      * @param decorators An array of decorators.
-      * @remarks Decorators are applied in reverse order.
-      */
-    function decorateParameter(target, parameterIndex, ...decorators) {
-        for (let i = decorators.length - 1; i >= 0; i--) {
-            let decorator = decorators[i];
-            decorator(target, parameterIndex);
+            Reflect.defineProperty(target, propertyKey, descriptor);
         }
     }
-    Reflect.decorateParameter = decorateParameter;
+    function decorate(decorators, target, key) {
+        if (isFunction(target) && isNumber(key)) {
+            return decorateParameter(decorators, target, key);
+        }
+        else if (isObject(target) && isPropertyKey(key)) {
+            return decorateProperty(decorators, target, key);
+        }
+        else if (isFunction(target)) {
+            return decorateTarget(decorators, target);
+        }
+        else {
+            throw new TypeError();
+        }
+    }
+    Reflect.decorate = decorate;
     /**
-      * A default metadata decorator that can be used on a class, class member, or parameter.
-      * @example
-      *
-      *     // on class
-      *     @Reflect.metadata(key, value)
-      *     class MyClass {
-      *
-      *         // on member
-      *         @Reflect.metadata(key, value)
-      *         method1() {
-      *         }
-      *
-      *         // on parameter
-      *         method2(@Reflect.metadata(key, value) x) {
-      *         }
-      *     }
-      */
+       * A default metadata decorator that can be used on a class, class member, or parameter.
+       * @example
+       *
+       *     // on class
+       *     @Reflect.metadata(key, value)
+       *     class MyClass {
+       *
+       *         // on member
+       *         @Reflect.metadata(key, value)
+       *         method1() {
+       *         }
+       *
+       *         // on parameter
+       *         method2(@Reflect.metadata(key, value) x) {
+       *         }
+       *     }
+       */
     function metadata(metadataKey, metadata) {
-        return function (target, keyOrIndex) {
-            if (isObject(target) && isPropertyKey(keyOrIndex)) {
+        function decorator(target, key) {
+            if (isObject(target) && isPropertyKey(key)) {
                 // (target: Object, key: string | symbol)
-                definePropertyMetadata(target, keyOrIndex, metadataKey, metadata);
+                definePropertyMetadata(target, key, metadataKey, metadata);
             }
-            else if (isFunction(target) && isNumber(keyOrIndex)) {
+            else if (isFunction(target) && isNumber(key)) {
                 // (target: Function, index: number)
-                defineParameterMetadata(target, keyOrIndex, metadataKey, metadata);
+                defineParameterMetadata(target, key, metadataKey, metadata);
             }
             else if (isFunction(target)) {
                 // (target: Function)
                 defineMetadata(target, metadataKey, metadata);
             }
-        };
+            else {
+                throw new TypeError();
+            }
+        }
+        return decorator;
     }
     Reflect.metadata = metadata;
+    function metadataFor(metadataKey, target, key) {
+        if (isObject(target) && isPropertyKey(key)) {
+            return getOwnPropertyMetadata(target, key, metadataKey);
+        }
+        else if (isFunction(target) && isNumber(key)) {
+            return getParameterMetadata(target, key, metadataKey);
+        }
+        else if (isFunction(target)) {
+            return getOwnMetadata(target, metadataKey);
+        }
+        else {
+            throw new TypeError();
+        }
+    }
+    Reflect.metadataFor = metadataFor;
     /**
       * Define a unique metadata entry on the target.
       * @param target The target object on which to define metadata.

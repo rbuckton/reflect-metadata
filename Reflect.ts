@@ -1,5 +1,10 @@
 "use strict";
 
+type ClassDecorator = (target: Function) => Function | void;
+type ParameterDecorator = (target: Function, paramIndex: number) => Function | void;
+type PropertyDecorator = (target: Object, propertyKey: PropertyKey, descriptor: PropertyDescriptor) => PropertyDescriptor | void;
+type Decorator = ClassDecorator | ParameterDecorator | PropertyDecorator;
+
 module Reflect {
     const weakMetadata = new WeakMap<any, Map<any, any>>();
     const weakPropertyMetadata = new WeakMap<any, Map<PropertyKey, Map<any, any>>>();
@@ -20,25 +25,58 @@ module Reflect {
     function isPropertyKey(x: any): boolean {
         return typeof x === "string" || typeof x === "symbol";
     }
-        
+
+    function decorateTarget(decorators: ClassDecorator[], target: Function): Function {
+        for (let i = decorators.length - 1; i >= 0; i--) {
+            let decorator = decorators[i];
+            let decorated = decorator(target);
+            target = decorated != null ? <Function>decorated : target;
+        }
+        return target;
+    }
+
+    function decorateParameter(decorators: ParameterDecorator[], target: Function, paramIndex: number): Function {
+        for (let i = decorators.length - 1; i >= 0; i--) {
+            let decorator = decorators[i];
+            let decorated = decorator(target, paramIndex);
+            target = decorated != null ? <Function>decorated : target;
+        }
+        return target;
+    }
+
+    function decorateProperty(decorators: PropertyDecorator[], target: Object, propertyKey: PropertyKey): void {
+        let descriptor = Reflect.getOwnPropertyDescriptor(target, propertyKey);
+        let enumerable = descriptor ? descriptor.enumerable : true;
+        let configurable = descriptor ? descriptor.configurable : true;
+        let writable = descriptor ? descriptor.writable : true;
+        let value = descriptor ? descriptor.value : undefined;
+        let get = descriptor ? descriptor.get : undefined;
+        let set = descriptor ? descriptor.set : undefined;
+        descriptor = descriptor ? descriptor : { enumerable, configurable, writable, value };
+        for (let i = decorators.length - 1; i >= 0; i--) {
+            let decorator = decorators[i];
+            let decorated = decorator(target, propertyKey, descriptor);
+            descriptor = decorated != null ? <PropertyDescriptor>decorated : descriptor;
+        }
+        if (enumerable !== descriptor.enumerable ||
+            configurable !== descriptor.configurable ||
+            writable !== descriptor.writable ||
+            value !== descriptor.value ||
+            get !== descriptor.get ||
+            set !== descriptor.set) {
+            Reflect.defineProperty(target, propertyKey, descriptor);
+        }
+    }
+    
+     
     /**
       * Applies a set of decorators to a target object.
       * @param target The target object.
       * @param decorators An array of decorators.
       * @remarks Decorators are applied in reverse order.
       */
-    export function decorate(target: Function, ...decorators: ((target: Function) => Function | void)[]): Function {
-        for (let i = decorators.length - 1; i >= 0; i--) {
-            let decorator = decorators[i];
-            let decorated = decorator(target);
-            if (decorated === null || decorated === undefined) {
-                continue;
-            }
-            target = <Function>decorated;
-        }
-        return target;
-    }
-    
+    export function decorate(decorators: ClassDecorator[], target: Function): Function;
+
     /**
       * Applies a set of decorators to a property of a target object.
       * @param target The target object.
@@ -46,33 +84,8 @@ module Reflect {
       * @param decorators An array of decorators.
       * @remarks Decorators are applied in reverse order.
       */
-    export function decorateProperty(target: any, propertyKey: PropertyKey, ...decorators: ((target: any, propertyKey: PropertyKey, descriptor: PropertyDescriptor) => PropertyDescriptor | void)[]): any {
-        let descriptor = Reflect.getOwnPropertyDescriptor(target, propertyKey);
-        if (descriptor === undefined) {
-            descriptor = { enumerable: true, configurable: true, writable: true };
-        }
+    export function decorate(decorators: PropertyDecorator[], target: Object, propertyKey: PropertyKey): void;
 
-        let { enumerable, configurable, writable, get, set, value } = descriptor;
-        for (let i = decorators.length - 1; i >= 0; i--) {
-            let decorator = decorators[i];
-            let decorated = decorator(target, propertyKey, descriptor);
-            if (decorated === null || decorated === undefined) {
-                continue;
-            }
-            descriptor = <PropertyDescriptor>decorated;
-        }
-
-        if (enumerable !== descriptor.enumerable ||
-            configurable !== descriptor.configurable ||
-            writable !== descriptor.writable ||
-            value !== descriptor.value ||
-            get !== descriptor.get ||
-            set !== descriptor.set) {
-            Object.defineProperty(target, propertyKey, descriptor);
-        }
-        return target;
-    }
-    
     /**
       * Applies a set of decorators to a function parameter.
       * @param target The target function.
@@ -80,14 +93,24 @@ module Reflect {
       * @param decorators An array of decorators.
       * @remarks Decorators are applied in reverse order.
       */
-    export function decorateParameter(target: Function, parameterIndex: number, ...decorators: ((target: Function, paramterIndex: number) => void)[]): void {
-        for (let i = decorators.length - 1; i >= 0; i--) {
-            let decorator = decorators[i];
-            decorator(target, parameterIndex);
+    export function decorate(decorators: ParameterDecorator[], target: Function, paramIndex: number): void;
+
+    export function decorate(decorators: Decorator[], target: Object, key?: PropertyKey | number): any {
+        if (isFunction(target) && isNumber(key)) {
+            return decorateParameter(<ParameterDecorator[]>decorators, <Function>target, <number>key);
+        }
+        else if (isObject(target) && isPropertyKey(key)) {
+            return decorateProperty(<PropertyDecorator[]>decorators, target, <PropertyKey>key);
+        }
+        else if (isFunction(target)) {
+            return decorateTarget(<ClassDecorator[]>decorators, <Function>target);
+        }
+        else {
+            throw new TypeError();
         }
     }
     
-    /**
+   /**
       * A default metadata decorator that can be used on a class, class member, or parameter.
       * @example
       *
@@ -105,21 +128,28 @@ module Reflect {
       *         }
       *     }
       */
-    export function metadata(metadataKey: any, metadata: any) {
-        return function(target: Function | Object, keyOrIndex?: PropertyKey | number): void {
-            if (isObject(target) && isPropertyKey(keyOrIndex)) {
+    export function metadata(metadataKey: any, metadata: any): Decorator {
+        function decorator(target: Function): void;
+        function decorator(target: Function, paramIndex: number): void;
+        function decorator(target: Object, propertyKey: PropertyKey): void;
+        function decorator(target: Object, key?: PropertyKey | number): void {
+            if (isObject(target) && isPropertyKey(key)) {
                 // (target: Object, key: string | symbol)
-                definePropertyMetadata(<Object>target, <string>keyOrIndex, metadataKey, metadata);
+                definePropertyMetadata(<Object>target, <string>key, metadataKey, metadata);
             }
-            else if (isFunction(target) && isNumber(keyOrIndex)) {
+            else if (isFunction(target) && isNumber(key)) {
                 // (target: Function, index: number)
-                defineParameterMetadata(<Function>target, <number>keyOrIndex, metadataKey, metadata);
+                defineParameterMetadata(<Function>target, <number>key, metadataKey, metadata);
             }
             else if (isFunction(target)) {
                 // (target: Function)
                 defineMetadata(<Function>target, metadataKey, metadata);
             }
+            else {
+                throw new TypeError();
+            }
         }
+        return decorator;
     }
     
     /**
@@ -128,15 +158,18 @@ module Reflect {
     export function metadataFor(metadataKey: any, target: Object): any;
     export function metadataFor(metadataKey: any, target: Object, propertyKey: PropertyKey): any;
     export function metadataFor(metadataKey: any, target: Function, paramIndex: number): any;
-    export function metadataFor(metadataKey: any, target: Function | Object, keyOrIndex?: PropertyKey | number): any {
-        if (isObject(target) && isPropertyKey(keyOrIndex)) {
-            return getOwnPropertyMetadata(target, <PropertyKey>keyOrIndex, metadataKey);
+    export function metadataFor(metadataKey: any, target: Function | Object, key?: PropertyKey | number): any {
+        if (isObject(target) && isPropertyKey(key)) {
+            return getOwnPropertyMetadata(target, <PropertyKey>key, metadataKey);
         }
-        else if (isFunction(target) && isNumber(keyOrIndex)) {
-            return getParameterMetadata(<Function>target, <number>keyOrIndex, metadataKey);
+        else if (isFunction(target) && isNumber(key)) {
+            return getParameterMetadata(<Function>target, <number>key, metadataKey);
+        }
+        else if (isFunction(target)) {
+            return getOwnMetadata(target, metadataKey);
         }
         else {
-            return getOwnMetadata(target, metadataKey);
+            throw new TypeError();
         }
     }
 
