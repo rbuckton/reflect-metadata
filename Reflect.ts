@@ -35,13 +35,11 @@ module Reflect {
         return target;
     }
 
-    function decorateParameter(decorators: ParameterDecorator[], target: Function, paramIndex: number): Function {
+    function decorateParameter(decorators: ParameterDecorator[], target: Function, paramIndex: number): void {
         for (let i = decorators.length - 1; i >= 0; i--) {
             let decorator = decorators[i];
-            let decorated = decorator(target, paramIndex);
-            target = decorated != null ? <Function>decorated : target;
+            decorator(target, paramIndex);
         }
-        return target;
     }
 
     function decorateProperty(decorators: PropertyDecorator[], target: Object, propertyKey: PropertyKey): void {
