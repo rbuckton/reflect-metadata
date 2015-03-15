@@ -144,7 +144,6 @@ module Reflect {
             throw new TypeError();
         }
 
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return decorateCore(decorators, target, targetKeyOrIndex);
     }
 
@@ -1276,11 +1275,9 @@ module Reflect {
         else if (isNumber(targetKeyOrIndex)) {
             return decorateParameter(<ParameterDecorator[]>decorators, <Function>target, <number>targetKeyOrIndex);
         }
-        else if (!isPropertyKey(targetKeyOrIndex)) {
-            targetKeyOrIndex = String(targetKeyOrIndex);
+        else {
+            return decorateProperty(<PropertyDecorator[]>decorators, target, toPropertyKey(targetKeyOrIndex));
         }
-        
-        return decorateProperty(<PropertyDecorator[]>decorators, target, <PropertyKey>targetKeyOrIndex);
     }
     
     function decorateConstructor(decorators: ClassDecorator[], target: Function): Function {
@@ -1472,11 +1469,17 @@ module Reflect {
         return target;
     }
 
-    function toTargetKeyOrIndex(value: any): PropertyKey | number {
-        if (!isMissing(value) && !isPropertyKey(value) && !isNumber(value)) {
+    function toPropertyKey(value: any): PropertyKey {
+        if (!isPropertyKey(value)) {
             return String(value);
         }
+        return value;
+    }
 
+    function toTargetKeyOrIndex(value: any): PropertyKey | number {
+        if (!isMissing(value) && !isNumber(value)) {
+            return toPropertyKey(value);
+        }
         return value;
     }
 }
