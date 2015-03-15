@@ -423,7 +423,7 @@ var C = (function () {
 # <a name="4"> 4 Metadata Reflection API
 In addition to a declarative approach to defining decorators, it is necessary to also include an imperative API capable of applying decorators, as well as defining, reflecting over, and removing decorator metadata from an object, property, or parameter. 
 
-A rough shim for this API can be found here: https://gist.github.com/rbuckton/5903ff8a617f6afc5797
+A shim for this API can be found here: https://github.com/rbuckton/ReflectDecorators
 
 ## <a name="4.1"> 4.1 API
 ```TypeScript
@@ -816,6 +816,45 @@ Serializes as:
 * If has at least one call signature, serialize as Function
 * Otherwise serialize as Object
 
+### <a name="C.2.3"/>C.2.3 Helpers for libraries like AngularJS
+
+Some applications may need a way to easily inject type information in a fashion similar to TypeScript's mechanism, though the applications themselves are written using regular JavaScript. A library could choose to make this process easier for these applications by exposing wrapper metadata functions:
+
+```TypeScript
+// [annotations.ts]
+export function Type(type: Function): Decorator {
+	return Reflect.metadata("design:type", type);
+}
+
+export function ParamTypes(...types: Function[]): Decorator {
+	return Reflect.metadata("design:paramtypes", types);
+}
+
+export function ReturnType(type: Function): Decorator {
+	return Reflect.metadata("design:returntype", type);
+}
+
+// app.js
+define(["exports", annotations"], function (exports, annotations) {
+	var Component = annotations.Component;
+	var Type = annotations.Type;
+	var ParamTypes = annotations.ParamTypes;
+	var ReturnType = annotations.ReturnType;
+
+	function MyComponent(a, b) {
+	}
+	
+	MyComponent = Reflect.decorate([Component({ ... }), Type(Function), ParamTypes([UserServiceBase, LocationServiceBase])], MyComponent);
+	exports.MyComponent = MyComponent;
+})
+```
+
+TypeScript would **not** be providing these helpers, it would be up to library authors to add these if they determine they are necessary. 
+
 ### <a name="C.2.3"/>C.2.3 Open issues
 
-* Do we want to enable more elaborate serialization? E.g. `type O = { a: string; b: number }` as `{ a: String, b: Number }` instead of just `Object`.
+* Do we want to enable more elaborate serialization? 
+	* Serialize interfaces or type literals? For example, serialize the type literal `{ a: string; b: number }` as `{ a: String, b: Number }` instead of just `Object`.
+	* Serialize generic type references? One suggestion was to serialize `Array<Number>` as `[Array, Number]`
+	* Serialize tuple types?
+	* Serialize union types?
