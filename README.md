@@ -615,7 +615,7 @@ NOTE: this section is out of date and will soon be updated.
 &emsp;&emsp;&emsp;*DecoratorList*<sub> [?Yield]opt</sub>&emsp; *Decorator*<sub> [?Yield]</sub>
 
 &emsp;&emsp;*Decorator*<sub> [Yield]</sub>&emsp;:  
-&emsp;&emsp;&emsp;`@`&emsp;*AssignmentExpression*<sub> [?Yield]</sub>
+&emsp;&emsp;&emsp;`@`&emsp;*LeftHandSideExpression*<sub> [?Yield]</sub>
 
 &emsp;&emsp;*PropertyDefinition*<sub> [Yield]</sub>&emsp;:  
 &emsp;&emsp;&emsp;*IdentifierReference*<sub> [?Yield]</sub>  
