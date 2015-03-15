@@ -1,6 +1,108 @@
 # ReflectDecorators
 Prototype for an ES7 Reflection API for Decorator Metadata
 
+# <a name="1"/>1 Motivating examples
+
+## <a name="1.1"/>1.1 Conditional implementation 
+
+Conditional code generation:
+
+```TypeScript
+class Debug {  
+    @conditional("debug")  
+    static assert(condition: boolean, message?: string): void;  
+}  
+  
+Debug.assert(false); // if window.debug is not defined Debug.assert is replaced by an empty function
+```
+
+## <a name="1.2"/>1.2 Observable and computed properties
+
+Consider the Ember.js alias-like definition:
+
+```TypeScript
+class Person {  
+    constructor(public firstName: string, public lastName: string) { }
+  
+    @computed('firstName', 'lastName', (f, l) => l + ', ' + f)  
+    fullName: string;
+}  
+  
+var david = new Person('David', 'Tang');  
+david.fullName; /// Tang, David
+```
+
+## <a name="1.3"/>1.3 Dynamic Instantiation (composition)
+
+Consider Angular 2.0 DI implementation example:
+
+```TypeScript
+class Engine {  
+}  
+  
+class Car {  
+    constructor(@Inject(Engine) engine: Engine) {}  
+}  
+  
+var inj = new Injector([Car, Engine]);  
+  
+// AtScript compilation step adds a property “annotations” on Car of value [ new Inject(Engine) ].  
+// At runtime, a call to inj.get would cause Angular to look for annotations, and try to satisfy dependencies.  
+// in this case first by creating a new instance of Engine if it does not exist, and use it as a parameter to Car’s constructor  
+var car = inj.get(Car);
+```
+
+## <a name="1.4"/>1.4 Attaching Meta data to functions/objects
+
+Metadata that can be queried at runtime, for example:
+
+```TypeScript
+class Fixture {  
+    @isTestable(true)  
+    getValue(a: number): string {  
+        return a.toString();  
+    }  
+}  
+  
+// Desired JS  
+class Fixture {  
+    getValue(a) {  
+        return a.toString();  
+    }  
+}  
+Fixture.prototype.getValue.meta.isTestable = true;  
+  
+// later on query the meta data  
+function isTestableFunction(func) {  
+    return !!(func && func.meta && func.meta.isTestable);  
+}
+```
+
+## <a name="1.5"/>1.5 Design-time extensibility
+
+An extensible way to declare properties on or associate special behavior to declarations; design time tools can leverage these associations to produce errors or produce documentation. For example:
+
+Deprecated, to support warning on use of specific API’s:
+
+```TypeScript
+interface JQuery {  
+    /**  
+     * A selector representing selector passed to jQuery(), if any, when creating the original set.  
+     * version deprecated: 1.7, removed: 1.9  
+     */  
+    @deprecated("Property is only maintained to the extent needed for supporting .live() in the jQuery Migrate plugin. It may be removed without notice in a future version.", false)  
+    selector: string;  
+}
+```
+
+Suppress linter warning:
+
+```TypeScript
+@suppressWarning("disallow-leading-underscore")   
+function __init() {  
+}
+```
+
 # <a name="2"/>2 Proposal
 
 ## <a name="2.1"/>2.1 Terms
