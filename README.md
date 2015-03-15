@@ -1,4 +1,3 @@
-# ReflectDecorators
 Prototype for an ES7 Reflection API for Decorator Metadata
 
 # <a name="1"/>1 Motivating examples
