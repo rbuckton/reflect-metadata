@@ -681,9 +681,9 @@ NOTE	The production *CoverMemberExpressionSquareBracketsAndComputedPropertyName*
 &emsp;&emsp;&emsp;`export`&emsp;*ExportClause*&emsp;`;`  
 &emsp;&emsp;&emsp;`export`&emsp;*VariableStatement*  
 &emsp;&emsp;&emsp;`export`&emsp;*LexicalDeclaration*  
-&emsp;&emsp;&emsp;*DecoratorList*<sub> opt</sub>&emsp;`export`&emsp;[lookahead ≠ @]&emsp;*HoistableDeclaration*  
+&emsp;&emsp;&emsp;`export`&emsp;*HoistableDeclaration*  
 &emsp;&emsp;&emsp;*DecoratorList*<sub> opt</sub>&emsp;`export`&emsp;[lookahead ≠ @]&emsp;*ClassDeclaration*  
-&emsp;&emsp;&emsp;*DecoratorList*<sub> opt</sub>&emsp;`export`&emsp;`default`&emsp;[lookahead ≠ @]&emsp;*HoistableDeclaration*<sub> [Default]</sub>  
+&emsp;&emsp;&emsp;`export`&emsp;`default`&emsp;*HoistableDeclaration*<sub> [Default]</sub>  
 &emsp;&emsp;&emsp;*DecoratorList*<sub> opt</sub>&emsp;`export`&emsp;`default`&emsp;[lookahead ≠ @]&emsp;*ClassDeclaration*<sub> [Default]</sub>  
 &emsp;&emsp;&emsp;`export`&emsp;`default`&emsp;[lookahead  { function, class, @ }]&emsp;*AssignmentExpression*<sub> [In]</sub>&emsp;`;`
 
