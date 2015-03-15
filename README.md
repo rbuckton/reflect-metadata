@@ -526,7 +526,7 @@ function Enumerable(value) {
 
 // An "annotation" factory for a parameter
 function Inject(type) {
-  return (target, parameterIndex) => Reflect.defineParameterMetadata(Inject, type, target, parameterIndex);
+  return (target, parameterIndex) => Reflect.defineMetadata(Inject, type, target, parameterIndex);
 }
 
 // NOTE: A "decorator" factory for a parameter cannot mutate the parameter.
