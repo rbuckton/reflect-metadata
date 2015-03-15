@@ -201,7 +201,7 @@ For example, the above listing could be approximately written without decorators
 C = F(G(C))
 ```
 
-In the above example, the expression `F` is *evaluated* first, followed by the expression `G`. `G` is then called with the constructor function as its argument, followed by calling `F` with the result.  The actual process of applying decorators is more complex than the above example however, though you may still imperatively apply decorators with a reflection API.
+In the above example, the expression `F` is *evaluated* first, followed by the expression `G`. `G` is then called with the constructor function as its argument, followed by calling `F` with the result.  The actual process of applying decorators is more complex than the above example however, though you may still imperatively apply decorators with a [reflection API](#4).
 
 If a class declaration has decorators on both the class and any of its members or parameters, the decorators are applied using the following pseudocode:
 
