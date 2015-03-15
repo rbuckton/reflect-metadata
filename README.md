@@ -587,7 +587,7 @@ class Composer {
     }
     let args = new Array(componentType.length);
     for (let i = 0; i < args.length; i++) {
-      let injectType = Reflect.getParameterMetadata(componentType, i, Inject);
+      let injectType = Reflect.getMetadata(Inject, componentType, i);
       if (injectType) {
         args[i] = this.get(injectType);
       }
