@@ -1,4 +1,4 @@
-Prototype for an ES7 Reflection API for Decorator Metadata
+Proposal to add Decorators to ES7, along with a prototype for an ES7 Reflection API for Decorator Metadata
 
 # <a name="1"/>1 Motivating examples
 
