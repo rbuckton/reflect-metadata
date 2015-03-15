@@ -589,7 +589,7 @@ class Composer {
     for (let i = 0; i < args.length; i++) {
       let injectType = Reflect.getParameterMetadata(componentType, i, Inject);
       if (injectType) {
-        args[i] = getComponent(injectType);
+        args[i] = this.get(injectType);
       }
     }
     let component = Reflect.construct(componentType, args);
