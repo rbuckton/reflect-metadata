@@ -105,6 +105,9 @@ function __init() {
 # <a name="2"/>2 Proposal
 
 ## <a name="2.1"/>2.1 Terms
+
+### <a name="2.1.1"/>2.1.1 Decorator
+
 A *decorator* is an expression that is evaluated after a class has been defined, that can be used to annotate or modify the class in some fashion. This expression must evaluate to a **function**, which is executed by the runtime to apply the decoration.
 
 ```TypeScript
@@ -112,6 +115,8 @@ A *decorator* is an expression that is evaluated after a class has been defined,
 class C {
 }
 ```
+
+### <a name="2.1.2"/>2.1.2 Class Decorator Function
 
 A *class decorator function* is a function that accepts a constructor function as its argument, and returns either `undefined`, the provided constructor function, or a new constructor function. Returning `undefined` is equivalent to returning the provided constructor function.
 
@@ -122,6 +127,8 @@ function dec(target) {
 }
 ```
 
+### <a name="2.1.3"/>2.1.3 Property/Method Decorator Function
+
 A *property decorator function* is a function that accepts three arguments: The object that owns the property, the key for the property (a `string` or a `symbol`), and optionally the property descriptor of the property. The function must return either `undefined`, the provided property descriptor, or a new property descriptor. Returning `undefined` is equivalent to returning the provided property descriptor.
 
 ```TypeScript
@@ -131,6 +138,8 @@ function dec(target, key, descriptor) {
 }
 ```
 
+### <a name="2.1.4"/>2.1.4 Parameter Decorator Function
+
 A *parameter decorator function* is a function that accepts two arguments: The function that contains the decorated parameter, and the ordinal index of the parameter. The return value of this decorator is ignored.
 
 ```TypeScript
@@ -139,6 +148,8 @@ function dec(target, paramIndex) {
 	// annotate the target and index
 }
 ```
+
+### <a name="2.1.5"/>2.1.5 Decorator Factory
 
 A *decorator factory* is a function that can accept any number of arguments, and must return one of the above types of *decorator function*.
 
