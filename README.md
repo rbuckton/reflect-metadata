@@ -826,7 +826,7 @@ export function ReturnType(type: Function): Decorator {
 }
 
 // app.js
-define(["exports", annotations"], function (exports, annotations) {
+define(["exports", "annotations"], function (exports, annotations) {
 	var Component = annotations.Component;
 	var Type = annotations.Type;
 	var ParamTypes = annotations.ParamTypes;
