@@ -255,7 +255,7 @@ module Reflect {
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object): void
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object): void;
 
     /**
       * Define a unique metadata entry on the target.
@@ -292,7 +292,7 @@ module Reflect {
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKey: PropertyKey): void
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKey: PropertyKey): void;
 
     /**
       * Define a unique metadata entry on the target.
