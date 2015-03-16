@@ -437,54 +437,38 @@ A shim for this API can be found here: https://github.com/rbuckton/ReflectDecora
 
 ## <a name="4.1"> 4.1 API
 ```TypeScript
-type ClassDecorator = (target: Function) => Function | void;
-type ParameterDecorator = (target: Function, paramIndex: number) => void;
-type PropertyDecorator = (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => PropertyDescriptor | void;
-type Decorator = ClassDecorator | ParameterDecorator | PropertyDecorator;
-
 module Reflect {
+    /** Applies a set of decorators to a target object, property, or parameter. */
+    export function decorate(decorators: Function[], target: Object, targetKeyOrIndex?: string | symbol | number): Function;
+
+    /** A default metadata decorator factory that can be used on a class, class member, or parameter. */
+    export function metadata(metadataKey: any, metadataValue: any): Function;
     
-    // decorator application
-    export function decorate(decorators: ClassDecorator[], target: Function): Function;
-    export function decorate(decorators: ParameterDecorator[], target: Function, paramIndex: number): void;
-    export function decorate(decorators: PropertyDecorator[]), target: Object, propertyKey: string | symbol): void;
-
-    // built-in metadata decorator factory
-    export function metadata(metadataKey: any, metadataValue: any): Decorator;
+    /** Define a unique metadata entry on a target object, property, or parameter. */
+    export function defineMetadata(metadataKey: any, metadata: any, target: Object, targetKeyOrIndex?: string | symbol | number): void;
     
-    // metadata
-    export function defineMetadata(metadataKey: any, metadata: any, target: Object): void;
-    export function defineMetadata(metadataKey: any, metadata: any, target: Object, targetParamIndex: number): void;
-    export function defineMetadata(metadataKey: any, metadata: any, target: Object, targetPropertyKey: string | symbol): void;
-    
-    export function hasMetadata(metadataKey: any, target: Object): boolean;
-    export function hasMetadata(metadataKey: any, target: Object, targetParamIndex: number): boolean;
-    export function hasMetadata(metadataKey: any, target: Object, targetPropertyKey: string | symbol): boolean;
+    /** Gets a value indicating whether the provided metadata key exists in the prototype chain of a target object, property, or parameter. */
+    export function hasMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean;
 
-    export function hasOwnMetadata(metadataKey: any, target: Object): boolean;
-    export function hasOwnMetadata(metadataKey: any, target: Object, targetParamIndex: number): boolean;
-    export function hasOwnMetadata(metadataKey: any, target: Object, targetPropertyKey: string | symbol): boolean;
+    /** Gets a value indicating whether the provided metadata key exists on a target object, property, or parameter. */
+    export function hasOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean;
 
-    export function getMetadata(metadataKey: any, target: Object): any;
-    export function getMetadata(metadataKey: any, target: Object, targetParamIndex: number): any;
-    export function getMetadata(metadataKey: any, target: Object, targetPropertyKey: string | symbol): any;
+    /** Gets the metadata value for the provided metadata key in the prototype chain of a target object, property, or parameter. */
+    export function getMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): any;
 
-    export function getOwnMetadata(metadataKey: any, target: Object): any;
-    export function getOwnMetadata(metadataKey: any, target: Object, targetParamIndex: number): any;
-    export function getOwnMetadata(metadataKey: any, target: Object, targetPropertyKey: string | symbol): any;
+    /** Gets the metadata value for the provided metadata key on a target object, property, or parameter. */
+    export function getOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): any;
 
-    export function getMetadataKeys(target: Object): any[];
-    export function getMetadataKeys(target: Object, targetParamIndex: number): any[];
-    export function getMetadataKeys(target: Object, targetPropertyKey: string | symbol): any[];
+    /** Gets the metadata keys in the prototype chain of a target object, property, or parameter. */
+    export function getMetadataKeys(target: Object, targetKeyOrIndex?: string | symbol | number): any[];
 
-    export function getOwnMetadataKeys(target: Object): any[];
-    export function getOwnMetadataKeys(target: Object, targetParamIndex: number): any[];
-    export function getOwnMetadataKeys(target: Object, targetPropertyKey: string | symbol): any[];
+    /** Gets the metadata keys of a target object, property, or parameter. */
+    export function getOwnMetadataKeys(target: Object, targetKeyOrIndex?: string | symbol | number): any[];
 
-    export function deleteMetadata(metadataKey: any, target: Object): boolean;
-    export function deleteMetadata(metadataKey: any, target: Object, targetParamIndex: number): boolean;
-    export function deleteMetadata(metadataKey: any, target: Object, targetPropertyKey: string | symbol): boolean;
+    /** Deletes a metadata entry on a target object, property, or parameter. */
+    export function deleteMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean;
 
+    /** Merges unique metadata from a source into a target, returning the target. */
     export function mergeMetadata(target: Object, source: Object): Object;
 }
 ```
@@ -760,20 +744,17 @@ class C {
 }  
 
 // ES6 emit
-var __decorate = this.__decorate || function (decorators, target, key) {
-	if (typeof Reflect === "object" && typeof Reflect.decorate === "function") {
-		return Reflect.decorate(decorators, target, key);
-	}
-	// minimal fallback implementation ...
+var __decorate = this.__decorate || (typeof Reflect === "object" && Reflect.decorate) || function (decorators, target, key) {
+    var kind = key == null ? 0 : typeof key === "number" ? 1 : 2, result = target;
+    if (kind == 2) result = Object.getOwnPropertyDescriptor(target, typeof key === "symbol" ? key : key = String(key));
+    for (var i = decorators.length - 1; i >= 0; --i) {
+        var decorator = decorators[i];
+        result = (kind == 0 ? decorator(result) : kind == 1 ? decorator(target, key) : decorator(target, key, result)) || result;
+    }
+    if (kind === 2 && result) Object.defineProperty(target, key, result);
+    if (kind === 0) return result;
 };
-var __metadata = this.__metadata || function (metadataKey, metadataValue) { 
-	if (typeof Reflect === "object" && typeof Reflect.metadata === "function") {
-		return Reflect.metadata(metadataKey, metadataValue);
-	}
-	return function() { 
-		// default to no metadata
-	}
-};
+var __metadata = this.__metadata || (typeof Reflect === "object" && Reflect.metadata) || function () { return function () { }; };
 
 var C = (function() {
 	class C {  
