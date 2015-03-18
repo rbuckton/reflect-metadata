@@ -15,21 +15,196 @@ limitations under the License.
 
 type ClassDecorator = (target: Function) => Function | void;
 type ParameterDecorator = (target: Function, paramIndex: number) => Function | void;
-type PropertyDecorator = (target: Object, propertyKey: PropertyKey, descriptor?: PropertyDescriptor) => PropertyDescriptor | void;
+type PropertyDecorator = (target: Object, propertyKey: string | symbol, descriptor?: PropertyDescriptor) => PropertyDescriptor | void;
 type Decorator = ClassDecorator | ParameterDecorator | PropertyDecorator;
 
 module Reflect {
-    const weakMetadata = new WeakMap<any, Map<PropertyKey | number, Map<any, any>>>();
+    // naive Map shim
+    const _Map: MapConstructor = typeof Map === "function" ? Map : (function () {
+        let cacheSentinel = {};
+        function Map() {
+            this._keys = [];
+            this._values = [];
+            this._cache = cacheSentinel;
+        }
+        Map.prototype = {
+            get size() { 
+                return this._keys.length; 
+            },
+            has(key: any): boolean {
+                if (key === this._cache) {
+                    return true;
+                }
+                if (this._find(key) >= 0) {
+                    this._cache = key;
+                    return true;
+                }
+                return false;
+            },
+            get(key: any): any {
+                let index = this._find(key);
+                if (index > 0) {
+                    this._cache = key;
+                    return this._values[index];
+                }
+                return undefined;
+            },
+            set(key: any, value: any): Map<any, any> {
+                this.delete(key);
+                this._keys.push(key);
+                this._values.push(value);
+                this._cache = key;
+                return this;
+            },
+            delete(key: any): boolean {
+                let index = this._find(key);
+                if (index) {
+                    this._keys.splice(index, 1);
+                    this._values.splice(index, 1);
+                    this._cache = cacheSentinel;
+                    return true;
+                }
+                return false;
+            },
+            clear(): void {
+                this._keys.length = 0;
+                this._values.length = 0;
+                this._cache = cacheSentinel;
+            },
+            forEach(callback: (value: any, key: any, map: Map<any, any>) => void, thisArg?: any): void {
+                let size = this.size;
+                for (let i = 0; i < size; ++i) {
+                    let key = this._keys[i];
+                    let value = this._values[i];
+                    this._cache = key;
+                    callback.call(this, value, key, this);
+                }
+            },
+            _find(key: any): number {
+                for (let i = 0; i < this._keys.length; ++i) {
+                    if (this._keys[i] === key) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+        };
+        return <any>Map;
+    })();
+
+    // naive Set shim
+    const _Set: SetConstructor = typeof Set === "function" ? Set : (function() {
+        const cacheSentinel = {};
+        function Set() {
+            this._values = [];
+            this._cache = cacheSentinel;
+        }
+        Set.prototype = {
+            get size() { 
+                return this._values.length; 
+            },
+            has(value: any): boolean {
+                if (value === this._cache) {
+                    return true;
+                }
+                if (this._find(value) >= 0) {
+                    this._cache = value;
+                    return true;
+                }
+                return false;
+            },
+            add(value: any): Set<any> {
+                if (this._find(value) < 0) {
+                    this._values.push(value);
+                }
+                this._cache = value;
+                return this;
+            },
+            delete(value: any): boolean {
+                let index = this._find(value);
+                if (index >= 0) {
+                    this._values.splice(index, 1);
+                    this._cache = cacheSentinel;
+                    return true;
+                }
+                return false;
+            },
+            clear(): void {
+                this._values.length = 0;
+                this._cache = cacheSentinel;
+            },
+            forEach(callback: (value: any, key: any, set: Set<any>) => void, thisArg?: any): void {
+                for (let i = 0; i < this._values.length; ++i) {
+                    let value = this._values[i];
+                    this._cache = value;
+                    callback.call(thisArg, value, value, this);
+                }
+            },
+            _find(value: any): number {
+                for (let i = 0; i < this._values.length; ++i) {
+                    if (this._values[i] === value) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+        };
+        return <any>Set;
+    })();
+
+    // naive WeakMap shim
+    const _WeakMap: WeakMapConstructor = typeof WeakMap === "function" ? WeakMap : (function () {
+        let hasOwn = Object.prototype.hasOwnProperty;
+        let keys: { [key: string]: boolean; } = {};
+        let desc = { configurable: true, enumerable: false, writable: true };
+        function WeakMap() {
+            this.clear();
+        }
+        WeakMap.prototype = {
+            has(target: Object): boolean {
+                return hasOwn.call(target, this._key);
+            },
+            get(target: Object): any {
+                if (hasOwn.call(target, this._key)) {
+                    return (<any>target)[this._key];
+                }
+                return undefined;
+            },
+            set(target: Object, value: any): WeakMap<any, any> {
+                if (!hasOwn.call(target, this._key)) {
+                    Object.defineProperty(target, this._key, desc)
+                }
+                (<any>target)[this._key] = value;
+                return this;
+            },
+            delete(target: Object): boolean {
+                if (hasOwn.call(target, this._key)) {
+                    return delete (<any>target)[this._key];
+                }
+                return false;
+            },
+            clear(): void {
+                // NOTE: not a real clear, just makes the previous data unreachable
+                let key: string;
+                do key = "@@WeakMap@" + Math.random().toString(16).substr(2);
+                while (!hasOwn.call(keys, key));
+                keys[key] = true;
+                this._key = key;
+            }
+        }
+        return <any>WeakMap;
+    })();
+
+    const weakMetadata = new _WeakMap<Object, Map<string | symbol | number, Map<any, any>>>();
     const isMissing = (x: any) => x == null;
     const isNumber = (x: any) => typeof x === "number";
     const isPropertyKey = (x: any) => typeof x === "string" || typeof x === "symbol";
     const isFunction = (x: any) => typeof x === "function";
     const isObject = (x: any) => typeof x === "object" ? x !== null : typeof x === "function"
     const isArray = Array.isArray;
-
-    const getOwnPropertyDescriptorCore = Reflect.getOwnPropertyDescriptor;
-    const definePropertyCore = Reflect.defineProperty;
-    const getPrototypeOfCore = Reflect.getPrototypeOf;
+    const getOwnPropertyDescriptorCore: (target: Object, propertyKey: string | symbol) => PropertyDescriptor = (<any>Reflect).getOwnPropertyDescriptor || Object.getOwnPropertyDescriptor;
+    const definePropertyCore: (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => void = (<any>Reflect).defineProperty || Object.defineProperty;
+    const getPrototypeOfCore: (target: Object) => Object = (<any>Reflect).getPrototypeOf || Object.getPrototypeOf;
 
     /**
       * Applies a set of decorators to a target object.
@@ -77,7 +252,7 @@ module Reflect {
       *     Reflect.decorate(decoratorsArray, C.prototype, "method");
       *
       */
-    export function decorate(decorators: PropertyDecorator[], target: Object, targetKey: PropertyKey): void;
+    export function decorate(decorators: PropertyDecorator[], target: Object, targetKey: string | symbol): void;
 
     /**
       * Applies a set of decorators to a function parameter.
@@ -148,15 +323,17 @@ module Reflect {
       *     Reflect.decorate(decoratorsArray, C.prototype.method, 0);
       *
       */
-    export function decorate(decorators: Decorator[], target: Object, targetKeyOrIndex?: PropertyKey | number): any {
+    export function decorate(decorators: Decorator[], target: Object, targetKeyOrIndex?: string | symbol | number): any {
         if (!isArray(decorators)) {
             throw new TypeError();
         }
-
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
+        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return decorateCore(decorators, target, targetKeyOrIndex);
     }
 
@@ -224,12 +401,14 @@ module Reflect {
     export function metadata(metadataKey: any, metadataValue: any): Decorator {
         function decorator(target: Function): void;
         function decorator(target: Function, targetIndex: number): void;
-        function decorator(target: Object, targetKey: PropertyKey): void;
-        function decorator(target: Object, targetKeyOrIndex?: PropertyKey | number): void {
+        function decorator(target: Object, targetKey: string | symbol): void;
+        function decorator(target: Object, targetKeyOrIndex?: string | symbol | number): void {
             if (!isObject(target)) {
                 throw new TypeError();
             }
-
+            if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+                throw new TypeError();
+            }
             targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
             return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
         }
@@ -292,7 +471,7 @@ module Reflect {
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKey: PropertyKey): void;
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKey: string | symbol): void;
 
     /**
       * Define a unique metadata entry on the target.
@@ -373,15 +552,14 @@ module Reflect {
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKeyOrIndex?: PropertyKey | number): void {
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKeyOrIndex?: string | symbol | number): void {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
-        if (!isMissing(targetKeyOrIndex) && !isPropertyKey(targetKeyOrIndex) && !isNumber(targetKeyOrIndex)) {
-            targetKeyOrIndex = String(targetKeyOrIndex);
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
         }
-
+        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
     }
     
@@ -431,7 +609,7 @@ module Reflect {
       *     result = Reflect.hasMetadata("custom:annotation", C.prototype, "method");
       *
       */
-    export function hasMetadata(metadataKey: any, target: Object, targetKey: PropertyKey): boolean;
+    export function hasMetadata(metadataKey: any, target: Object, targetKey: string | symbol): boolean;
 
     /**
       * Gets a value indicating whether the target object or its prototype chain has the provided metadata key defined.
@@ -502,11 +680,13 @@ module Reflect {
       *     result = Reflect.hasMetadata("custom:annotation", C.prototype.method, 0);
       *
       */
-    export function hasMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: PropertyKey | number): boolean {
+    export function hasMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return hasMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
@@ -557,7 +737,7 @@ module Reflect {
       *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype, "method");
       *
       */
-    export function hasOwnMetadata(metadataKey: any, target: Object, targetKey: PropertyKey): boolean;
+    export function hasOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol): boolean;
 
     /**
       * Gets a value indicating whether the target object has the provided metadata key defined.
@@ -628,11 +808,13 @@ module Reflect {
       *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype.method, 0);
       *
       */
-    export function hasOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: PropertyKey | number): boolean {
+    export function hasOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
@@ -683,7 +865,7 @@ module Reflect {
       *     result = Reflect.getMetadata("custom:annotation", C.prototype, "method");
       *
       */
-    export function getMetadata(metadataKey: any, target: Object, targetKey: PropertyKey): any;
+    export function getMetadata(metadataKey: any, target: Object, targetKey: string | symbol): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
@@ -754,11 +936,13 @@ module Reflect {
       *     result = Reflect.getMetadata("custom:annotation", C.prototype.method, 0);
       *
       */
-    export function getMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: PropertyKey | number): any {
+    export function getMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): any {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return getMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
@@ -809,7 +993,7 @@ module Reflect {
       *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype, "method");
       *
       */
-    export function getOwnMetadata(metadataKey: any, target: Object, targetKey: PropertyKey): any;
+    export function getOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object.
@@ -880,13 +1064,15 @@ module Reflect {
       *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype.method, 0);
       *
       */
-    export function getOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: PropertyKey | number): any {
+    export function getOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): any {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getOwnMetadata(metadataKey, target, targetKeyOrIndex);
+        return getOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
 
     /**
@@ -933,7 +1119,7 @@ module Reflect {
       *     result = Reflect.getMetadataKeys(C.prototype, "method");
       *
       */
-    export function getMetadataKeys(target: Object, targetKey: PropertyKey): any[];
+    export function getMetadataKeys(target: Object, targetKey: string | symbol): any[];
 
     /**
       * Gets the metadata keys defined on the target object or its prototype chain.
@@ -1002,11 +1188,13 @@ module Reflect {
       *     result = Reflect.getMetadataKeys(C.prototype.method, 0);
       *
       */
-    export function getMetadataKeys(target: Object, targetKeyOrIndex?: PropertyKey | number): any[] {
+    export function getMetadataKeys(target: Object, targetKeyOrIndex?: string | symbol | number): any[] {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return getMetadataKeysCore(target, targetKeyOrIndex);
     }
@@ -1055,7 +1243,7 @@ module Reflect {
       *     result = Reflect.getOwnMetadataKeys(C.prototype, "method");
       *
       */
-    export function getOwnMetadataKeys(target: Object, targetKey: PropertyKey): any[];
+    export function getOwnMetadataKeys(target: Object, targetKey: string | symbol): any[];
 
     /**
       * Gets the unique metadata keys defined on the target object.
@@ -1124,11 +1312,13 @@ module Reflect {
       *     result = Reflect.getOwnMetadataKeys(C.prototype.method, 0);
       *
       */
-    export function getOwnMetadataKeys(target: Object, targetKeyOrIndex?: PropertyKey | number): any[] {
+    export function getOwnMetadataKeys(target: Object, targetKeyOrIndex?: string | symbol | number): any[] {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return getOwnMetadataKeysCore(target, targetKeyOrIndex);
     }
@@ -1179,7 +1369,7 @@ module Reflect {
       *     result = Reflect.deleteMetadata("custom:annotation", C.prototype, "method");
       *
       */
-    export function deleteMetadata(metadataKey: any, target: Object, targetKey: PropertyKey): boolean;
+    export function deleteMetadata(metadataKey: any, target: Object, targetKey: string | symbol): boolean;
 
     /**
       * Deletes the metadata entry from the target object with the provided key.
@@ -1250,11 +1440,13 @@ module Reflect {
       *     result = Reflect.deleteMetadata("custom:annotation", C.prototype.method, 0);
       *
       */
-    export function deleteMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: PropertyKey | number): boolean {
+    export function deleteMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return deleteMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
@@ -1273,15 +1465,13 @@ module Reflect {
         if (!isObject(target)) {
             throw new TypeError();
         }
-
         if (!isObject(source)) {
             throw new TypeError();
         }
-        
         return mergeMetadataCore<T>(target, source);
     }
 
-    function decorateCore(decorators: Decorator[], target: Object, targetKeyOrIndex?: PropertyKey | number): any {
+    function decorateCore(decorators: Decorator[], target: Object, targetKeyOrIndex?: string | symbol | number): any {
        if (isMissing(targetKeyOrIndex)) {
             return decorateConstructor(<ClassDecorator[]>decorators, <Function>target);            
         }
@@ -1304,7 +1494,7 @@ module Reflect {
         return target;
     }
 
-    function decorateProperty(decorators: PropertyDecorator[], target: Object, propertyKey: PropertyKey): void {
+    function decorateProperty(decorators: PropertyDecorator[], target: Object, propertyKey: string | symbol): void {
         let descriptor = getOwnPropertyDescriptorCore(target, propertyKey),
             enumerable: boolean,
             configurable: boolean,
@@ -1346,23 +1536,23 @@ module Reflect {
         }
     }
      
-    function defineMetadataCore(metadataKey: any, metadataValue: any, target: Object, targetKeyOrIndex: PropertyKey | number): void {
+    function defineMetadataCore(metadataKey: any, metadataValue: any, target: Object, targetKeyOrIndex: string | symbol | number): void {
         let targetMetadata = weakMetadata.get(target);
         if (!targetMetadata) {
-            targetMetadata = new Map<PropertyKey | number, Map<any, any>>();
+            targetMetadata = new _Map<string | symbol | number, Map<any, any>>();
             weakMetadata.set(target, targetMetadata);
         }
 
         let keyMetadata = targetMetadata.get(targetKeyOrIndex);
         if (!keyMetadata) {
-          keyMetadata = new Map<any, any>();
+          keyMetadata = new _Map<any, any>();
           targetMetadata.set(targetKeyOrIndex, keyMetadata);
         }
 
         keyMetadata.set(metadataKey, metadata);
     }
 
-    function hasMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: PropertyKey | number): boolean {
+    function hasMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): boolean {
         while (target) {
             if (hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex)) {
                 return true;
@@ -1372,7 +1562,7 @@ module Reflect {
         return false;
     }
 
-    function hasOwnMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: PropertyKey | number): boolean {
+    function hasOwnMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): boolean {
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
             let keyMetadata = targetMetadata.get(targetKeyOrIndex);
@@ -1383,7 +1573,7 @@ module Reflect {
         return false;
     }
 
-    function getMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: PropertyKey | number): any {
+    function getMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): any {
         while (target) {
             if (hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex)) {
                 return getOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
@@ -1393,7 +1583,7 @@ module Reflect {
         return undefined;
     }
 
-    function getOwnMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: PropertyKey | number): any {
+    function getOwnMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): any {
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
             let keyMetadata = targetMetadata.get(targetKeyOrIndex);
@@ -1404,8 +1594,8 @@ module Reflect {
         return undefined;
     }
 
-    function getMetadataKeysCore(target: Object, targetKeyOrIndex: PropertyKey | number): any[] {
-        let keySet = new Set<any>();
+    function getMetadataKeysCore(target: Object, targetKeyOrIndex: string | symbol | number): any[] {
+        let keySet = new _Set<any>();
         let keys: any[] = [];
         while (target) {
             for (let key of getOwnMetadataKeysCore(target, targetKeyOrIndex)) {
@@ -1419,7 +1609,7 @@ module Reflect {
         return keys;
     }
 
-    function getOwnMetadataKeysCore(target: Object, targetKeyOrIndex: PropertyKey | number): any[] {
+    function getOwnMetadataKeysCore(target: Object, targetKeyOrIndex: string | symbol | number): any[] {
         let result: any[] = [];
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
@@ -1431,7 +1621,7 @@ module Reflect {
         return result;
     }
 
-    function deleteMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: PropertyKey | number): boolean {
+    function deleteMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): boolean {
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
             let keyMetadata = targetMetadata.get(targetKeyOrIndex);
@@ -1454,22 +1644,19 @@ module Reflect {
         if (source === target) {
             return target;
         }
-
         let sourceMetadata = weakMetadata.get(source);
         if (!sourceMetadata) {
             return target;
         }
-
         let targetMetadata = weakMetadata.get(target);
         if (!targetMetadata) {
-            targetMetadata = new Map<PropertyKey | number, Map<any, any>>();
+            targetMetadata = new _Map<string | symbol | number, Map<any, any>>();
             weakMetadata.set(target, targetMetadata);
         }
-
         sourceMetadata.forEach((sourceKeyMetadata, key) => {
             let targetKeyMetadata = targetMetadata.get(key);
             if (!targetKeyMetadata) {
-                targetKeyMetadata = new Map<any, any>();
+                targetKeyMetadata = new _Map<any, any>();
                 targetMetadata.set(key, targetKeyMetadata);
             }
             sourceKeyMetadata.forEach((metadataValue, metadataKey) => {
@@ -1478,21 +1665,39 @@ module Reflect {
                 }
             });
         });
-
         return target;
     }
 
-    function toPropertyKey(value: any): PropertyKey {
+    function toPropertyKey(value: any): string | symbol {
         if (!isPropertyKey(value)) {
             return String(value);
         }
         return value;
     }
 
-    function toTargetKeyOrIndex(value: any): PropertyKey | number {
+    function toTargetKeyOrIndex(value: any): string | symbol | number {
         if (!isMissing(value) && !isNumber(value)) {
             return toPropertyKey(value);
         }
         return value;
     }
 }
+
+// hook global Reflect
+declare var global: any;
+declare var WorkerGlobalScope: any;
+(function(__global: any) {
+    if (typeof __global.Reflect !== "undefined") {
+        if (__global.Reflect !== Reflect) {
+            for (var p in Reflect) {
+                __global.Reflect[p] = (<any>Reflect)[p];
+            }
+        }
+    }
+    else {
+        __global.Reflect = Reflect;
+    }
+})(typeof window !== "undefined" ? window :
+    typeof WorkerGlobalScope !== "undefined" ? self :
+    typeof global !== "undefined" ? global :
+    Function("return this;")());

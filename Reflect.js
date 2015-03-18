@@ -1,7 +1,198 @@
+/*! *****************************************************************************
+Copyright (C) Microsoft. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and
+limitations under the License.
+***************************************************************************** */
 "use strict";
 var Reflect;
 (function (Reflect) {
-    var weakMetadata = new WeakMap();
+    // naive Map shim
+    var _Map = typeof Map === "function" ? Map : (function () {
+        var cacheSentinel = {};
+        function Map() {
+            this._keys = [];
+            this._values = [];
+            this._cache = cacheSentinel;
+        }
+        Map.prototype = {
+            get size() {
+                return this._keys.length;
+            },
+            has: function (key) {
+                if (key === this._cache) {
+                    return true;
+                }
+                if (this._find(key) >= 0) {
+                    this._cache = key;
+                    return true;
+                }
+                return false;
+            },
+            get: function (key) {
+                var index = this._find(key);
+                if (index > 0) {
+                    this._cache = key;
+                    return this._values[index];
+                }
+                return undefined;
+            },
+            set: function (key, value) {
+                this.delete(key);
+                this._keys.push(key);
+                this._values.push(value);
+                this._cache = key;
+                return this;
+            },
+            delete: function (key) {
+                var index = this._find(key);
+                if (index) {
+                    this._keys.splice(index, 1);
+                    this._values.splice(index, 1);
+                    this._cache = cacheSentinel;
+                    return true;
+                }
+                return false;
+            },
+            clear: function () {
+                this._keys.length = 0;
+                this._values.length = 0;
+                this._cache = cacheSentinel;
+            },
+            forEach: function (callback, thisArg) {
+                var size = this.size;
+                for (var i = 0; i < size; ++i) {
+                    var key = this._keys[i];
+                    var value = this._values[i];
+                    this._cache = key;
+                    callback.call(this, value, key, this);
+                }
+            },
+            _find: function (key) {
+                for (var i = 0; i < this._keys.length; ++i) {
+                    if (this._keys[i] === key) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+        };
+        return Map;
+    })();
+    // naive Set shim
+    var _Set = typeof Set === "function" ? Set : (function () {
+        var cacheSentinel = {};
+        function Set() {
+            this._values = [];
+            this._cache = cacheSentinel;
+        }
+        Set.prototype = {
+            get size() {
+                return this._values.length;
+            },
+            has: function (value) {
+                if (value === this._cache) {
+                    return true;
+                }
+                if (this._find(value) >= 0) {
+                    this._cache = value;
+                    return true;
+                }
+                return false;
+            },
+            add: function (value) {
+                if (this._find(value) < 0) {
+                    this._values.push(value);
+                }
+                this._cache = value;
+                return this;
+            },
+            delete: function (value) {
+                var index = this._find(value);
+                if (index >= 0) {
+                    this._values.splice(index, 1);
+                    this._cache = cacheSentinel;
+                    return true;
+                }
+                return false;
+            },
+            clear: function () {
+                this._values.length = 0;
+                this._cache = cacheSentinel;
+            },
+            forEach: function (callback, thisArg) {
+                for (var i = 0; i < this._values.length; ++i) {
+                    var value = this._values[i];
+                    this._cache = value;
+                    callback.call(thisArg, value, value, this);
+                }
+            },
+            _find: function (value) {
+                for (var i = 0; i < this._values.length; ++i) {
+                    if (this._values[i] === value) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+        };
+        return Set;
+    })();
+    // naive WeakMap shim
+    var _WeakMap = typeof WeakMap === "function" ? WeakMap : (function () {
+        var hasOwn = Object.prototype.hasOwnProperty;
+        var keys = {};
+        var desc = {
+            configurable: true,
+            enumerable: false,
+            writable: true
+        };
+        function WeakMap() {
+            this.clear();
+        }
+        WeakMap.prototype = {
+            has: function (target) {
+                return hasOwn.call(target, this._key);
+            },
+            get: function (target) {
+                if (hasOwn.call(target, this._key)) {
+                    return target[this._key];
+                }
+                return undefined;
+            },
+            set: function (target, value) {
+                if (!hasOwn.call(target, this._key)) {
+                    Object.defineProperty(target, this._key, desc);
+                }
+                target[this._key] = value;
+                return this;
+            },
+            delete: function (target) {
+                if (hasOwn.call(target, this._key)) {
+                    return delete target[this._key];
+                }
+                return false;
+            },
+            clear: function () {
+                // NOTE: not a real clear, just makes the previous data unreachable
+                var key;
+                do
+                    key = "@@WeakMap@" + Math.random().toString(16).substr(2);
+                while (!hasOwn.call(keys, key));
+                keys[key] = true;
+                this._key = key;
+            }
+        };
+        return WeakMap;
+    })();
+    var weakMetadata = new _WeakMap();
     var isMissing = function (x) {
         return x == null;
     };
@@ -18,9 +209,9 @@ var Reflect;
         return typeof x === "object" ? x !== null : typeof x === "function";
     };
     var isArray = Array.isArray;
-    var getOwnPropertyDescriptorCore = Reflect.getOwnPropertyDescriptor;
-    var definePropertyCore = Reflect.defineProperty;
-    var getPrototypeOfCore = Reflect.getPrototypeOf;
+    var getOwnPropertyDescriptorCore = Reflect.getOwnPropertyDescriptor || Object.getOwnPropertyDescriptor;
+    var definePropertyCore = Reflect.defineProperty || Object.defineProperty;
+    var getPrototypeOfCore = Reflect.getPrototypeOf || Object.getPrototypeOf;
     /**
       * Applies a set of decorators to a property of a target object.
       * @param decorators An array of decorators.
@@ -69,6 +260,9 @@ var Reflect;
             throw new TypeError();
         }
         if (!isObject(target)) {
+            throw new TypeError();
+        }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
             throw new TypeError();
         }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
@@ -141,6 +335,9 @@ var Reflect;
             if (!isObject(target)) {
                 throw new TypeError();
             }
+            if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+                throw new TypeError();
+            }
             targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
             return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
         }
@@ -199,9 +396,10 @@ var Reflect;
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (!isMissing(targetKeyOrIndex) && !isPropertyKey(targetKeyOrIndex) && !isNumber(targetKeyOrIndex)) {
-            targetKeyOrIndex = String(targetKeyOrIndex);
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
         }
+        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
     }
     Reflect.defineMetadata = defineMetadata;
@@ -250,6 +448,9 @@ var Reflect;
       */
     function hasMetadata(metadataKey, target, targetKeyOrIndex) {
         if (!isObject(target)) {
+            throw new TypeError();
+        }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
             throw new TypeError();
         }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
@@ -303,6 +504,9 @@ var Reflect;
         if (!isObject(target)) {
             throw new TypeError();
         }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
@@ -352,6 +556,9 @@ var Reflect;
       */
     function getMetadata(metadataKey, target, targetKeyOrIndex) {
         if (!isObject(target)) {
+            throw new TypeError();
+        }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
             throw new TypeError();
         }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
@@ -405,8 +612,11 @@ var Reflect;
         if (!isObject(target)) {
             throw new TypeError();
         }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getOwnMetadata(metadataKey, target, targetKeyOrIndex);
+        return getOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
     Reflect.getOwnMetadata = getOwnMetadata;
     /**
@@ -453,6 +663,9 @@ var Reflect;
       */
     function getMetadataKeys(target, targetKeyOrIndex) {
         if (!isObject(target)) {
+            throw new TypeError();
+        }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
             throw new TypeError();
         }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
@@ -503,6 +716,9 @@ var Reflect;
       */
     function getOwnMetadataKeys(target, targetKeyOrIndex) {
         if (!isObject(target)) {
+            throw new TypeError();
+        }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
             throw new TypeError();
         }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
@@ -556,6 +772,9 @@ var Reflect;
         if (!isObject(target)) {
             throw new TypeError();
         }
+        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            throw new TypeError();
+        }
         targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
         return deleteMetadataCore(metadataKey, target, targetKeyOrIndex);
     }
@@ -587,10 +806,9 @@ var Reflect;
         else if (isNumber(targetKeyOrIndex)) {
             return decorateParameter(decorators, target, targetKeyOrIndex);
         }
-        else if (!isPropertyKey(targetKeyOrIndex)) {
-            targetKeyOrIndex = String(targetKeyOrIndex);
+        else {
+            return decorateProperty(decorators, target, toPropertyKey(targetKeyOrIndex));
         }
-        return decorateProperty(decorators, target, targetKeyOrIndex);
     }
     function decorateConstructor(decorators, target) {
         for (var i = decorators.length - 1; i >= 0; --i) {
@@ -636,12 +854,12 @@ var Reflect;
     function defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex) {
         var targetMetadata = weakMetadata.get(target);
         if (!targetMetadata) {
-            targetMetadata = new Map();
+            targetMetadata = new _Map();
             weakMetadata.set(target, targetMetadata);
         }
         var keyMetadata = targetMetadata.get(targetKeyOrIndex);
         if (!keyMetadata) {
-            keyMetadata = new Map();
+            keyMetadata = new _Map();
             targetMetadata.set(targetKeyOrIndex, keyMetadata);
         }
         keyMetadata.set(metadataKey, metadata);
@@ -685,7 +903,7 @@ var Reflect;
         return undefined;
     }
     function getMetadataKeysCore(target, targetKeyOrIndex) {
-        var keySet = new Set();
+        var keySet = new _Set();
         var keys = [];
         while (target) {
             for (var _i = 0, _a = getOwnMetadataKeysCore(target, targetKeyOrIndex); _i < _a.length; _i++) {
@@ -740,13 +958,13 @@ var Reflect;
         }
         var targetMetadata = weakMetadata.get(target);
         if (!targetMetadata) {
-            targetMetadata = new Map();
+            targetMetadata = new _Map();
             weakMetadata.set(target, targetMetadata);
         }
         sourceMetadata.forEach(function (sourceKeyMetadata, key) {
             var targetKeyMetadata = targetMetadata.get(key);
             if (!targetKeyMetadata) {
-                targetKeyMetadata = new Map();
+                targetKeyMetadata = new _Map();
                 targetMetadata.set(key, targetKeyMetadata);
             }
             sourceKeyMetadata.forEach(function (metadataValue, metadataKey) {
@@ -757,11 +975,29 @@ var Reflect;
         });
         return target;
     }
-    function toTargetKeyOrIndex(value) {
-        if (!isMissing(value) && !isPropertyKey(value) && !isNumber(value)) {
+    function toPropertyKey(value) {
+        if (!isPropertyKey(value)) {
             return String(value);
         }
         return value;
     }
+    function toTargetKeyOrIndex(value) {
+        if (!isMissing(value) && !isNumber(value)) {
+            return toPropertyKey(value);
+        }
+        return value;
+    }
 })(Reflect || (Reflect = {}));
+(function (__global) {
+    if (typeof __global.Reflect !== "undefined") {
+        if (__global.Reflect !== Reflect) {
+            for (var p in Reflect) {
+                __global.Reflect[p] = Reflect[p];
+            }
+        }
+    }
+    else {
+        __global.Reflect = Reflect;
+    }
+})(typeof window !== "undefined" ? window : typeof WorkerGlobalScope !== "undefined" ? self : typeof global !== "undefined" ? global : Function("return this;")());
 //# sourceMappingURL=Reflect.js.map
