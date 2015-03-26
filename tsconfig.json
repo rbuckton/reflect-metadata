@@ -5,7 +5,6 @@
     "sourceMap": true
   },
   "files": [
-    "lib.es6.d.ts",
     "Reflect.ts"
   ]
 }

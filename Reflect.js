@@ -240,33 +240,40 @@ var Reflect;
       *     Reflect.decorate(decoratorsArray, C.prototype, "property");
       *
       *     // method (on constructor)
-      *     Reflect.decorate(decoratorsArray, C, "staticMethod");
+      *     Object.defineProperty(C, "staticMethod",
+      *         Reflect.decorate(decoratorsArray, C, "staticMethod",
+      *             Object.getOwnPropertyDescriptor(C, "staticMethod")));
       *
       *     // method (on prototype)
-      *     Reflect.decorate(decoratorsArray, C.prototype, "method");
+      *     Object.defineProperty(C.prototype, "method",
+      *         Reflect.decorate(decoratorsArray, C.prototype, "method",
+      *             Object.getOwnPropertyDescriptor(C.prototype, "method")));
       *
       *     // parameter (on constructor)
-      *     Reflect.decorate(decoratorsArray, C, 0);
+      *     Reflect.decorate(decoratorsArray, C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     Reflect.decorate(decoratorsArray, C.staticMethod, 0);
+      *     Reflect.decorate(decoratorsArray, C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     Reflect.decorate(decoratorsArray, C.prototype.method, 0);
+      *     Reflect.decorate(decoratorsArray, C.prototype, "method", 0);
       *
       */
-    function decorate(decorators, target, targetKeyOrIndex) {
+    function decorate(decorators, target, targetKey, targetIndexOrDescriptor) {
         if (!isArray(decorators)) {
             throw new TypeError();
         }
-        if (!isObject(target)) {
+        else if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndexOrDescriptor) && !isNumber(targetIndexOrDescriptor) && !isObject(targetIndexOrDescriptor)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return decorateCore(decorators, target, targetKeyOrIndex);
+        else if (isMissing(targetKey) && isMissing(targetIndexOrDescriptor) && !isFunction(target)) {
+            throw new TypeError();
+        }
+        targetKey = toPropertyKey(targetKey);
+        return decorateCore(decorators, target, targetKey, targetIndexOrDescriptor);
     }
     Reflect.decorate = decorate;
     /**
@@ -331,15 +338,18 @@ var Reflect;
       *
       */
     function metadata(metadataKey, metadataValue) {
-        function decorator(target, targetKeyOrIndex) {
+        function decorator(target, targetKey, targetIndex) {
             if (!isObject(target)) {
                 throw new TypeError();
             }
-            if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
                 throw new TypeError();
             }
-            targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-            return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
+            else if (isMissing(targetKey) && isMissing(targetIndex) && !isFunction(target)) {
+                throw new TypeError();
+            }
+            targetKey = toPropertyKey(targetKey);
+            return defineMetadataCore(metadataKey, metadataValue, target, targetKey, targetIndex);
         }
         return decorator;
     }
@@ -349,7 +359,8 @@ var Reflect;
       * @param metadataKey A key used to store and retrieve metadata.
       * @param metadataValue A value that contains attached metadata.
       * @param target The target object on which to define metadata.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index for the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @example
       *
       *     class C {
@@ -378,36 +389,40 @@ var Reflect;
       *     Reflect.defineMetadata("custom:annotation", options, C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     Reflect.defineMetadata("custom:annotation", options, C, 0);
+      *     Reflect.defineMetadata("custom:annotation", options, C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     Reflect.defineMetadata("custom:annotation", options, C.staticMethod, 0);
+      *     Reflect.defineMetadata("custom:annotation", options, C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     Reflect.defineMetadata("custom:annotation", options, C.prototype.method, 0);
+      *     Reflect.defineMetadata("custom:annotation", options, C.prototype, "method", 0);
       *
       *     // decorator factory as metadata-producing annotation.
       *     function MyAnnotation(options): Decorator {
-      *         return (target, keyOrIndex?) => Reflect.defineMetadata("custom:annotation", options, target, keyOrIndex);
+      *         return (target, key?, index?) => Reflect.defineMetadata("custom:annotation", options, target, key, typeof index === "number" ? index : undefined);
       *     }
       *
       */
-    function defineMetadata(metadataKey, metadataValue, target, targetKeyOrIndex) {
+    function defineMetadata(metadataKey, metadataValue, target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
+        else if (isMissing(targetIndex) && isMissing(targetKey) && !isFunction(target)) {
+            throw new TypeError();
+        }
+        targetKey = toPropertyKey(targetKey);
+        return defineMetadataCore(metadataKey, metadataValue, target, targetKey, targetIndex);
     }
     Reflect.defineMetadata = defineMetadata;
     /**
       * Gets a value indicating whether the target object or its prototype chain has the provided metadata key defined.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns `true` if the metadata key was defined on the target object or its prototype chain; otherwise, `false`.
       * @example
       *
@@ -437,31 +452,32 @@ var Reflect;
       *     result = Reflect.hasMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.hasMetadata("custom:annotation", C, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.hasMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.hasMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    function hasMetadata(metadataKey, target, targetKeyOrIndex) {
+    function hasMetadata(metadataKey, target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return hasMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return hasMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
     Reflect.hasMetadata = hasMetadata;
     /**
       * Gets a value indicating whether the target object has the provided metadata key defined.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns `true` if the metadata key was defined on the target object; otherwise, `false`.
       * @example
       *
@@ -491,31 +507,32 @@ var Reflect;
       *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    function hasOwnMetadata(metadataKey, target, targetKeyOrIndex) {
+    function hasOwnMetadata(metadataKey, target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return hasOwnMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
     Reflect.hasOwnMetadata = hasOwnMetadata;
     /**
       * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index for the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
       * @example
       *
@@ -545,31 +562,32 @@ var Reflect;
       *     result = Reflect.getMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getMetadata("custom:annotation", C, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    function getMetadata(metadataKey, target, targetKeyOrIndex) {
+    function getMetadata(metadataKey, target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
     Reflect.getMetadata = getMetadata;
     /**
       * Gets the metadata value for the provided metadata key on the target object.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index for the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
       * @example
       *
@@ -599,30 +617,31 @@ var Reflect;
       *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    function getOwnMetadata(metadataKey, target, targetKeyOrIndex) {
+    function getOwnMetadata(metadataKey, target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getOwnMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
     Reflect.getOwnMetadata = getOwnMetadata;
     /**
       * Gets the metadata keys defined on the target object or its prototype chain.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns An array of unique metadata keys.
       * @example
       *
@@ -652,30 +671,31 @@ var Reflect;
       *     result = Reflect.getMetadataKeys(C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getMetadataKeys(C, 0);
+      *     result = Reflect.getMetadataKeys(C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getMetadataKeys(C.staticMethod, 0);
+      *     result = Reflect.getMetadataKeys(C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getMetadataKeys(C.prototype.method, 0);
+      *     result = Reflect.getMetadataKeys(C.prototype, "method", 0);
       *
       */
-    function getMetadataKeys(target, targetKeyOrIndex) {
+    function getMetadataKeys(target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getMetadataKeysCore(target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getMetadataKeysCore(target, targetKey, targetIndex);
     }
     Reflect.getMetadataKeys = getMetadataKeys;
     /**
       * Gets the unique metadata keys defined on the target object.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns An array of unique metadata keys.
       * @example
       *
@@ -705,31 +725,32 @@ var Reflect;
       *     result = Reflect.getOwnMetadataKeys(C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getOwnMetadataKeys(C, 0);
+      *     result = Reflect.getOwnMetadataKeys(C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getOwnMetadataKeys(C.staticMethod, 0);
+      *     result = Reflect.getOwnMetadataKeys(C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getOwnMetadataKeys(C.prototype.method, 0);
+      *     result = Reflect.getOwnMetadataKeys(C.prototype, "method", 0);
       *
       */
-    function getOwnMetadataKeys(target, targetKeyOrIndex) {
+    function getOwnMetadataKeys(target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getOwnMetadataKeysCore(target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getOwnMetadataKeysCore(target, targetKey, targetIndex);
     }
     Reflect.getOwnMetadataKeys = getOwnMetadataKeys;
     /**
       * Deletes the metadata entry from the target object with the provided key.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns `true` if the metadata entry was found and deleted; otherwise, false.
       * @example
       *
@@ -759,55 +780,35 @@ var Reflect;
       *     result = Reflect.deleteMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.deleteMetadata("custom:annotation", C, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.deleteMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.deleteMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    function deleteMetadata(metadataKey, target, targetKeyOrIndex) {
+    function deleteMetadata(metadataKey, target, targetKey, targetIndex) {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return deleteMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return deleteMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
     Reflect.deleteMetadata = deleteMetadata;
-    /**
-      * Merges unique metadata from a source Object into a target Object, returning the target.
-      * @param target The target object.
-      * @param source The source object.
-      * @returns The target object.
-      * @example
-      *
-      *     result = Reflect.mergeMetadata(target, source);
-      *
-      */
-    function mergeMetadata(target, source) {
-        if (!isObject(target)) {
-            throw new TypeError();
+    function decorateCore(decorators, target, targetKey, targetIndexOrDescriptor) {
+        if (isNumber(targetIndexOrDescriptor)) {
+            return decorateParameter(decorators, target, targetKey, targetIndexOrDescriptor);
         }
-        if (!isObject(source)) {
-            throw new TypeError();
-        }
-        return mergeMetadataCore(target, source);
-    }
-    Reflect.mergeMetadata = mergeMetadata;
-    function decorateCore(decorators, target, targetKeyOrIndex) {
-        if (isMissing(targetKeyOrIndex)) {
-            return decorateConstructor(decorators, target);
-        }
-        else if (isNumber(targetKeyOrIndex)) {
-            return decorateParameter(decorators, target, targetKeyOrIndex);
+        else if (isPropertyKey(targetKey)) {
+            return decorateProperty(decorators, target, targetKey, targetIndexOrDescriptor);
         }
         else {
-            return decorateProperty(decorators, target, toPropertyKey(targetKeyOrIndex));
+            return decorateConstructor(decorators, target);
         }
     }
     function decorateConstructor(decorators, target) {
@@ -815,98 +816,131 @@ var Reflect;
             var decorator = decorators[i];
             var decorated = decorator(target);
             if (decorated != null) {
-                target = mergeMetadataCore(decorated, target);
+                if (!isFunction(decorated)) {
+                    throw new TypeError();
+                }
+                target = decorated;
             }
         }
         return target;
     }
-    function decorateProperty(decorators, target, propertyKey) {
-        var descriptor = getOwnPropertyDescriptorCore(target, propertyKey), enumerable, configurable, writable, value, _get, _set;
-        if (descriptor) {
-            (enumerable = descriptor.enumerable, configurable = descriptor.configurable, writable = descriptor.writable, value = descriptor.value, _get = descriptor._get, _set = descriptor._set, descriptor);
-        }
-        else {
-            enumerable = true;
-            configurable = true;
-            writable = true;
-            descriptor = {
-                enumerable: enumerable,
-                configurable: configurable,
-                writable: writable,
-                value: value
-            };
-        }
+    function decorateProperty(decorators, target, propertyKey, descriptor) {
         for (var i = decorators.length - 1; i >= 0; --i) {
             var decorator = decorators[i];
             var decorated = decorator(target, propertyKey, descriptor);
-            descriptor = decorated != null ? decorated : descriptor;
+            if (descriptor != null && decorated != null) {
+                if (!isObject(decorated)) {
+                    throw new TypeError();
+                }
+                descriptor = decorated;
+            }
         }
-        if (enumerable !== descriptor.enumerable || configurable !== descriptor.configurable || writable !== descriptor.writable || value !== descriptor.value || _get !== descriptor.get || _set !== descriptor.set) {
-            definePropertyCore(target, propertyKey, descriptor);
-        }
+        return descriptor;
     }
-    function decorateParameter(decorators, target, paramIndex) {
+    function decorateParameter(decorators, target, propertyKey, paramIndex) {
         for (var i = decorators.length - 1; i >= 0; --i) {
             var decorator = decorators[i];
-            decorator(target, paramIndex);
+            decorator(target, propertyKey, paramIndex);
         }
     }
-    function defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex) {
+    function defineMetadataCore(metadataKey, metadataValue, target, targetKey, targetIndex) {
         var targetMetadata = weakMetadata.get(target);
         if (!targetMetadata) {
             targetMetadata = new _Map();
             weakMetadata.set(target, targetMetadata);
         }
-        var keyMetadata = targetMetadata.get(targetKeyOrIndex);
+        var keyMetadata = targetMetadata.get(targetKey);
         if (!keyMetadata) {
-            keyMetadata = new _Map();
-            targetMetadata.set(targetKeyOrIndex, keyMetadata);
+            keyMetadata = {};
+            targetMetadata.set(targetKey, keyMetadata);
         }
-        keyMetadata.set(metadataKey, metadata);
+        var metadataMap;
+        if (isMissing(targetIndex)) {
+            metadataMap = keyMetadata.metadata;
+            if (!metadataMap) {
+                metadataMap = new Map();
+                keyMetadata.metadata = metadataMap;
+            }
+        }
+        else {
+            var params = keyMetadata.params;
+            if (!params) {
+                params = new Map();
+                keyMetadata.params = params;
+            }
+            metadataMap = params.get(targetIndex);
+            if (!metadataMap) {
+                metadataMap = new Map();
+                params.set(targetIndex, metadataMap);
+            }
+        }
+        metadataMap.set(metadataKey, metadataValue);
     }
-    function hasMetadataCore(metadataKey, target, targetKeyOrIndex) {
+    function hasMetadataCore(metadataKey, target, targetKey, targetIndex) {
         while (target) {
-            if (hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex)) {
+            if (hasOwnMetadataCore(metadataKey, target, targetKey, targetIndex)) {
                 return true;
             }
             target = getPrototypeOfCore(target);
         }
         return false;
     }
-    function hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex) {
+    function hasOwnMetadataCore(metadataKey, target, targetKey, targetIndex) {
         var targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            var keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            var keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                return keyMetadata.has(metadataKey);
+                var metadataMap;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                }
+                else {
+                    if (keyMetadata.params) {
+                        metadataMap = keyMetadata.params.get(targetIndex);
+                    }
+                }
+                if (metadataMap) {
+                    return metadataMap.has(metadataKey);
+                }
             }
         }
         return false;
     }
-    function getMetadataCore(metadataKey, target, targetKeyOrIndex) {
+    function getMetadataCore(metadataKey, target, targetKey, targetIndex) {
         while (target) {
-            if (hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex)) {
-                return getOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
+            if (hasOwnMetadataCore(metadataKey, target, targetKey, targetIndex)) {
+                return getOwnMetadataCore(metadataKey, target, targetKey, targetIndex);
             }
             target = getPrototypeOfCore(target);
         }
         return undefined;
     }
-    function getOwnMetadataCore(metadataKey, target, targetKeyOrIndex) {
+    function getOwnMetadataCore(metadataKey, target, targetKey, targetIndex) {
         var targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            var keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            var keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                return keyMetadata.get(metadataKey);
+                var metadataMap;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                }
+                else {
+                    if (keyMetadata.params) {
+                        metadataMap = keyMetadata.params.get(targetIndex);
+                    }
+                }
+                if (metadataMap) {
+                    return metadataMap.get(metadataKey);
+                }
             }
         }
         return undefined;
     }
-    function getMetadataKeysCore(target, targetKeyOrIndex) {
+    function getMetadataKeysCore(target, targetKey, targetIndex) {
         var keySet = new _Set();
         var keys = [];
         while (target) {
-            for (var _i = 0, _a = getOwnMetadataKeysCore(target, targetKeyOrIndex); _i < _a.length; _i++) {
+            for (var _i = 0, _a = getOwnMetadataKeysCore(target, targetKey, targetIndex); _i < _a.length; _i++) {
                 var key = _a[_i];
                 if (!keySet.has(key)) {
                     keySet.add(key);
@@ -917,73 +951,74 @@ var Reflect;
         }
         return keys;
     }
-    function getOwnMetadataKeysCore(target, targetKeyOrIndex) {
+    function getOwnMetadataKeysCore(target, targetKey, targetIndex) {
         var result = [];
         var targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            var keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            var keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                keyMetadata.forEach(function (_, key) {
-                    return result.push(key);
-                });
+                var metadataMap;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                }
+                else {
+                    if (keyMetadata.params) {
+                        metadataMap = keyMetadata.params.get(targetIndex);
+                    }
+                }
+                if (metadataMap) {
+                    metadataMap.forEach(function (_, key) {
+                        return result.push(key);
+                    });
+                }
             }
         }
         return result;
     }
-    function deleteMetadataCore(metadataKey, target, targetKeyOrIndex) {
+    function deleteMetadataCore(metadataKey, target, targetKey, targetIndex) {
+        var result = false;
         var targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            var keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            var keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                if (keyMetadata.delete(metadataKey)) {
-                    if (keyMetadata.size === 0) {
-                        targetMetadata.delete(targetKeyOrIndex);
-                        if (targetMetadata.size === 0) {
-                            weakMetadata.delete(target);
+                var metadataMap;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                    if (metadataMap) {
+                        result = metadataMap.delete(metadataKey);
+                        if (metadataMap.size === 0) {
+                            delete keyMetadata.metadata;
                         }
                     }
-                    return true;
+                }
+                else {
+                    var params = keyMetadata.params;
+                    if (params) {
+                        metadataMap = params.get(targetIndex);
+                        if (metadataMap) {
+                            result = metadataMap.delete(metadataKey);
+                            if (metadataMap.size === 0) {
+                                params.delete(targetIndex);
+                            }
+                        }
+                        if (params.size === 0) {
+                            delete keyMetadata.params;
+                        }
+                    }
+                }
+                if (!keyMetadata.metadata && !keyMetadata.params) {
+                    targetMetadata.delete(targetKey);
                 }
             }
-        }
-        return false;
-    }
-    function mergeMetadataCore(target, source) {
-        if (source === target) {
-            return target;
-        }
-        var sourceMetadata = weakMetadata.get(source);
-        if (!sourceMetadata) {
-            return target;
-        }
-        var targetMetadata = weakMetadata.get(target);
-        if (!targetMetadata) {
-            targetMetadata = new _Map();
-            weakMetadata.set(target, targetMetadata);
-        }
-        sourceMetadata.forEach(function (sourceKeyMetadata, key) {
-            var targetKeyMetadata = targetMetadata.get(key);
-            if (!targetKeyMetadata) {
-                targetKeyMetadata = new _Map();
-                targetMetadata.set(key, targetKeyMetadata);
+            if (targetMetadata.size === 0) {
+                weakMetadata.delete(target);
             }
-            sourceKeyMetadata.forEach(function (metadataValue, metadataKey) {
-                if (!targetKeyMetadata.has(metadataKey)) {
-                    targetKeyMetadata.set(metadataKey, metadataValue);
-                }
-            });
-        });
-        return target;
+        }
+        return result;
     }
     function toPropertyKey(value) {
         if (!isPropertyKey(value)) {
             return String(value);
-        }
-        return value;
-    }
-    function toTargetKeyOrIndex(value) {
-        if (!isMissing(value) && !isNumber(value)) {
-            return toPropertyKey(value);
         }
         return value;
     }

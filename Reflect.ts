@@ -13,17 +13,22 @@ limitations under the License.
 ***************************************************************************** */
 "use strict";
 
-type ClassDecorator = (target: Function) => Function | void;
-type ParameterDecorator = (target: Function, paramIndex: number) => Function | void;
-type PropertyDecorator = (target: Object, propertyKey: string | symbol, descriptor?: PropertyDescriptor) => PropertyDescriptor | void;
-type Decorator = ClassDecorator | ParameterDecorator | PropertyDecorator;
+type ClassMemberDecorator = MethodDecorator | PropertyDecorator;
+type Decorator = ClassDecorator | ClassMemberDecorator | ParameterDecorator;
 
 module Reflect {
+    interface MetadataEntry {
+        metadata?: Map<any, any>;
+        params?: Map<number, Map<any, any>>;
+    }
+
     // naive Map shim
-    const _Map: MapConstructor = typeof Map === "function" ? Map : (function () {
+    const _Map: typeof Map = typeof Map === "function" ? Map : (function () {
         let cacheSentinel = {};
         function Map() {
             this._keys = [];
+
+            
             this._values = [];
             this._cache = cacheSentinel;
         }
@@ -93,7 +98,7 @@ module Reflect {
     })();
 
     // naive Set shim
-    const _Set: SetConstructor = typeof Set === "function" ? Set : (function() {
+    const _Set: typeof Set = typeof Set === "function" ? Set : (function() {
         const cacheSentinel = {};
         function Set() {
             this._values = [];
@@ -153,7 +158,7 @@ module Reflect {
     })();
 
     // naive WeakMap shim
-    const _WeakMap: WeakMapConstructor = typeof WeakMap === "function" ? WeakMap : (function () {
+    const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : (function () {
         let hasOwn = Object.prototype.hasOwnProperty;
         let keys: { [key: string]: boolean; } = {};
         let desc = { configurable: true, enumerable: false, writable: true };
@@ -195,7 +200,7 @@ module Reflect {
         return <any>WeakMap;
     })();
 
-    const weakMetadata = new _WeakMap<Object, Map<string | symbol | number, Map<any, any>>>();
+    const weakMetadata = new _WeakMap<Object, Map<string | symbol, MetadataEntry>>();
     const isMissing = (x: any) => x == null;
     const isNumber = (x: any) => typeof x === "number";
     const isPropertyKey = (x: any) => typeof x === "string" || typeof x === "symbol";
@@ -246,13 +251,17 @@ module Reflect {
       *     Reflect.decorate(decoratorsArray, C.prototype, "property");
       *
       *     // method (on constructor)
-      *     Reflect.decorate(decoratorsArray, C, "staticMethod");
+      *     Object.defineProperty(C, "staticMethod", 
+      *         Reflect.decorate(decoratorsArray, C, "staticMethod", 
+      *             Object.getOwnPropertyDescriptor(C, "staticMethod")));
       *
       *     // method (on prototype)
-      *     Reflect.decorate(decoratorsArray, C.prototype, "method");
+      *     Object.defineProperty(C.prototype, "method", 
+      *         Reflect.decorate(decoratorsArray, C.prototype, "method", 
+      *             Object.getOwnPropertyDescriptor(C.prototype, "method")));
       *
       */
-    export function decorate(decorators: PropertyDecorator[], target: Object, targetKey: string | symbol): void;
+    export function decorate(decorators: ClassMemberDecorator[], target: Object, targetKey: string | symbol, descriptor?: PropertyDescriptor): PropertyDescriptor;
 
     /**
       * Applies a set of decorators to a function parameter.
@@ -269,16 +278,16 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     Reflect.decorate(decoratorsArray, C, 0);
+      *     Reflect.decorate(decoratorsArray, C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     Reflect.decorate(decoratorsArray, C.staticMethod, 0);
+      *     Reflect.decorate(decoratorsArray, C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     Reflect.decorate(decoratorsArray, C.prototype.method, 0);
+      *     Reflect.decorate(decoratorsArray, C.prototype, "method", 0);
       *
       */
-    export function decorate(decorators: ParameterDecorator[], target: Function, targetIndex: number): void;
+    export function decorate(decorators: ParameterDecorator[], target: Function, targetKey: string | symbol, targetIndex: number): void;
 
     /**
       * Applies a set of decorators to a property of a target object.
@@ -308,33 +317,40 @@ module Reflect {
       *     Reflect.decorate(decoratorsArray, C.prototype, "property");
       *
       *     // method (on constructor)
-      *     Reflect.decorate(decoratorsArray, C, "staticMethod");
+      *     Object.defineProperty(C, "staticMethod", 
+      *         Reflect.decorate(decoratorsArray, C, "staticMethod", 
+      *             Object.getOwnPropertyDescriptor(C, "staticMethod")));
       *
       *     // method (on prototype)
-      *     Reflect.decorate(decoratorsArray, C.prototype, "method");
+      *     Object.defineProperty(C.prototype, "method", 
+      *         Reflect.decorate(decoratorsArray, C.prototype, "method", 
+      *             Object.getOwnPropertyDescriptor(C.prototype, "method")));
       *
       *     // parameter (on constructor)
-      *     Reflect.decorate(decoratorsArray, C, 0);
+      *     Reflect.decorate(decoratorsArray, C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     Reflect.decorate(decoratorsArray, C.staticMethod, 0);
+      *     Reflect.decorate(decoratorsArray, C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     Reflect.decorate(decoratorsArray, C.prototype.method, 0);
+      *     Reflect.decorate(decoratorsArray, C.prototype, "method", 0);
       *
       */
-    export function decorate(decorators: Decorator[], target: Object, targetKeyOrIndex?: string | symbol | number): any {
+    export function decorate(decorators: Decorator[], target: Object, targetKey?: string | symbol, targetIndexOrDescriptor?: PropertyDescriptor | number): any {
         if (!isArray(decorators)) {
             throw new TypeError();
         }
-        if (!isObject(target)) {
+        else if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndexOrDescriptor) && !isNumber(targetIndexOrDescriptor) && !isObject(targetIndexOrDescriptor)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return decorateCore(decorators, target, targetKeyOrIndex);
+        else if (isMissing(targetKey) && isMissing(targetIndexOrDescriptor) && !isFunction(target)) {
+            throw new TypeError();
+        }
+        targetKey = toPropertyKey(targetKey);
+        return decorateCore(decorators, target, targetKey, targetIndexOrDescriptor);
     }
 
     /**
@@ -400,17 +416,20 @@ module Reflect {
       */
     export function metadata(metadataKey: any, metadataValue: any): Decorator {
         function decorator(target: Function): void;
-        function decorator(target: Function, targetIndex: number): void;
         function decorator(target: Object, targetKey: string | symbol): void;
-        function decorator(target: Object, targetKeyOrIndex?: string | symbol | number): void {
+        function decorator(target: Object, targetKey: string | symbol, targetIndex: number): void;
+        function decorator(target: Object, targetKey?: string | symbol, targetIndex?: number): void {
             if (!isObject(target)) {
                 throw new TypeError();
             }
-            if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+            else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
                 throw new TypeError();
             }
-            targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-            return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
+            else if (isMissing(targetKey) && isMissing(targetIndex) && !isFunction(target)) {
+                throw new TypeError();
+            }
+            targetKey = toPropertyKey(targetKey);
+            return defineMetadataCore(metadataKey, metadataValue, target, targetKey, targetIndex);
         }
         return decorator;
     }
@@ -478,6 +497,7 @@ module Reflect {
       * @param metadataKey A key used to store and retrieve metadata.
       * @param metadataValue A value that contains attached metadata.
       * @param target The target object on which to define metadata.
+      * @param targetKey The property key for the target.
       * @param targetIndex The parameter index of the target.
       * @example
       *
@@ -488,28 +508,29 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     Reflect.defineMetadata("custom:annotation", Number, C, 0);
+      *     Reflect.defineMetadata("custom:annotation", Number, C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     Reflect.defineMetadata("custom:annotation", Number, C.staticMethod, 0);
+      *     Reflect.defineMetadata("custom:annotation", Number, C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     Reflect.defineMetadata("custom:annotation", Number, C.prototype.method, 0);
+      *     Reflect.defineMetadata("custom:annotation", Number, C.prototype, "method", 0);
       *
       *     // decorator factory as metadata-producing annotation.
       *     function MyAnnotation(options): ParameterDecorator {
-      *         return (target, index) => Reflect.defineMetadata("custom:annotation", options, target, index);
+      *         return (target, key, index) => Reflect.defineMetadata("custom:annotation", options, target, key, index);
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetIndex: number): void;
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKey: string | symbol, targetIndex: number): void;
 
     /**
       * Define a unique metadata entry on the target.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param metadataValue A value that contains attached metadata.
       * @param target The target object on which to define metadata.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index for the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @example
       *
       *     class C {
@@ -538,29 +559,32 @@ module Reflect {
       *     Reflect.defineMetadata("custom:annotation", options, C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     Reflect.defineMetadata("custom:annotation", options, C, 0);
+      *     Reflect.defineMetadata("custom:annotation", options, C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     Reflect.defineMetadata("custom:annotation", options, C.staticMethod, 0);
+      *     Reflect.defineMetadata("custom:annotation", options, C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     Reflect.defineMetadata("custom:annotation", options, C.prototype.method, 0);
+      *     Reflect.defineMetadata("custom:annotation", options, C.prototype, "method", 0);
       *
       *     // decorator factory as metadata-producing annotation.
       *     function MyAnnotation(options): Decorator {
-      *         return (target, keyOrIndex?) => Reflect.defineMetadata("custom:annotation", options, target, keyOrIndex);
+      *         return (target, key?, index?) => Reflect.defineMetadata("custom:annotation", options, target, key, typeof index === "number" ? index : undefined);
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKeyOrIndex?: string | symbol | number): void {
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKey?: string | symbol, targetIndex?: number): void {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return defineMetadataCore(metadataKey, metadataValue, target, targetKeyOrIndex);
+        else if (isMissing(targetIndex) && isMissing(targetKey) && !isFunction(target)) {
+            throw new TypeError();
+        }
+        targetKey = toPropertyKey(targetKey);
+        return defineMetadataCore(metadataKey, metadataValue, target, targetKey, targetIndex);
     }
     
     /**
@@ -626,22 +650,23 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     result = Reflect.hasMetadata("custom:annotation", C, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.hasMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.hasMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function hasMetadata(metadataKey: any, target: Object, targetIndex: number): boolean;
+    export function hasMetadata(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): boolean;
 
     /**
       * Gets a value indicating whether the target object or its prototype chain has the provided metadata key defined.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns `true` if the metadata key was defined on the target object or its prototype chain; otherwise, `false`.
       * @example
       *
@@ -671,24 +696,24 @@ module Reflect {
       *     result = Reflect.hasMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.hasMetadata("custom:annotation", C, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.hasMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.hasMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.hasMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function hasMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean {
+    export function hasMetadata(metadataKey: any, target: Object, targetKey?: string | symbol, targetIndex?: number): boolean {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return hasMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return hasMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
 
     /**
@@ -743,6 +768,7 @@ module Reflect {
       * Gets a value indicating whether the target object has the provided metadata key defined.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
+      * @param targetKey The property key for the target.
       * @param targetIndex The parameter index of the target.
       * @returns `true` if the metadata key was defined on the target object; otherwise, `false`.
       * @example
@@ -754,22 +780,23 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function hasOwnMetadata(metadataKey: any, target: Object, targetIndex: number): boolean;
+    export function hasOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): boolean;
 
     /**
       * Gets a value indicating whether the target object has the provided metadata key defined.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns `true` if the metadata key was defined on the target object; otherwise, `false`.
       * @example
       *
@@ -799,24 +826,24 @@ module Reflect {
       *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.hasOwnMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function hasOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean {
+    export function hasOwnMetadata(metadataKey: any, target: Object, targetKey?: string | symbol, targetIndex?: number): boolean {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return hasOwnMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
 
     /**
@@ -871,6 +898,7 @@ module Reflect {
       * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
+      * @param targetKey The property key for the target.
       * @param targetIndex The parameter index of the target.
       * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
       * @example
@@ -882,22 +910,23 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getMetadata("custom:annotation", C, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function getMetadata(metadataKey: any, target: Object, targetIndex: number): any;
+    export function getMetadata(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index for the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
       * @example
       *
@@ -927,24 +956,24 @@ module Reflect {
       *     result = Reflect.getMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getMetadata("custom:annotation", C, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.getMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function getMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): any {
+    export function getMetadata(metadataKey: any, target: Object, targetKey?: string | symbol, targetIndex?: number): any {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
 
     /**
@@ -999,6 +1028,7 @@ module Reflect {
       * Gets the metadata value for the provided metadata key on the target object.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
+      * @param targetKey The property key for the target.
       * @param targetIndex The parameter index of the target.
       * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
       * @example
@@ -1010,22 +1040,23 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function getOwnMetadata(metadataKey: any, target: Object, targetIndex: number): any;
+    export function getOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index for the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
       * @example
       *
@@ -1055,24 +1086,24 @@ module Reflect {
       *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.getOwnMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function getOwnMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): any {
+    export function getOwnMetadata(metadataKey: any, target: Object, targetKey?: string | symbol, targetIndex?: number): any {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getOwnMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
 
     /**
@@ -1124,6 +1155,7 @@ module Reflect {
     /**
       * Gets the metadata keys defined on the target object or its prototype chain.
       * @param target The target object on which the metadata is defined.
+      * @param targetKey The property key for the target.
       * @param targetIndex The parameter index of the target.
       * @returns An array of unique metadata keys.
       * @example
@@ -1135,21 +1167,22 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getMetadataKeys(C, 0);
+      *     result = Reflect.getMetadataKeys(C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getMetadataKeys(C.staticMethod, 0);
+      *     result = Reflect.getMetadataKeys(C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getMetadataKeys(C.prototype.method, 0);
+      *     result = Reflect.getMetadataKeys(C.prototype, "method", 0);
       *
       */
-    export function getMetadataKeys(target: Object, targetIndex: number): any[];
+    export function getMetadataKeys(target: Object, targetKey: string | symbol, targetIndex: number): any[];
 
     /**
       * Gets the metadata keys defined on the target object or its prototype chain.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns An array of unique metadata keys.
       * @example
       *
@@ -1179,24 +1212,24 @@ module Reflect {
       *     result = Reflect.getMetadataKeys(C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getMetadataKeys(C, 0);
+      *     result = Reflect.getMetadataKeys(C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getMetadataKeys(C.staticMethod, 0);
+      *     result = Reflect.getMetadataKeys(C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getMetadataKeys(C.prototype.method, 0);
+      *     result = Reflect.getMetadataKeys(C.prototype, "method", 0);
       *
       */
-    export function getMetadataKeys(target: Object, targetKeyOrIndex?: string | symbol | number): any[] {
+    export function getMetadataKeys(target: Object, targetKey?: string | symbol, targetIndex?: number): any[] {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getMetadataKeysCore(target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getMetadataKeysCore(target, targetKey, targetIndex);
     }
 
     /**
@@ -1248,6 +1281,7 @@ module Reflect {
     /**
       * Gets the unique metadata keys defined on the target object.
       * @param target The target object on which the metadata is defined.
+      * @param targetKey The property key for the target.
       * @param targetIndex The parameter index of the target.
       * @returns An array of unique metadata keys.
       * @example
@@ -1259,21 +1293,22 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getOwnMetadataKeys(C, 0);
+      *     result = Reflect.getOwnMetadataKeys(C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getOwnMetadataKeys(C.staticMethod, 0);
+      *     result = Reflect.getOwnMetadataKeys(C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getOwnMetadataKeys(C.prototype.method, 0);
+      *     result = Reflect.getOwnMetadataKeys(C.prototype, "method", 0);
       *
       */
-    export function getOwnMetadataKeys(target: Object, targetIndex: number): any[];
+    export function getOwnMetadataKeys(target: Object, targetKey: string | symbol, targetIndex: number): any[];
 
     /**
       * Gets the unique metadata keys defined on the target object.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns An array of unique metadata keys.
       * @example
       *
@@ -1303,24 +1338,24 @@ module Reflect {
       *     result = Reflect.getOwnMetadataKeys(C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.getOwnMetadataKeys(C, 0);
+      *     result = Reflect.getOwnMetadataKeys(C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.getOwnMetadataKeys(C.staticMethod, 0);
+      *     result = Reflect.getOwnMetadataKeys(C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.getOwnMetadataKeys(C.prototype.method, 0);
+      *     result = Reflect.getOwnMetadataKeys(C.prototype, "method", 0);
       *
       */
-    export function getOwnMetadataKeys(target: Object, targetKeyOrIndex?: string | symbol | number): any[] {
+    export function getOwnMetadataKeys(target: Object, targetKey?: string | symbol, targetIndex?: number): any[] {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return getOwnMetadataKeysCore(target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return getOwnMetadataKeysCore(target, targetKey, targetIndex);
     }
 
     /**
@@ -1375,6 +1410,7 @@ module Reflect {
       * Deletes the metadata entry from the target object with the provided key.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
+      * @param targetKey The property key for the target.
       * @param targetIndex The parameter index of the target.
       * @returns `true` if the metadata entry was found and deleted; otherwise, false.
       * @example
@@ -1386,22 +1422,23 @@ module Reflect {
       *     }
       *
       *     // parameter (on constructor)
-      *     result = Reflect.deleteMetadata("custom:annotation", C, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.deleteMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.deleteMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function deleteMetadata(metadataKey: any, target: Object, targetIndex: number): boolean;
+    export function deleteMetadata(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): boolean;
 
     /**
       * Deletes the metadata entry from the target object with the provided key.
       * @param metadataKey A key used to store and retrieve metadata.
       * @param target The target object on which the metadata is defined.
-      * @param targetKeyOrIndex (Optional) The property key or parameter index of the target.
+      * @param targetKey (Optional) The property key for the target.
+      * @param targetIndex (Optional) The parameter index of the target.
       * @returns `true` if the metadata entry was found and deleted; otherwise, false.
       * @example
       *
@@ -1431,55 +1468,35 @@ module Reflect {
       *     result = Reflect.deleteMetadata("custom:annotation", C.prototype, "method");
       *
       *     // parameter (on constructor)
-      *     result = Reflect.deleteMetadata("custom:annotation", C, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C, undefined, 0);
       *
       *     // parameter (on method of constructor)
-      *     result = Reflect.deleteMetadata("custom:annotation", C.staticMethod, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C, "staticMethod", 0);
       *
       *     // parameter (on method of prototype)
-      *     result = Reflect.deleteMetadata("custom:annotation", C.prototype.method, 0);
+      *     result = Reflect.deleteMetadata("custom:annotation", C.prototype, "method", 0);
       *
       */
-    export function deleteMetadata(metadataKey: any, target: Object, targetKeyOrIndex?: string | symbol | number): boolean {
+    export function deleteMetadata(metadataKey: any, target: Object, targetKey?: string | symbol, targetIndex?: number): boolean {
         if (!isObject(target)) {
             throw new TypeError();
         }
-        if (isNumber(targetKeyOrIndex) && !isFunction(target)) {
+        else if (!isMissing(targetIndex) && !isNumber(targetIndex)) {
             throw new TypeError();
         }
-        targetKeyOrIndex = toTargetKeyOrIndex(targetKeyOrIndex);
-        return deleteMetadataCore(metadataKey, target, targetKeyOrIndex);
+        targetKey = toPropertyKey(targetKey);
+        return deleteMetadataCore(metadataKey, target, targetKey, targetIndex);
     }
 
-    /**
-      * Merges unique metadata from a source Object into a target Object, returning the target.
-      * @param target The target object.
-      * @param source The source object.
-      * @returns The target object.
-      * @example
-      *
-      *     result = Reflect.mergeMetadata(target, source);
-      *
-      */
-    export function mergeMetadata<T extends Object>(target: T, source: Object): T {
-        if (!isObject(target)) {
-            throw new TypeError();
+    function decorateCore(decorators: Decorator[], target: Object, targetKey: string | symbol, targetIndexOrDescriptor: PropertyDescriptor | number): any {
+        if (isNumber(targetIndexOrDescriptor)) {
+            return decorateParameter(<ParameterDecorator[]>decorators, <Function>target, targetKey, <number>targetIndexOrDescriptor);
         }
-        if (!isObject(source)) {
-            throw new TypeError();
-        }
-        return mergeMetadataCore<T>(target, source);
-    }
-
-    function decorateCore(decorators: Decorator[], target: Object, targetKeyOrIndex?: string | symbol | number): any {
-       if (isMissing(targetKeyOrIndex)) {
-            return decorateConstructor(<ClassDecorator[]>decorators, <Function>target);            
-        }
-        else if (isNumber(targetKeyOrIndex)) {
-            return decorateParameter(<ParameterDecorator[]>decorators, <Function>target, <number>targetKeyOrIndex);
+        else if (isPropertyKey(targetKey)) {
+            return decorateProperty(<MethodDecorator[]>decorators, target, targetKey, <PropertyDescriptor>targetIndexOrDescriptor);
         }
         else {
-            return decorateProperty(<PropertyDecorator[]>decorators, target, toPropertyKey(targetKeyOrIndex));
+            return decorateConstructor(<ClassDecorator[]>decorators, <Function>target);            
         }
     }
     
@@ -1488,73 +1505,76 @@ module Reflect {
             let decorator = decorators[i];
             let decorated = decorator(target);
             if (decorated != null) {
-                target = mergeMetadataCore(<Function>decorated, target);
+                if (!isFunction(decorated)) {
+                    throw new TypeError();
+                }
+                target = <Function>decorated;
             }
         }
         return target;
     }
 
-    function decorateProperty(decorators: PropertyDecorator[], target: Object, propertyKey: string | symbol): void {
-        let descriptor = getOwnPropertyDescriptorCore(target, propertyKey),
-            enumerable: boolean,
-            configurable: boolean,
-            writable: boolean,
-            value: any,
-            get: Function,
-            set: Function;
-
-        if (descriptor) {
-            ({ enumerable, configurable, writable, value, get, set } = descriptor);
-        }
-        else {
-            enumerable = true;
-            configurable = true;
-            writable = true;
-            descriptor = { enumerable, configurable, writable, value };
-        }
-
+    function decorateProperty(decorators: MethodDecorator[], target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor): PropertyDescriptor {
         for (let i = decorators.length - 1; i >= 0; --i) {
             let decorator = decorators[i];
             let decorated = decorator(target, propertyKey, descriptor);
-            descriptor = decorated != null ? <PropertyDescriptor>decorated : descriptor;
+            if (descriptor != null && decorated != null) {
+                if (!isObject(decorated)) {
+                    throw new TypeError();
+                }
+                descriptor = <PropertyDescriptor>decorated;
+            }
         }
-
-        if (enumerable !== descriptor.enumerable ||
-            configurable !== descriptor.configurable ||
-            writable !== descriptor.writable ||
-            value !== descriptor.value ||
-            get !== descriptor.get ||
-            set !== descriptor.set) {
-            definePropertyCore(target, propertyKey, descriptor);
-        }
+        return descriptor;
     }
     
-    function decorateParameter(decorators: ParameterDecorator[], target: Function, paramIndex: number): void {
+    function decorateParameter(decorators: ParameterDecorator[], target: Function, propertyKey: string | symbol, paramIndex: number): void {
         for (let i = decorators.length - 1; i >= 0; --i) {
             let decorator = decorators[i];
-            decorator(target, paramIndex);
+            decorator(target, propertyKey, paramIndex);
         }
     }
      
-    function defineMetadataCore(metadataKey: any, metadataValue: any, target: Object, targetKeyOrIndex: string | symbol | number): void {
+    function defineMetadataCore(metadataKey: any, metadataValue: any, target: Object, targetKey: string | symbol, targetIndex: number): void {
         let targetMetadata = weakMetadata.get(target);
         if (!targetMetadata) {
             targetMetadata = new _Map<string | symbol | number, Map<any, any>>();
             weakMetadata.set(target, targetMetadata);
         }
 
-        let keyMetadata = targetMetadata.get(targetKeyOrIndex);
+        let keyMetadata = targetMetadata.get(targetKey);
         if (!keyMetadata) {
-          keyMetadata = new _Map<any, any>();
-          targetMetadata.set(targetKeyOrIndex, keyMetadata);
+            keyMetadata = {};
+            targetMetadata.set(targetKey, keyMetadata);
         }
 
-        keyMetadata.set(metadataKey, metadata);
+        let metadataMap: Map<any, any>;
+        if (isMissing(targetIndex)) {
+            metadataMap = keyMetadata.metadata;
+            if (!metadataMap) {
+                metadataMap = new Map<any, any>();
+                keyMetadata.metadata = metadataMap;
+            }
+        }
+        else {
+            let params = keyMetadata.params;
+            if (!params) {
+                params = new Map<number, Map<any, any>>();
+                keyMetadata.params = params;
+            }
+            metadataMap = params.get(targetIndex);
+            if (!metadataMap) {
+                metadataMap = new Map<any, any>();
+                params.set(targetIndex, metadataMap);
+            }
+        }
+
+        metadataMap.set(metadataKey, metadataValue);
     }
 
-    function hasMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): boolean {
+    function hasMetadataCore(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): boolean {
         while (target) {
-            if (hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex)) {
+            if (hasOwnMetadataCore(metadataKey, target, targetKey, targetIndex)) {
                 return true;
             }
             target = getPrototypeOfCore(target);
@@ -1562,43 +1582,65 @@ module Reflect {
         return false;
     }
 
-    function hasOwnMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): boolean {
+    function hasOwnMetadataCore(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): boolean {
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            let keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            let keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                return keyMetadata.has(metadataKey);
+                let metadataMap: Map<any, any>;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                }
+                else {
+                    if (keyMetadata.params) {
+                        metadataMap = keyMetadata.params.get(targetIndex);
+                    }
+                }
+                if (metadataMap) {
+                    return metadataMap.has(metadataKey);
+                }
             }
         }
         return false;
     }
 
-    function getMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): any {
+    function getMetadataCore(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): any {
         while (target) {
-            if (hasOwnMetadataCore(metadataKey, target, targetKeyOrIndex)) {
-                return getOwnMetadataCore(metadataKey, target, targetKeyOrIndex);
+            if (hasOwnMetadataCore(metadataKey, target, targetKey, targetIndex)) {
+                return getOwnMetadataCore(metadataKey, target, targetKey, targetIndex);
             }
             target = getPrototypeOfCore(target);
         }
         return undefined;
     }
 
-    function getOwnMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): any {
+    function getOwnMetadataCore(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): any {
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            let keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            let keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                return keyMetadata.get(metadataKey);
+                let metadataMap: Map<any, any>;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                }
+                else {
+                    if (keyMetadata.params) {
+                        metadataMap = keyMetadata.params.get(targetIndex);
+                    }
+                }
+                if (metadataMap) {
+                    return metadataMap.get(metadataKey);
+                }
             }
         }
         return undefined;
     }
 
-    function getMetadataKeysCore(target: Object, targetKeyOrIndex: string | symbol | number): any[] {
+    function getMetadataKeysCore(target: Object, targetKey: string | symbol, targetIndex: number): any[] {
         let keySet = new _Set<any>();
         let keys: any[] = [];
         while (target) {
-            for (let key of getOwnMetadataKeysCore(target, targetKeyOrIndex)) {
+            for (let key of getOwnMetadataKeysCore(target, targetKey, targetIndex)) {
                 if (!keySet.has(key)) {
                     keySet.add(key);
                     keys.push(key);
@@ -1609,75 +1651,74 @@ module Reflect {
         return keys;
     }
 
-    function getOwnMetadataKeysCore(target: Object, targetKeyOrIndex: string | symbol | number): any[] {
+    function getOwnMetadataKeysCore(target: Object, targetKey: string | symbol, targetIndex: number): any[] {
         let result: any[] = [];
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            let keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            let keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                keyMetadata.forEach((_, key) => result.push(key));
+                let metadataMap: Map<any, any>;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                }
+                else {
+                    if (keyMetadata.params) {
+                        metadataMap = keyMetadata.params.get(targetIndex);
+                    }
+                }
+                if (metadataMap) {
+                    metadataMap.forEach((_, key) => result.push(key));
+                }
             }
         }
         return result;
     }
 
-    function deleteMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): boolean {
+    function deleteMetadataCore(metadataKey: any, target: Object, targetKey: string | symbol, targetIndex: number): boolean {
+        let result = false;
         let targetMetadata = weakMetadata.get(target);
         if (targetMetadata) {
-            let keyMetadata = targetMetadata.get(targetKeyOrIndex);
+            let keyMetadata = targetMetadata.get(targetKey);
             if (keyMetadata) {
-                if (keyMetadata.delete(metadataKey)) {
-                    if (keyMetadata.size === 0) {
-                        targetMetadata.delete(targetKeyOrIndex);
-                        if (targetMetadata.size === 0) {
-                            weakMetadata.delete(target);
+                let metadataMap: Map<any, any>;
+                if (isMissing(targetIndex)) {
+                    metadataMap = keyMetadata.metadata;
+                    if (metadataMap) {
+                        result = metadataMap.delete(metadataKey);
+                        if (metadataMap.size === 0) {
+                            delete keyMetadata.metadata;
                         }
                     }
-                    return true;
+                }
+                else {
+                    let params = keyMetadata.params;
+                    if (params) {
+                        metadataMap = params.get(targetIndex);
+                        if (metadataMap) {
+                            result = metadataMap.delete(metadataKey);
+                            if (metadataMap.size === 0) {
+                                params.delete(targetIndex);
+                            }
+                        }
+                        if (params.size === 0) {
+                            delete keyMetadata.params;
+                        }
+                    }
+                }
+                if (!keyMetadata.metadata && !keyMetadata.params) {
+                    targetMetadata.delete(targetKey);
                 }
             }
-        }
-        return false;
-    }
-
-    function mergeMetadataCore<T extends Object>(target: T, source: Object): T {
-        if (source === target) {
-            return target;
-        }
-        let sourceMetadata = weakMetadata.get(source);
-        if (!sourceMetadata) {
-            return target;
-        }
-        let targetMetadata = weakMetadata.get(target);
-        if (!targetMetadata) {
-            targetMetadata = new _Map<string | symbol | number, Map<any, any>>();
-            weakMetadata.set(target, targetMetadata);
-        }
-        sourceMetadata.forEach((sourceKeyMetadata, key) => {
-            let targetKeyMetadata = targetMetadata.get(key);
-            if (!targetKeyMetadata) {
-                targetKeyMetadata = new _Map<any, any>();
-                targetMetadata.set(key, targetKeyMetadata);
+            if (targetMetadata.size === 0) {
+                weakMetadata.delete(target);
             }
-            sourceKeyMetadata.forEach((metadataValue, metadataKey) => {
-                if (!targetKeyMetadata.has(metadataKey)) {
-                    targetKeyMetadata.set(metadataKey, metadataValue);
-                }
-            });
-        });
-        return target;
+        }
+        return result;
     }
 
     function toPropertyKey(value: any): string | symbol {
         if (!isPropertyKey(value)) {
             return String(value);
-        }
-        return value;
-    }
-
-    function toTargetKeyOrIndex(value: any): string | symbol | number {
-        if (!isMissing(value) && !isNumber(value)) {
-            return toPropertyKey(value);
         }
         return value;
     }
