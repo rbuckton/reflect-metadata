@@ -821,9 +821,9 @@ var Reflect;
         return target;
     }
     function decorateProperty(decorators, target, propertyKey) {
-        var descriptor = getOwnPropertyDescriptorCore(target, propertyKey), enumerable, configurable, writable, value, _get, _set;
+        var descriptor = getOwnPropertyDescriptorCore(target, propertyKey), enumerable, configurable, writable, value, get, set;
         if (descriptor) {
-            (enumerable = descriptor.enumerable, configurable = descriptor.configurable, writable = descriptor.writable, value = descriptor.value, _get = descriptor._get, _set = descriptor._set, descriptor);
+            (enumerable = descriptor.enumerable, configurable = descriptor.configurable, writable = descriptor.writable, value = descriptor.value, get = descriptor.get, set = descriptor.set, descriptor);
         }
         else {
             enumerable = true;
@@ -841,7 +841,7 @@ var Reflect;
             var decorated = decorator(target, propertyKey, descriptor);
             descriptor = decorated != null ? decorated : descriptor;
         }
-        if (enumerable !== descriptor.enumerable || configurable !== descriptor.configurable || writable !== descriptor.writable || value !== descriptor.value || _get !== descriptor.get || _set !== descriptor.set) {
+        if (enumerable !== descriptor.enumerable || configurable !== descriptor.configurable || writable !== descriptor.writable || value !== descriptor.value || get !== descriptor.get || set !== descriptor.set) {
             definePropertyCore(target, propertyKey, descriptor);
         }
     }
@@ -862,7 +862,7 @@ var Reflect;
             keyMetadata = new _Map();
             targetMetadata.set(targetKeyOrIndex, keyMetadata);
         }
-        keyMetadata.set(metadataKey, metadata);
+        keyMetadata.set(metadataKey, metadataValue);
     }
     function hasMetadataCore(metadataKey, target, targetKeyOrIndex) {
         while (target) {
