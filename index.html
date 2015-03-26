@@ -1,961 +1,217 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>ReflectDecorators by rbuckton</title>
+<head><meta charset="utf8">
+<title>Decorators</title>
+<link rel="stylesheet" href="./css/elements.css"> 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css"> 
+</head><body><emu-biblio href="./biblio.json"></emu-biblio> 
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-  </head>
-  <body>
-    <div class="wrapper">
-      <header>
-        <h1>ReflectDecorators</h1>
-        <p>Prototype for an ES7 Reflection API for Decorator Metadata</p>
+<h1>Decorators Proposal - ECMAScript</h1>
+<div><h2>Table of Contents</h2><ol class="toc"><li><a href="#introduction"><span class="secnum"></span> Introduction</a></li><li><a href="#proposal-terms"><span class="secnum">1</span> Terms</a><ol class="toc"><li><a href="#proposal-terms-decorator"><span class="secnum">1.1</span> Decorator</a></li><li><a href="#proposal-terms-classdecoratorfunction"><span class="secnum">1.2</span> Class Decorator Function</a></li><li><a href="#proposal-terms-propertydecoratorfunction"><span class="secnum">1.3</span> Property/Method Decorator Function</a></li><li><a href="#proposal-terms-decoratorfactory"><span class="secnum">1.4</span> Decorator Factory</a></li></ol></li><li><a href="#proposal-decoratortargets"><span class="secnum">2</span> Decorator Targets</a></li><li><a href="#proposal-decoratoreval"><span class="secnum">3</span> Decorator Evaluation and Application Order</a></li><li><a href="#reflect"><span class="secnum">4</span> Reflect API</a></li><li><a href="#grammar"><span class="secnum">A</span> Grammar</a><ol class="toc"><li><a href="#grammar-expressions"><span class="secnum">A.1</span> Expressions</a></li><li><a href="#functions-and-classes"><span class="secnum">A.2</span> Functions and Classes</a></li><li><a href="#scripts-and-modules"><span class="secnum">A.3</span> Scripts and Modules</a></li></ol></li></ol></div><emu-intro id="introduction">
+  <h1><span class="secnum"></span>Introduction</h1>
+  <p>Proposal to add Decorators to ECMAScript.</p>
+  <p>For the TypeScript specific proposal, see <a href="typescript.html">http://rbuckton.github.io/reflectdecorators/typescript.html</a></p>
+</emu-intro>
 
-        <p class="view"><a href="https://github.com/rbuckton/ReflectDecorators">View the Project on GitHub <small>rbuckton/ReflectDecorators</small></a></p>
-
-
-        <ul>
-          <li><a href="https://github.com/rbuckton/ReflectDecorators/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/rbuckton/ReflectDecorators/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/rbuckton/ReflectDecorators">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <p>Proposal to add Decorators to ES7, along with a prototype for an ES7 Reflection API for Decorator Metadata</p>
-
-<h1>
-<a id="1-motivating-examples" class="anchor" href="#1-motivating-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="1"></a>1 Motivating examples</h1>
-
-<h2>
-<a id="11-conditional-implementation" class="anchor" href="#11-conditional-implementation" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="1.1"></a>1.1 Conditional implementation</h2>
-
-<p>Conditional code generation:</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">Debug</span> {  
-    @<span class="pl-en">conditional</span>("<span class="pl-vpf">debug</span>")  
-    <span class="pl-s">static</span> assert(<span class="pl-vpf">condition</span>: <span class="pl-st">boolean</span>, <span class="pl-vpf">message</span>?: <span class="pl-st">string</span>): <span class="pl-st">void</span>;  
-}  
-
-Debug.assert(<span class="pl-c1">false</span>); <span class="pl-c">// if window.debug is not defined Debug.assert is replaced by an empty function</span></pre></div>
-
-<h2>
-<a id="12-observable-and-computed-properties" class="anchor" href="#12-observable-and-computed-properties" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="1.2"></a>1.2 Observable and computed properties</h2>
-
-<p>Consider the Ember.js alias-like definition:</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">Person</span> {  
-    <span class="pl-en">constructor</span>(<span class="pl-s">public</span> <span class="pl-vpf">firstName</span>: <span class="pl-st">string</span>, <span class="pl-s">public</span> <span class="pl-vpf">lastName</span>: <span class="pl-st">string</span>) { }
-
-    @<span class="pl-en">computed</span>('<span class="pl-vpf">firstName</span>', '<span class="pl-vpf">lastName</span>', (<span class="pl-vpf">f</span>, <span class="pl-vpf">l</span>) <span class="pl-k">=&gt;</span> l <span class="pl-k">+</span> ', ' <span class="pl-k">+</span> f)  
-    fullName: <span class="pl-st">string</span>;
-}  
-
-<span class="pl-st">var</span> david <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s1"><span class="pl-pds">'</span>David<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>Tang<span class="pl-pds">'</span></span>);  
-david.fullName; <span class="pl-c">/// Tang, David</span></pre></div>
-
-<h2>
-<a id="13-dynamic-instantiation-composition" class="anchor" href="#13-dynamic-instantiation-composition" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="1.3"></a>1.3 Dynamic Instantiation (composition)</h2>
-
-<p>Consider Angular 2.0 DI implementation example:</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">Engine</span> {  
-}  
-
-<span class="pl-st">class</span> <span class="pl-en">Car</span> {  
-    <span class="pl-en">constructor</span>(@<span class="pl-vpf">Inject</span>(<span class="pl-vpf">Engine</span>) engine: Engine) {}  
-}  
-
-<span class="pl-st">var</span> inj <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Injector</span>([Car, Engine]);  
-
-<span class="pl-c">// AtScript compilation step adds a property “annotations” on Car of value [ new Inject(Engine) ].  </span>
-<span class="pl-c">// At runtime, a call to inj.get would cause Angular to look for annotations, and try to satisfy dependencies.  </span>
-<span class="pl-c">// in this case first by creating a new instance of Engine if it does not exist, and use it as a parameter to Car’s constructor  </span>
-<span class="pl-st">var</span> car <span class="pl-k">=</span> inj.get(Car);</pre></div>
-
-<h2>
-<a id="14-attaching-meta-data-to-functionsobjects" class="anchor" href="#14-attaching-meta-data-to-functionsobjects" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="1.4"></a>1.4 Attaching Meta data to functions/objects</h2>
-
-<p>Metadata that can be queried at runtime, for example:</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">Fixture</span> {  
-    @<span class="pl-en">isTestable</span>(<span class="pl-vpf">true</span>)  
-    getValue(<span class="pl-vpf">a</span>: <span class="pl-st">number</span>): <span class="pl-st">string</span> {  
-        <span class="pl-k">return</span> a.<span class="pl-s3">toString</span>();  
-    }  
-}  
-
-<span class="pl-c">// Desired JS  </span>
-<span class="pl-st">class</span> <span class="pl-en">Fixture</span> {  
-    <span class="pl-en">getValue</span>(<span class="pl-vpf">a</span>) {  
-        <span class="pl-k">return</span> a.<span class="pl-s3">toString</span>();  
-    }  
-}  
-Fixture.<span class="pl-sc">prototype</span>.getValue.meta.isTestable <span class="pl-k">=</span> <span class="pl-c1">true</span>;  
-
-<span class="pl-c">// later on query the meta data  </span>
-<span class="pl-st">function</span> <span class="pl-en">isTestableFunction</span>(<span class="pl-vpf">func</span>) {  
-    <span class="pl-k">return</span> <span class="pl-k">!!</span>(func <span class="pl-k">&amp;&amp;</span> func.meta <span class="pl-k">&amp;&amp;</span> func.meta.isTestable);  
-}</pre></div>
-
-<h2>
-<a id="15-design-time-extensibility" class="anchor" href="#15-design-time-extensibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="1.5"></a>1.5 Design-time extensibility</h2>
-
-<p>An extensible way to declare properties on or associate special behavior to declarations; design time tools can leverage these associations to produce errors or produce documentation. For example:</p>
-
-<p>Deprecated, to support warning on use of specific API’s:</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">interface</span> <span class="pl-en">JQuery</span> {  
-    <span class="pl-c">/**  </span>
-<span class="pl-c">     * A selector representing selector passed to jQuery(), if any, when creating the original set.  </span>
-<span class="pl-c">     * version deprecated: 1.7, removed: 1.9  </span>
-<span class="pl-c">     */</span>  
-    @<span class="pl-en">deprecated</span>("<span class="pl-vpf">Property</span> <span class="pl-vpf">is</span> <span class="pl-vpf">only</span> <span class="pl-vpf">maintained</span> <span class="pl-vpf">to</span> <span class="pl-vpf">the</span> <span class="pl-vpf">extent</span> <span class="pl-vpf">needed</span> <span class="pl-vpf">for</span> <span class="pl-vpf">supporting</span> .<span class="pl-vpf">live</span>() <span class="pl-k">in</span> the jQuery Migrate plugin. It may be removed without notice <span class="pl-k">in</span> a future version.", <span class="pl-c1">false</span>)  
-    selector: <span class="pl-st">string</span>;  
-}</pre></div>
-
-<p>Suppress linter warning:</p>
-
-<div class="highlight highlight-TypeScript"><pre>@suppressWarning(<span class="pl-s1"><span class="pl-pds">"</span>disallow-leading-underscore<span class="pl-pds">"</span></span>)   
-<span class="pl-st">function</span> <span class="pl-en">__init</span>() {  
-}</pre></div>
-
-<h1>
-<a id="2-proposal" class="anchor" href="#2-proposal" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2"></a>2 Proposal</h1>
-
-<h2>
-<a id="21-terms" class="anchor" href="#21-terms" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.1"></a>2.1 Terms</h2>
-
-<h3>
-<a id="211-decorator" class="anchor" href="#211-decorator" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.1.1"></a>2.1.1 Decorator</h3>
-
-<p>A <em>decorator</em> is an expression that is evaluated after a class has been defined, that can be used to annotate or modify the class in some fashion. This expression must evaluate to a <strong>function</strong>, which is executed by the runtime to apply the decoration.</p>
-
-<div class="highlight highlight-TypeScript"><pre>@decoratorExpression
-<span class="pl-st">class</span> <span class="pl-en">C</span> {
-}</pre></div>
-
-<h3>
-<a id="212-class-decorator-function" class="anchor" href="#212-class-decorator-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.1.2"></a>2.1.2 Class Decorator Function</h3>
-
-<p>A <em>class decorator function</em> is a function that accepts a constructor function as its argument, and returns either <code>undefined</code>, the provided constructor function, or a new constructor function. Returning <code>undefined</code> is equivalent to returning the provided constructor function.</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-c">// A class decorator</span>
-<span class="pl-st">function</span> <span class="pl-en">dec</span>(<span class="pl-vpf">target</span>) {  
-   <span class="pl-c">// modify, annotate, or replace target...</span>
-}</pre></div>
-
-<h3>
-<a id="213-propertymethod-decorator-function" class="anchor" href="#213-propertymethod-decorator-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.1.3"></a>2.1.3 Property/Method Decorator Function</h3>
-
-<p>A <em>property decorator function</em> is a function that accepts three arguments: The object that owns the property, the key for the property (a <code>string</code> or a <code>symbol</code>), and optionally the property descriptor of the property. The function must return either <code>undefined</code>, the provided property descriptor, or a new property descriptor. Returning <code>undefined</code> is equivalent to returning the provided property descriptor.</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-c">// A property (or method/accessor) decorator</span>
-<span class="pl-st">function</span> <span class="pl-en">dec</span>(<span class="pl-vpf">target</span>, <span class="pl-vpf">key</span>, <span class="pl-vpf">descriptor</span>) {
-    <span class="pl-c">// annotate the target and key; or modify or replace the descriptor...</span>
-}</pre></div>
-
-<h3>
-<a id="214-parameter-decorator-function" class="anchor" href="#214-parameter-decorator-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.1.4"></a>2.1.4 Parameter Decorator Function</h3>
-
-<p>A <em>parameter decorator function</em> is a function that accepts two arguments: The function that contains the decorated parameter, and the ordinal index of the parameter. The return value of this decorator is ignored.</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-c">// A parameter decorator</span>
-<span class="pl-st">function</span> <span class="pl-en">dec</span>(<span class="pl-vpf">target</span>, <span class="pl-vpf">paramIndex</span>) {
-    <span class="pl-c">// annotate the target and index</span>
-}</pre></div>
-
-<h3>
-<a id="215-decorator-factory" class="anchor" href="#215-decorator-factory" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.1.5"></a>2.1.5 Decorator Factory</h3>
-
-<p>A <em>decorator factory</em> is a function that can accept any number of arguments, and must return one of the above types of <em>decorator function</em>.</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-c">// a class decorator factory</span>
-<span class="pl-st">function</span> <span class="pl-en">dec</span>(<span class="pl-vpf">x</span>, <span class="pl-vpf">y</span>) {
-    <span class="pl-c">// the class decorator function</span>
-    <span class="pl-k">return</span> <span class="pl-st">function</span> (<span class="pl-vpf">target</span>) {
-        <span class="pl-c">// modify, annotate, or replace target...</span>
-    }
-}</pre></div>
-
-<h2>
-<a id="22-decorator-targets" class="anchor" href="#22-decorator-targets" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.2"></a>2.2 Decorator Targets</h2>
-
-<p>A <em>decorator</em> <strong>can</strong> be legally applied to any of the following:</p>
-
-<ul>
-<li>A class declaration</li>
-<li>A class property declaration (static or prototype)</li>
-<li>A class method declaration (static or prototype)</li>
-<li>A class get or set accessor declaration (static or prototype)</li>
-<li>A parameter of a class constructor</li>
-<li>A parameter of a class method (static or prototype)</li>
-<li>A parameter of a class get or set accessor (static or prototype)</li>
-</ul>
-
-<p>Please note that a <em>decorator</em> currently <strong>cannot</strong> be legally applied to any of the following:</p>
-
-<ul>
-<li>A class constructor - This is to reduce ambiguity between where you can apply a decorator (on the class or on its constructor) and which of the above <em>decorator function</em> forms is called.</li>
-<li>A function declaration - Decorators on a function declaration would introduce a TDZ (Temporal Dead Zone), which would make the function unreachable until its declaration is executed. This could cause confusion as an undecorated function declaration is hoisted and can be used in a statement preceeding the declaration.</li>
-<li>A function expression - This is to reduce confusion and maintain parity with disallowing decorators on a function declaration.</li>
-<li>An arrow function - This is to reduce confusion and maintain parity with disallowing decorators on a function expression.</li>
-</ul>
-
-<p>This list may change in the future. </p>
-
-<h2>
-<a id="23-decorator-evaluation-and-application-order" class="anchor" href="#23-decorator-evaluation-and-application-order" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="2.3"></a>2.3 Decorator Evaluation and Application Order</h2>
-
-<p>Decorators are <em>evaluated</em> in the order they appear preceeding their target declaration, to preserve side-effects due to evaluation order. Decorators are <em>applied</em> to their target declaration in reverse order, starting with the decorator closest to the declaration. This behavior is specified to preserve the expected behavior of decorators without a declarative syntax. </p>
-
-<div class="highlight highlight-TypeScript"><pre>@F
+<emu-clause id="proposal-terms">
+  <h1><span class="secnum">1</span>Terms</h1>
+  <emu-clause id="proposal-terms-decorator">
+    <h1><span class="secnum">1.1</span>Decorator</h1>
+    <emu-note><span class="note">Note</span>This section is non-normative.</emu-note>
+    <p>A <em>decorator</em> is an expression that is evaluated after a class has been defined, that can be used to annotate or modify the class in some fashion. This expression must evaluate to a <code>function</code>, which is executed by the runtime to apply the decoration.</p>
+    <pre><code class="javascript hljs">@decoratorExpression
+<span class="hljs-keyword">class</span> C {
+}
+</code></pre>
+  </emu-clause>
+  <emu-clause id="proposal-terms-classdecoratorfunction">
+    <h1><span class="secnum">1.2</span>Class Decorator Function</h1>
+    <emu-note><span class="note">Note</span>This section is non-normative.</emu-note>
+    <p>A <em>class decorator function</em> is a function that accepts a constructor function as its argument, and returns either <code>undefined</code>, the provided constructor function, or a new constructor function. Returning <code>undefined</code> is equivalent to returning the provided constructor function.</p>
+    <pre><code class="javascript hljs"><span class="hljs-comment">// A class decorator function</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dec</span><span class="hljs-params">(target)</span> </span>{  
+ <span class="hljs-comment">// modify, annotate, or replace target...</span>
+}
+</code></pre>
+  </emu-clause>
+  <emu-clause id="proposal-terms-propertydecoratorfunction">
+    <h1><span class="secnum">1.3</span>Property/Method Decorator Function</h1>
+    <emu-note><span class="note">Note</span>This section is non-normative.</emu-note>
+    <p>A <em>property decorator function</em> is a function that accepts three arguments: The object that owns the property, the key for the property (a <code>string</code> or a <code>symbol</code>), and optionally the property descriptor of the property. The function must return either <code>undefined</code>, the provided property descriptor, or a new property descriptor. Returning <code>undefined</code> is equivalent to returning the provided property descriptor.</p>
+    <pre><code class="javascript hljs"><span class="hljs-comment">// A property (or method/accessor) decorator function</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dec</span><span class="hljs-params">(target, key, descriptor)</span> </span>{
+  <span class="hljs-comment">// annotate the target and key; or modify or replace the descriptor...</span>
+}
+    </code></pre>
+  </emu-clause>
+  <emu-clause id="proposal-terms-decoratorfactory">
+    <h1><span class="secnum">1.4</span>Decorator Factory</h1>
+    <emu-note><span class="note">Note</span>This section is non-normative.</emu-note>
+    <p>A <em>decorator factory</em> is a function that can accept any number of arguments, and must return one of the above types of decorator function.</p>
+    <pre><code class="javascript hljs"><span class="hljs-comment">// a class decorator factory function</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dec</span><span class="hljs-params">(x, y)</span> </span>{
+  <span class="hljs-comment">// the class decorator function</span>
+  <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(target)</span> </span>{
+      <span class="hljs-comment">// modify, annotate, or replace target...</span>
+  }
+}
+</code></pre>
+  </emu-clause>
+</emu-clause>
+<emu-clause id="proposal-decoratortargets">
+  <h1><span class="secnum">2</span>Decorator Targets</h1>
+  <emu-note><span class="note">Note</span>This section is non-normative.</emu-note>
+  <p>A <em>decorator</em> <strong>can</strong> be legally applied to any of the following:</p>
+  <ul>
+    <li>A class declaration</li>
+    <li>A class property initializer (static or prototype)</li>
+    <li>A class method declaration (static or prototype)</li>
+    <li>A class get or set accessor declaration (static or prototype)</li>
+  </ul>
+  <p>Please note that a <em>decorator</em> currently <strong>cannot</strong> be legally applied to any of the following:</p>
+  <ul>
+    <li>A class constructor - This is to reduce ambiguity between where you can apply a decorator (on the class or on its constructor) and which of the above decorator function forms is called.</li>
+    <li>A function declaration - Decorators on a function declaration would introduce a TDZ (Temporal Dead Zone), which would make the function unreachable until its declaration is executed. This could cause confusion as an undecorated function declaration is hoisted and can be used in a statement preceeding the declaration.</li>
+    <li>A function expression - This is to reduce confusion and maintain parity with disallowing decorators on a function declaration.</li>
+    <li>An arrow function - This is to reduce confusion and maintain parity with disallowing decorators on a function expression.</li>
+  </ul>
+  <p>This list may change in the future.</p>
+</emu-clause>
+<emu-clause id="proposal-decoratoreval">
+  <h1><span class="secnum">3</span>Decorator Evaluation and Application Order</h1>
+  <emu-note><span class="note">Note</span>This section is non-normative.</emu-note>
+  <p>Decorators are <em>evaluated</em> in the order they appear preceeding their target declaration, to preserve side-effects due to evaluation order. Decorators are <em>applied</em> to their target declaration in reverse order, starting with the decorator closest to the declaration. This behavior is specified to preserve the expected behavior of decorators without a declarative syntax.</p>
+  <pre><code class="javascript hljs">@F
 @G
-<span class="pl-st">class</span> <span class="pl-en">C</span> {   
-}</pre></div>
+<span class="hljs-keyword">class</span> C {   
+}
+</code></pre>
+  <p>For example, the above listing could be approximately written without decorators in the following fashion:</p>
+  <pre><code class="javascript hljs">C = F(G(C))</code></pre>
+  <p>In the above example, the expression <code>F</code> is evaluated first, followed by the expression <code>G</code>. <code>G</code> is then called with the constructor function as its argument, followed by calling <code>F</code> with the result. The actual process of applying decorators is more complex than the above example however, though you may still imperatively apply decorators with a reflection API.</p>
+  <p>If a class declaration has decorators on both the class and any of its members or parameters, the decorators are applied using the following pseudocode:</p>
+  <pre>for each member M of class C
+  if M is an accessor then
+      let accessor = first accessor (get or set, in declaration order) of M
+      let memberDecorators = decorators of accessor
+      for each parameter of accessor
+          let paramDecorators = decorators of parameter           
+          let paramIndex = ordinal index of parameter
+          Reflect.decorate(paramDecorators, accessor, paramIndex)
+      next parameter
 
-<p>For example, the above listing could be approximately written without decorators in the following fashion:</p>
+      let accessor = second accessor (get or set, in declaration order) of M
+      if accessor then
+          let memberDecorators = memberDecorators + decorators of accessor
+          for each parameter of accessor
+              let paramDecorators = decorators of parameter           
+              let paramIndex = ordinal index of parameter
+              Reflect.decorate(paramDecorators, accessor, paramIndex)
+          next parameter
+      end if
+  else if M is a method
+      let memberDecorators = decorators of M
+      for each parameter of M
+          let paramDecorators = decorators of parameter           
+          let paramIndex = ordinal index of parameter
+          Reflect.decorate(paramDecorators, M, paramIndex)
+      next parameter
+  else
+      let memberDecorators = decorators of M
+  end if
 
-<div class="highlight highlight-TypeScript"><pre>C <span class="pl-k">=</span> F(G(C))</pre></div>
-
-<p>In the above example, the expression <code>F</code> is <em>evaluated</em> first, followed by the expression <code>G</code>. <code>G</code> is then called with the constructor function as its argument, followed by calling <code>F</code> with the result.  The actual process of applying decorators is more complex than the above example however, though you may still imperatively apply decorators with a <a href="#4">reflection API</a>.</p>
-
-<p>If a class declaration has decorators on both the class and any of its members or parameters, the decorators are applied using the following pseudocode:</p>
-
-<pre><code>for each member M of class C
-    if M is an accessor then
-        let accessor = first accessor (get or set, in declaration order) of M
-        let memberDecorators = decorators of accessor
-        for each parameter of accessor
-            let paramDecorators = decorators of parameter           
-            let paramIndex = ordinal index of parameter
-            Reflect.decorate(paramDecorators, accessor, paramIndex)
-        next parameter
-
-        let accessor = second accessor (get or set, in declaration order) of M
-        if accessor then
-            let memberDecorators = memberDecorators + decorators of accessor
-            for each parameter of accessor
-                let paramDecorators = decorators of parameter           
-                let paramIndex = ordinal index of parameter
-                Reflect.decorate(paramDecorators, accessor, paramIndex)
-            next parameter
-        end if
-    else if M is a method
-        let memberDecorators = decorators of M
-        for each parameter of M
-            let paramDecorators = decorators of parameter           
-            let paramIndex = ordinal index of parameter
-            Reflect.decorate(paramDecorators, M, paramIndex)
-        next parameter
-    else
-        let memberDecorators = decorators of M
-    end if
-
-    let name = name of M
-    let target = C.prototype if M is on the prototype; otherwise, C if M is static  
-    Reflect.decorate(memberDecorators, C, name)
+  let name = name of M
+  let target = C.prototype if M is on the prototype; otherwise, C if M is static  
+  Reflect.decorate(memberDecorators, C, name)
 next member
 
 for each parameter of C
-    let paramDecorators = decorators of parameter
-    let paramIndex = ordinal index of parameter
-    Reflect.decorate(paramDecorators, C, paramIndex)
+  let paramDecorators = decorators of parameter
+  let paramIndex = ordinal index of parameter
+  Reflect.decorate(paramDecorators, C, paramIndex)
 next parameter
 
 let classDecorators = decorators of C
 let C = Reflect.decorate(classDecorators, C)
-</code></pre>
-
-<h1>
-<a id="3-transformation-details" class="anchor" href="#3-transformation-details" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3"></a>3 Transformation details</h1>
-
-<p>The following are examples of how decorators can be desugared to ES6 (through a transpiler such as TypeScript). These examples levarage an imperative reflection API.</p>
-
-<h2>
-<a id="31-class-declaration" class="anchor" href="#31-class-declaration" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.1"></a>3.1 Class Declaration</h2>
-
-<h3>
-<a id="311-syntax" class="anchor" href="#311-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.1.1"></a>3.1.1 Syntax</h3>
-
-<div class="highlight highlight-TypeScript"><pre>@F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>)  
-@G  
-<span class="pl-st">class</span> <span class="pl-en">C</span> {
-}</pre></div>
-
-<h3>
-<a id="312-es6-desugaring" class="anchor" href="#312-es6-desugaring" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.1.2"></a>3.1.2 ES6 Desugaring</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">var</span> C <span class="pl-k">=</span> (<span class="pl-st">function</span> () {  
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    }
-
-    C <span class="pl-k">=</span> Reflect.decorate([F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>), G], C);
-    <span class="pl-k">return</span> C;
-})();</pre></div>
-
-<h2>
-<a id="32-class-method-declaration" class="anchor" href="#32-class-method-declaration" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.2"></a>3.2 Class Method Declaration</h2>
-
-<h3>
-<a id="321-syntax" class="anchor" href="#321-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.2.1"></a>3.2.1 Syntax</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    @<span class="pl-en">F</span>("<span class="pl-vpf">color</span>")  
-    @G  
-    bar() { }  
-}</pre></div>
-
-<h3>
-<a id="322-es6-desugaring" class="anchor" href="#322-es6-desugaring" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.2.2"></a>3.2.2 ES6 Desugaring</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">var</span> C <span class="pl-k">=</span> (<span class="pl-st">function</span> () {  
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-        <span class="pl-en">bar</span>() { }  
-    }
-
-    Reflect.decorate([F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>), G], C.<span class="pl-sc">prototype</span>, <span class="pl-s1"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>);
-    <span class="pl-k">return</span> C;  
-})();</pre></div>
-
-<h2>
-<a id="33-class-accessor-declaration" class="anchor" href="#33-class-accessor-declaration" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.3"></a>3.3 Class Accessor Declaration</h2>
-
-<h3>
-<a id="331-syntax" class="anchor" href="#331-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.3.1"></a>3.3.1 Syntax</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    @<span class="pl-en">F</span>("<span class="pl-vpf">color</span>")  
-    get bar() { }  
-
-    @G  
-    <span class="pl-st">set</span> <span class="pl-en">bar</span>(<span class="pl-vpf">value</span>) { }  
-}</pre></div>
-
-<h3>
-<a id="332-es6-desugaring" class="anchor" href="#332-es6-desugaring" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.3.2"></a>3.3.2 ES6 Desugaring</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">var</span> C <span class="pl-k">=</span> (<span class="pl-st">function</span> () {  
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-        <span class="pl-st">get</span> <span class="pl-en">bar</span>() { }  
-        <span class="pl-st">set</span> <span class="pl-en">bar</span>(<span class="pl-vpf">value</span>) { }  
-    }  
-
-    Reflect.decorate([F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>), G], C.<span class="pl-sc">prototype</span>, <span class="pl-s1"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>);
-    <span class="pl-k">return</span> C;  
-})();</pre></div>
-
-<h2>
-<a id="34-class-property-declaration-typescript" class="anchor" href="#34-class-property-declaration-typescript" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.4"></a>3.4 Class Property Declaration (TypeScript)</h2>
-
-<h3>
-<a id="341-syntax" class="anchor" href="#341-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.4.1"></a>3.4.1 Syntax</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    @<span class="pl-en">F</span>("<span class="pl-vpf">color</span>") 
-    @g
-    property;
-}</pre></div>
-
-<h3>
-<a id="342-es6-desugaring" class="anchor" href="#342-es6-desugaring" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.4.2"></a>3.4.2 ES6 Desugaring</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">var</span> C <span class="pl-k">=</span> (<span class="pl-st">function</span> () {  
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    }  
-
-    Reflect.decorate([F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>), G], C.<span class="pl-sc">prototype</span>, <span class="pl-s1"><span class="pl-pds">"</span>property<span class="pl-pds">"</span></span>);
-    <span class="pl-k">return</span> C;  
-})();</pre></div>
-
-<h2>
-<a id="35-constructor-parameter-declaration" class="anchor" href="#35-constructor-parameter-declaration" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.5"></a>3.5 Constructor Parameter Declaration</h2>
-
-<h3>
-<a id="351-syntax" class="anchor" href="#351-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.5.1"></a>3.5.1 Syntax</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    <span class="pl-en">constructor</span>(@<span class="pl-vpf">F</span>("<span class="pl-vpf">color</span>") @G x) {
-    }
-}</pre></div>
-
-<h3>
-<a id="352-es6-desugaring" class="anchor" href="#352-es6-desugaring" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.5.2"></a>3.5.2 ES6 Desugaring</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">var</span> C <span class="pl-k">=</span> (<span class="pl-st">function</span> () {  
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-        <span class="pl-en">constructor</span>(<span class="pl-vpf">x</span>) {  
-        }  
-    }  
-
-    Reflect.decorate([F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>), G], C, <span class="pl-c">/*paramIndex*/</span> <span class="pl-c1">0</span>);
-    <span class="pl-k">return</span> C;  
-})();</pre></div>
-
-<h2>
-<a id="36-method-parameter-declaration" class="anchor" href="#36-method-parameter-declaration" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.6"></a>3.6 Method Parameter Declaration</h2>
-
-<h3>
-<a id="361-syntax" class="anchor" href="#361-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.6.1"></a>3.6.1 Syntax</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    <span class="pl-en">method</span>(@<span class="pl-vpf">F</span>("<span class="pl-vpf">color</span>") @G x) {
-    }
-}</pre></div>
-
-<h3>
-<a id="362-es6-desugaring" class="anchor" href="#362-es6-desugaring" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.6.2"></a>3.6.2 ES6 Desugaring</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">var</span> C <span class="pl-k">=</span> (<span class="pl-st">function</span> () {  
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-        <span class="pl-en">method</span>(<span class="pl-vpf">x</span>) {  
-        }  
-    }  
-
-    Reflect.decorate([F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>), G], C.<span class="pl-sc">prototype</span>.<span class="pl-sc">method</span>, <span class="pl-c">/*paramIndex*/</span> <span class="pl-c1">0</span>);
-    <span class="pl-k">return</span> C;  
-})();</pre></div>
-
-<h2>
-<a id="37-set-accessor-parameter-declaration" class="anchor" href="#37-set-accessor-parameter-declaration" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.7"></a>3.7 Set Accessor Parameter Declaration</h2>
-
-<h3>
-<a id="371-syntax" class="anchor" href="#371-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.7.1"></a>3.7.1 Syntax</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    <span class="pl-st">set</span> <span class="pl-en">accessor</span>(@<span class="pl-vpf">F</span>("<span class="pl-vpf">color</span>") @G x) {
-    }
-}</pre></div>
-
-<h3>
-<a id="352-es6-desugaring-1" class="anchor" href="#352-es6-desugaring-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="3.5.2"></a>3.5.2 ES6 Desugaring</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">var</span> C <span class="pl-k">=</span> (<span class="pl-st">function</span> () {  
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-        <span class="pl-st">set</span> <span class="pl-en">accessor</span>(<span class="pl-vpf">x</span>) {  
-        }  
-    }  
-
-    Reflect.decorate([F(<span class="pl-s1"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>), G], <span class="pl-s3">Object</span>.getOwnPropertyDescriptor(C.<span class="pl-sc">prototype</span>, <span class="pl-s1"><span class="pl-pds">"</span>accessor<span class="pl-pds">"</span></span>).set, <span class="pl-c">/*paramIndex*/</span> <span class="pl-c1">0</span>);
-    <span class="pl-k">return</span> C;  
-})();</pre></div>
-
-<h1>
-<a id="-4-metadata-reflection-api" class="anchor" href="#-4-metadata-reflection-api" aria-hidden="true"><span class="octicon octicon-link"></span></a><a name="4"> 4 Metadata Reflection API</a>
-</h1>
-
-<p>In addition to a declarative approach to defining decorators, it is necessary to also include an imperative API capable of applying decorators, as well as defining, reflecting over, and removing decorator metadata from an object, property, or parameter. </p>
-
-<p>A shim for this API can be found here: <a href="https://github.com/rbuckton/ReflectDecorators">https://github.com/rbuckton/ReflectDecorators</a></p>
-
-<h2>
-<a id="-41-api" class="anchor" href="#-41-api" aria-hidden="true"><span class="octicon octicon-link"></span></a><a name="4.1"> 4.1 API</a>
-</h2>
-
-<div class="highlight highlight-TypeScript"><pre>type ClassDecorator <span class="pl-k">=</span> (target: <span class="pl-s3">Function</span>) <span class="pl-k">=&gt;</span> <span class="pl-s3">Function</span> | <span class="pl-st">void</span>;
-type ParameterDecorator <span class="pl-k">=</span> (target: <span class="pl-s3">Function</span>, paramIndex: <span class="pl-st">number</span>) <span class="pl-k">=&gt;</span> <span class="pl-st">void</span>;
-type PropertyDecorator <span class="pl-k">=</span> (target: <span class="pl-s3">Object</span>, propertyKey: <span class="pl-st">string</span> | symbol, descriptor: PropertyDescriptor) <span class="pl-k">=&gt;</span> PropertyDescriptor | <span class="pl-st">void</span>;
-type Decorator <span class="pl-k">=</span> ClassDecorator | ParameterDecorator | PropertyDecorator;
-
-<span class="pl-st">module</span> <span class="pl-en">Reflect</span> {
-
-    <span class="pl-c">// decorator application</span>
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">decorate</span>(<span class="pl-vpf">decorators</span>: ClassDecorator[], <span class="pl-vpf">target</span>: <span class="pl-s3">Function</span>): <span class="pl-s3">Function</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">decorate</span>(<span class="pl-vpf">decorators</span>: ParameterDecorator[], <span class="pl-vpf">target</span>: <span class="pl-s3">Function</span>, <span class="pl-vpf">paramIndex</span>: <span class="pl-st">number</span>): <span class="pl-st">void</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">decorate</span>(<span class="pl-vpf">decorators</span>: PropertyDecorator[]), target: <span class="pl-s3">Object</span>, propertyKey: <span class="pl-st">string</span> | symbol): <span class="pl-st">void</span>;
-
-    <span class="pl-c">// built-in metadata decorator factory</span>
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">metadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">metadataValue</span>: any): Decorator;
-
-    <span class="pl-c">// metadata</span>
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">defineMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">metadata</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): <span class="pl-st">void</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">defineMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">metadata</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): <span class="pl-st">void</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">defineMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">metadata</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): <span class="pl-st">void</span>;
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">hasMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): <span class="pl-st">boolean</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">hasMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): <span class="pl-st">boolean</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">hasMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): <span class="pl-st">boolean</span>;
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">hasOwnMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): <span class="pl-st">boolean</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">hasOwnMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): <span class="pl-st">boolean</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">hasOwnMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): <span class="pl-st">boolean</span>;
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): any;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): any;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): any;
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getOwnMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): any;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getOwnMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): any;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getOwnMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): any;
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getMetadataKeys</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): any[];
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getMetadataKeys</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): any[];
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getMetadataKeys</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): any[];
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getOwnMetadataKeys</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): any[];
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getOwnMetadataKeys</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): any[];
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">getOwnMetadataKeys</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): any[];
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">deleteMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>): <span class="pl-st">boolean</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">deleteMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetParamIndex</span>: <span class="pl-st">number</span>): <span class="pl-st">boolean</span>;
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">deleteMetadata</span>(<span class="pl-vpf">metadataKey</span>: any, <span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">targetPropertyKey</span>: <span class="pl-st">string</span> | symbol): <span class="pl-st">boolean</span>;
-
-    <span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">mergeMetadata</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">source</span>: <span class="pl-s3">Object</span>): <span class="pl-s3">Object</span>;
-}</pre></div>
-
-<h2>
-<a id="-42-examples" class="anchor" href="#-42-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a><a name="4.2"> 4.2 Examples</a>
-</h2>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-c">// An "annotation" factory for a class</span>
-<span class="pl-st">function</span> <span class="pl-en">Component</span>(<span class="pl-vpf">options</span>) {
-  <span class="pl-k">return</span> target <span class="pl-k">=&gt;</span> Reflect.defineMetadata(<span class="pl-s1"><span class="pl-pds">"</span>component<span class="pl-pds">"</span></span>, options, target);
-}
-
-<span class="pl-c">// A "decorator" factory that replaces the function/class with a proxy</span>
-<span class="pl-st">function</span> <span class="pl-en">Logged</span>(<span class="pl-vpf">message</span>) {
-  <span class="pl-k">return</span> target <span class="pl-k">=&gt;</span> <span class="pl-k">new</span> <span class="pl-en">Proxy</span>(target, {
-    <span class="pl-s3">apply</span>(target, thisArg, argArray) {
-      <span class="pl-en">console</span>.<span class="pl-s3">log</span>(message);
-      <span class="pl-k">return</span> Reflect.<span class="pl-s3">apply</span>(target, thisArg, argArray);
-    },
-    construct(target, thisArg, argArray) {
-      <span class="pl-en">console</span>.<span class="pl-s3">log</span>(message);
-      <span class="pl-k">return</span> Reflect.construct(target, argArray);
-    }
-  });
-}
-
-<span class="pl-c">// An "annotation" factory for a member</span>
-<span class="pl-st">function</span> <span class="pl-en">MarshalAs</span>(<span class="pl-vpf">options</span>) {
-  <span class="pl-k">return</span> (target, propertyKey) <span class="pl-k">=&gt;</span> Reflect.defineMetadata(MarshalAs, options, target, propertyKey);
-}
-
-<span class="pl-c">// A "decorator" factory for a member that mutates its descriptor</span>
-<span class="pl-st">function</span> <span class="pl-en">Enumerable</span>(<span class="pl-vpf">value</span>) {
-  <span class="pl-k">return</span> (target, propertyKey, descriptor) <span class="pl-k">=&gt;</span> {
-    descriptor.enumerable <span class="pl-k">=</span> value;
-    <span class="pl-k">return</span> descriptor;
-  };
-}
-
-<span class="pl-c">// An "annotation" factory for a parameter</span>
-<span class="pl-st">function</span> <span class="pl-en">Inject</span>(<span class="pl-vpf">type</span>) {
-  <span class="pl-k">return</span> (target, parameterIndex) <span class="pl-k">=&gt;</span> Reflect.defineMetadata(Inject, type, target, parameterIndex);
-}
-
-<span class="pl-c">// NOTE: A "decorator" factory for a parameter cannot mutate the parameter.</span></pre></div>
-
-<h3>
-<a id="-421-declarative-usage" class="anchor" href="#-421-declarative-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a><a name="4.2.1"> 4.2.1 Declarative Usage</a>
-</h3>
-
-<div class="highlight highlight-TypeScript"><pre>@Component({ <span class="pl-c">/*options...*/</span> })
-@Logged(<span class="pl-s1"><span class="pl-pds">"</span>Called class<span class="pl-pds">"</span></span>)
-<span class="pl-st">class</span> <span class="pl-en">MyComponent</span> <span class="pl-s">extends</span> ComponentBase {
-  <span class="pl-en">constructor</span>(@<span class="pl-vpf">Inject</span>(<span class="pl-vpf">ServiceBase</span>) myService) {
-    <span class="pl-sc">this</span>.myService <span class="pl-k">=</span> myService;
-  }
-
-  @<span class="pl-en">MarshalAs</span>({ <span class="pl-c">/*options...*/</span> })
-  @Enumerable(<span class="pl-vpf">true</span>)
-  get service() {
-    <span class="pl-k">return</span> <span class="pl-sc">this</span>.myService;
-  }
-}</pre></div>
-
-<h3>
-<a id="-422-imperative-usage" class="anchor" href="#-422-imperative-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a><a name="4.2.2"> 4.2.2 Imperative Usage</a>
-</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">MyComponent</span> <span class="pl-s">extends</span> ComponentBase {
-  <span class="pl-en">constructor</span>(<span class="pl-vpf">myService</span>) {
-    <span class="pl-sc">this</span>.myService <span class="pl-k">=</span> myService;
-  }
-
-  <span class="pl-st">get</span> <span class="pl-en">service</span>() {
-    <span class="pl-k">return</span> <span class="pl-sc">this</span>.myService;
-  }
-}
-
-Reflect.decorate([MarshalAs({ <span class="pl-c">/*options...*/</span>}), Enumerable(<span class="pl-c1">true</span>)], MyComponent.<span class="pl-sc">prototype</span>, <span class="pl-s1"><span class="pl-pds">"</span>service<span class="pl-pds">"</span></span>);
-Reflect.decorate([Inject(ServiceBase)], MyComponent, <span class="pl-c1">0</span>);
-MyComponent <span class="pl-k">=</span> Reflect.decorate([Component({ <span class="pl-c">/*options...*/</span> }), Logged(<span class="pl-s1"><span class="pl-pds">"</span>called class<span class="pl-pds">"</span></span>)], MyComponent);</pre></div>
-
-<h3>
-<a id="-423-composition-sample" class="anchor" href="#-423-composition-sample" aria-hidden="true"><span class="octicon octicon-link"></span></a><a name="4.2.3"> 4.2.3 Composition Sample</a>
-</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-c">// read annotations</span>
-<span class="pl-st">class</span> <span class="pl-en">Composer</span> {
-  <span class="pl-en">constructor</span>() {
-    <span class="pl-sc">this</span>.types <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Map</span>();
-    <span class="pl-sc">this</span>.<span class="pl-sc">components</span> <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Map</span>();
-  }
-  <span class="pl-en">for</span>(<span class="pl-vpf">baseType</span>) {
-    <span class="pl-k">return</span> { use: (componentType) <span class="pl-k">=&gt;</span> <span class="pl-sc">this</span>.types.set(baseType, componentType) };
-  }
-  <span class="pl-en">get</span>(<span class="pl-vpf">type</span>) {
-    <span class="pl-k">if</span> (<span class="pl-sc">this</span>.<span class="pl-sc">components</span>.has(type)) {
-      <span class="pl-k">return</span> <span class="pl-sc">this</span>.<span class="pl-sc">components</span>.get(type);
-    }
-    let componentType <span class="pl-k">=</span> type;
-    <span class="pl-k">if</span> (<span class="pl-sc">this</span>.types.has(type)) {
-      componentType <span class="pl-k">=</span> <span class="pl-sc">this</span>.types.get(type);
-    }
-    let args <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Array</span>(componentType.<span class="pl-sc">length</span>);
-    <span class="pl-k">for</span> (let i <span class="pl-k">=</span> <span class="pl-c1">0</span>; i <span class="pl-k">&lt;</span> args.<span class="pl-sc">length</span>; i<span class="pl-k">++</span>) {
-      let injectType <span class="pl-k">=</span> Reflect.getMetadata(Inject, componentType, i);
-      <span class="pl-k">if</span> (injectType) {
-        args[i] <span class="pl-k">=</span> <span class="pl-sc">this</span>.get(injectType);
-      }
-    }
-    let component <span class="pl-k">=</span> Reflect.construct(componentType, args);
-    <span class="pl-sc">this</span>.<span class="pl-sc">components</span>.set(type, component);
-    <span class="pl-k">return</span> component;
-  }
-}
-
-
-let composer <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Composer</span>();
-composer.<span class="pl-k">for</span>(ServiceBase).use(MyService);
-composer.<span class="pl-k">for</span>(ComponentBase).use(MyComponent);
-let component <span class="pl-k">=</span> composer.get(ComponentBase);</pre></div>
-
-<h1>
-<a id="a-grammar" class="anchor" href="#a-grammar" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="A"></a>A Grammar</h1>
-
-<p>NOTE: this section is out of date and will soon be updated.</p>
-
-<h2>
-<a id="a1-expressions" class="anchor" href="#a1-expressions" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="A.1"></a>A.1 Expressions</h2>
-
-<p>  <em>DecoratorList</em><sub> [Yield]</sub> :<br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub>  <em>Decorator</em><sub> [?Yield]</sub></p>
-
-<p>  <em>Decorator</em><sub> [Yield]</sub> :<br>
-   <code>@</code> <em>LeftHandSideExpression</em><sub> [?Yield]</sub></p>
-
-<p>  <em>PropertyDefinition</em><sub> [Yield]</sub> :<br>
-   <em>IdentifierReference</em><sub> [?Yield]</sub><br>
-   <em>CoverInitializedName</em><sub> [?Yield]</sub><br>
-   <em>PropertyName</em><sub> [?Yield]</sub>  <code>:</code> <em>AssignmentExpression</em><sub> [In, ?Yield]</sub><br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub> <em>MethodDefinition</em><sub> [?Yield]</sub></p>
-
-<p>  <em>CoverMemberExpressionSquareBracketsAndComputedPropertyName</em><sub> [Yield]</sub> :<br>
-   <code>[</code> <em>Expression</em><sub> [In, ?Yield]</sub> <code>]</code></p>
-
-<p>NOTE    The production <em>CoverMemberExpressionSquareBracketsAndComputedPropertyName</em> is used to cover parsing a <em>MemberExpression</em> that is part of a <em>Decorator</em> inside of an <em>ObjectLiteral</em> or <em>ClassBody</em>, to avoid lookahead when parsing a decorator against a <em>ComputedPropertyName</em>. </p>
-
-<p>  <em>PropertyName</em><sub> [Yield, GeneratorParameter]</sub> :<br>
-   <em>LiteralPropertyName</em><br>
-   [+GeneratorParameter] <em>CoverMemberExpressionSquareBracketsAndComputedPropertyName</em><br>
-   [~GeneratorParameter] <em>CoverMemberExpressionSquareBracketsAndComputedPropertyName</em><sub> [?Yield]</sub></p>
-
-<p>  <em>MemberExpression</em><sub> [Yield]</sub>  :<br>
-   [Lexical goal <em>InputElementRegExp</em>] <em>PrimaryExpression</em><sub> [?Yield]</sub><br>
-   <em>MemberExpression</em><sub> [?Yield]</sub> <em>CoverMemberExpressionSquareBracketsAndComputedPropertyName</em><sub> [?Yield]</sub><br>
-   <em>MemberExpression</em><sub> [?Yield]</sub> <code>.</code> <em>IdentifierName</em><br>
-   <em>MemberExpression</em><sub> [?Yield]</sub> <em>TemplateLiteral</em><sub> [?Yield]</sub><br>
-   <em>SuperProperty</em><sub> [?Yield]</sub><br>
-   <em>NewSuper</em> <em>Arguments</em><sub> [?Yield]</sub><br>
-   <code>new</code> <em>MemberExpression</em><sub> [?Yield]</sub> <em>Arguments</em><sub> [?Yield]</sub></p>
-
-<p>  <em>SuperProperty</em><sub> [Yield]</sub> :<br>
-   <code>super</code> <em>CoverMemberExpressionSquareBracketsAndComputedPropertyName</em><sub> [?Yield]</sub><br>
-   <code>super</code> <code>.</code> <em>IdentifierName</em></p>
-
-<p>  <em>CallExpression</em><sub> [Yield]</sub> :<br>
-   <em>MemberExpression</em><sub> [?Yield]</sub> <em>Arguments</em><sub> [?Yield]</sub><br>
-   <em>SuperCall</em><sub> [?Yield]</sub><br>
-   <em>CallExpression</em><sub> [?Yield]</sub> <em>Arguments</em><sub> [?Yield]</sub><br>
-   <em>CallExpression</em><sub> [?Yield]</sub> <em>CoverMemberExpressionSquareBracketsAndComputedPropertyName</em><sub> [In, ?Yield]</sub><br>
-   <em>CallExpression</em><sub> [?Yield]</sub> <code>.</code> <em>IdentifierName</em><br>
-   <em>CallExpression</em><sub> [?Yield]</sub> <em>TemplateLiteral</em><sub> [?Yield]</sub></p>
-
-<h2>
-<a id="a4-functions-and-classes" class="anchor" href="#a4-functions-and-classes" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="A.4"></a>A.4 Functions and Classes</h2>
-
-<p>  <em>FormalRestParameter</em><sub> [Yield]</sub> :<br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub> <em>BindingRestElement</em><sub> [?Yield]</sub></p>
-
-<p>  <em>FormalParameter</em><sub> [Yield, GeneratorParameter]</sub> :<br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub> <em>BindingElement</em><sub> [?Yield, ?GeneratorParameter]</sub></p>
-
-<p>  <em>ClassDeclaration</em><sub> [Yield, Default]</sub> :<br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub> <code>class</code> <em>BindingIdentifier</em><sub> [?Yield]</sub> <em>ClassTail</em><sub> [?Yield]</sub><br>
-   [+Default] <em>DecoratorList</em><sub> [?Yield]opt</sub> <code>class</code> <em>ClassTail</em><sub> [?Yield]</sub></p>
-
-<p>  <em>ClassExpression</em><sub> [Yield, GeneratorParameter]</sub> :<br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub> <code>class</code> <em>BindingIdentifier</em><sub> [?Yield]opt</sub> <em>ClassTail</em><sub> [?Yield, ?GeneratorParameter]</sub></p>
-
-<p>  <em>ClassElement</em><sub> [Yield]</sub> :<br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub> <em>MethodDefinition</em><sub> [?Yield]</sub><br>
-   <em>DecoratorList</em><sub> [?Yield]opt</sub> <code>static</code> <em>MethodDefinition</em><sub> [?Yield]</sub></p>
-
-<h2>
-<a id="a5-scripts-and-modules" class="anchor" href="#a5-scripts-and-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="A.5"></a>A.5 Scripts and Modules</h2>
-
-<p>  <em>ExportDeclaration</em> :<br>
-   <code>export</code> <code>*</code> <em>FromClause</em> <code>;</code><br>
-   <code>export</code> <em>ExportClause</em> <em>FromClause</em> <code>;</code><br>
-   <code>export</code> <em>ExportClause</em> <code>;</code><br>
-   <code>export</code> <em>VariableStatement</em><br>
-   <code>export</code> <em>LexicalDeclaration</em><br>
-   <code>export</code> <em>HoistableDeclaration</em><br>
-   <em>DecoratorList</em><sub> opt</sub> <code>export</code> [lookahead ≠ @] <em>ClassDeclaration</em><br>
-   <code>export</code> <code>default</code> <em>HoistableDeclaration</em><sub> [Default]</sub><br>
-   <em>DecoratorList</em><sub> opt</sub> <code>export</code> <code>default</code> [lookahead ≠ @] <em>ClassDeclaration</em><sub> [Default]</sub><br>
-   <code>export</code> <code>default</code> [lookahead  { function, class, @ }] <em>AssignmentExpression</em><sub> [In]</sub> <code>;</code></p>
-
-<h1>
-<a id="b-decorator-definitions-typescript" class="anchor" href="#b-decorator-definitions-typescript" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="B"></a>B Decorator definitions (TypeScript)</h1>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">interface</span> <span class="pl-en">TypedPropertyDescriptor</span><span class="pl-k">&lt;</span>T<span class="pl-k">&gt;</span> {  
-    enumerable?: boolean;  
-    configurable?: boolean;  
-    writable?: boolean;  
-    value?: T;  
-    get?: () =&gt; T;  
-    set?: (value: T) <span class="pl-k">=&gt;</span> <span class="pl-st">void</span>;  
-}  
-
-<span class="pl-st">interface</span> <span class="pl-en">ClassDecorator</span><span class="pl-k">&lt;</span>TFunction <span class="pl-s">extends</span> <span class="pl-s3">Function</span><span class="pl-k">&gt;</span> {  
-    (target: TFunction): TFunction | <span class="pl-st">void</span>;  
-}  
-
-<span class="pl-st">interface</span> <span class="pl-en">ParameterDecorator</span> {  
-    (target: <span class="pl-s3">Function</span>, parameterIndex: <span class="pl-st">number</span>): <span class="pl-st">void</span>;  
-}  
-
-<span class="pl-st">interface</span> <span class="pl-en">PropertyDecorator</span><span class="pl-k">&lt;</span>T<span class="pl-k">&gt;</span> {  
-    (target: <span class="pl-s3">Object</span>, propertyKey: PropertyKey, descriptor: TypedPropertyDescriptor<span class="pl-k">&lt;</span>T<span class="pl-k">&gt;</span>): TypedPropertyDescriptor<span class="pl-k">&lt;</span>T<span class="pl-k">&gt;</span> | <span class="pl-st">void</span>;  
-}  </pre></div>
-
-<h1>
-<a id="c-typescript-decorators" class="anchor" href="#c-typescript-decorators" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="C"></a>C TypeScript decorators</h1>
-
-<h2>
-<a id="c1-exposing-types" class="anchor" href="#c1-exposing-types" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="C.1"></a>C.1 Exposing types</h2>
-
-<p>TypeScript compiler can add additional type information then a declaration includes decorators. The types provided are in a serialized form. Serialization logic is descriped in C.2. Reading this type information requires the use of a reflection API (or polyfill for ES6).</p>
-
-<div class="highlight highlight-TypeScript"><pre>@dec
-<span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    <span class="pl-en">constructor</span>(<span class="pl-vpf">a</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">b</span>: <span class="pl-st">number</span>, <span class="pl-vpf">c</span>: { a: <span class="pl-st">number</span> }, <span class="pl-vpf">d</span>: C2) {  
-    }
-
-    @dec
-    property: <span class="pl-st">string</span>;    
-
-    @dec
-    <span class="pl-en">method</span>(): <span class="pl-st">boolean</span> {
-        <span class="pl-k">return</span> <span class="pl-c1">true</span>;
-    }
-}  
-
-<span class="pl-st">function</span> <span class="pl-en">dec</span>(<span class="pl-vpf">target</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">keyOrIndex</span>?: <span class="pl-st">string</span> | symbol | <span class="pl-st">number</span>): <span class="pl-st">void</span> {
-    <span class="pl-st">var</span> type <span class="pl-k">=</span> Reflect.getMetadata(<span class="pl-s1"><span class="pl-pds">"</span>design:type<span class="pl-pds">"</span></span>, target, keyOrIndex);
-    <span class="pl-st">var</span> paramTypes <span class="pl-k">=</span> Reflect.getMetadata(<span class="pl-s1"><span class="pl-pds">"</span>design:paramtypes<span class="pl-pds">"</span></span>, target, keyOrIndex);    
-    <span class="pl-st">var</span> returnType <span class="pl-k">=</span> Reflect.getMetadata(<span class="pl-s1"><span class="pl-pds">"</span>design:returntype<span class="pl-pds">"</span></span>, target, keyOrIndex);
-}
-
-<span class="pl-c">// ES7 emit</span>
-@dec
-@Reflect.metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:type<span class="pl-pds">"</span></span>, <span class="pl-s3">Function</span>)
-@Reflect.metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:paramtypes<span class="pl-pds">"</span></span>, [<span class="pl-s3">Object</span>, <span class="pl-s3">Number</span>, <span class="pl-s3">Object</span>, C2 <span class="pl-k">||</span> <span class="pl-s3">Object</span>])
-<span class="pl-st">class</span> <span class="pl-en">C</span> {  
-    <span class="pl-en">constructor</span>(<span class="pl-vpf">a</span>: <span class="pl-s3">Object</span>, <span class="pl-vpf">b</span>: <span class="pl-st">number</span>, <span class="pl-vpf">c</span>: { a: <span class="pl-st">number</span> }, <span class="pl-vpf">d</span>: C2) {  
-    }  
-
-    @dec
-    @Reflect.<span class="pl-en">metadata</span>("<span class="pl-vpf">design</span>:type<span class="pl-s1"><span class="pl-pds">"</span>, String)</span>
-<span class="pl-s1">    property; // assumes property declarations in ES7</span>
-<span class="pl-s1"></span>
-<span class="pl-s1">    @dec</span>
-<span class="pl-s1">    @Reflect.metadata(<span class="pl-pds">"</span></span>design:type<span class="pl-s1"><span class="pl-pds">"</span>, Function)</span>
-<span class="pl-s1">    @Reflect.metadata(<span class="pl-pds">"</span></span>design:paramtypes<span class="pl-s1"><span class="pl-pds">"</span>, [])</span>
-<span class="pl-s1">    @Reflect.metadata(<span class="pl-pds">"</span></span>design:returntype<span class="pl-s1"><span class="pl-pds">"</span>, Boolean)</span>
-<span class="pl-s1">    method() {</span>
-<span class="pl-s1">    }</span>
-<span class="pl-s1">}  </span>
-<span class="pl-s1"></span>
-<span class="pl-s1">// ES6 emit</span>
-<span class="pl-s1">var __decorate = this.__decorate || function (decorators, target, key) {</span>
-<span class="pl-s1">    if (typeof Reflect === <span class="pl-pds">"</span></span>object<span class="pl-s1"><span class="pl-pds">"</span> &amp;&amp; typeof Reflect.decorate === <span class="pl-pds">"</span></span><span class="pl-st">function</span>") {
-        <span class="pl-k">return</span> Reflect.decorate(decorators, target, key);
-    }
-    <span class="pl-c">// minimal fallback implementation ...</span>
-};
-<span class="pl-vpf">var</span> <span class="pl-vpf">__metadata</span> <span class="pl-k">=</span> <span class="pl-sc">this</span>.__metadata <span class="pl-k">||</span> <span class="pl-st">function</span> (<span class="pl-vpf">metadataKey</span>, <span class="pl-vpf">metadataValue</span>) { 
-    <span class="pl-k">if</span> (<span class="pl-k">typeof</span> Reflect <span class="pl-k">===</span> <span class="pl-s1"><span class="pl-pds">"</span>object<span class="pl-pds">"</span></span> <span class="pl-k">&amp;&amp;</span> <span class="pl-k">typeof</span> Reflect.metadata <span class="pl-k">===</span> <span class="pl-s1"><span class="pl-pds">"</span>function<span class="pl-pds">"</span></span>) {
-        <span class="pl-k">return</span> Reflect.metadata(metadataKey, metadataValue);
-    }
-    <span class="pl-k">return</span> <span class="pl-st">function</span>() { 
-        <span class="pl-c">// default to no metadata</span>
-    }
-};
-
-<span class="pl-vpf">var</span> <span class="pl-vpf">C</span> <span class="pl-k">=</span> (<span class="pl-st">function</span>() {
-    <span class="pl-st">class</span> <span class="pl-en">C</span> {  
-        <span class="pl-en">constructor</span>(<span class="pl-vpf">a</span>, <span class="pl-vpf">b</span>, <span class="pl-vpf">c</span>, <span class="pl-vpf">d</span>) {  
-        }
-        <span class="pl-en">method</span>() {      
-        }
-    }
-    __decorate([dec, __metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:type<span class="pl-pds">"</span></span>, <span class="pl-s3">String</span>)], C.<span class="pl-sc">prototype</span>, <span class="pl-s1"><span class="pl-pds">"</span>property<span class="pl-pds">"</span></span>);
-    __decorate([dec, __metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:type<span class="pl-pds">"</span></span>, <span class="pl-s3">Function</span>), __metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:paramtypes<span class="pl-pds">"</span></span>, []), __metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:returntype<span class="pl-pds">"</span></span>, <span class="pl-s3">Boolean</span>)], C.<span class="pl-sc">prototype</span>, <span class="pl-s1"><span class="pl-pds">"</span>method<span class="pl-pds">"</span></span>);
-    C <span class="pl-k">=</span> __decorate([dec, __metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:type<span class="pl-pds">"</span></span>, <span class="pl-s3">Function</span>), __metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:paramtypes<span class="pl-pds">"</span></span>, [<span class="pl-s3">Object</span>, <span class="pl-s3">Number</span>, <span class="pl-s3">Object</span>, C2 <span class="pl-k">||</span> <span class="pl-s3">Object</span>])], C);
-    <span class="pl-k">return</span> C;  
-})();</pre></div>
-
-<h2>
-<a id="c2-type-serialization" class="anchor" href="#c2-type-serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="C.2"></a>C.2 Type Serialization:</h2>
-
-<h3>
-<a id="c21-example" class="anchor" href="#c21-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="C.2.1"></a>C.2.1 Example</h3>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-st">class</span> <span class="pl-en">C</span> { }  
-<span class="pl-st">interface</span> <span class="pl-en">I</span> { }  
-<span class="pl-st">enum</span> E { }  
-<span class="pl-st">module</span> <span class="pl-en">M</span> { }</pre></div>
-
-<p>Formal parameter list in a call signature like so:</p>
-
-<div class="highlight highlight-TypeScript"><pre>(a: <span class="pl-st">number</span>, b: <span class="pl-st">boolean</span>, c: C, i: I, e: E, m: <span class="pl-k">typeof</span> M, f: () <span class="pl-k">=&gt;</span> <span class="pl-st">void</span>, o: { a: <span class="pl-st">number</span>; b: <span class="pl-st">string</span>; })</pre></div>
-
-<p>Serializes as:</p>
-
-<div class="highlight highlight-TypeScript"><pre>[<span class="pl-s3">Number</span>, <span class="pl-s3">Boolean</span>, C, <span class="pl-s3">Object</span>, <span class="pl-s3">Number</span>, <span class="pl-s3">Object</span>, <span class="pl-s3">Function</span>, <span class="pl-s3">Object</span>]</pre></div>
-
-<h3>
-<a id="c22-details" class="anchor" href="#c22-details" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="C.2.2"></a>C.2.2 Details</h3>
-
-<ul>
-<li>number serialized as Number</li>
-<li>string serialized as String</li>
-<li>boolean serialized as Boolean</li>
-<li>any serialized as Object</li>
-<li>void serializes as undefined</li>
-<li>Array serialized as Array</li>
-<li>If a Tuple, serialize as Array</li>
-<li>If a class serialize it as the class constructor</li>
-<li>If an Enum serialize it as Number</li>
-<li>If has at least one call signature, serialize as Function</li>
-<li>Otherwise serialize as Object</li>
-</ul>
-
-<h3>
-<a id="c23-helpers-for-libraries-like-angularjs" class="anchor" href="#c23-helpers-for-libraries-like-angularjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="C.2.3"></a>C.2.3 Helpers for libraries like AngularJS</h3>
-
-<p>Some applications may need a way to easily inject type information in a fashion similar to TypeScript's mechanism, though the applications themselves are written using regular JavaScript. A library could choose to make this process easier for these applications by exposing wrapper metadata functions:</p>
-
-<div class="highlight highlight-TypeScript"><pre><span class="pl-c">// [annotations.ts]</span>
-<span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">Type</span>(<span class="pl-vpf">type</span>: <span class="pl-s3">Function</span>): Decorator {
-    <span class="pl-k">return</span> Reflect.metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:type<span class="pl-pds">"</span></span>, type);
-}
-
-<span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">ParamTypes</span>(...<span class="pl-vpf">types</span>: <span class="pl-s3">Function</span>[]): Decorator {
-    <span class="pl-k">return</span> Reflect.metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:paramtypes<span class="pl-pds">"</span></span>, types);
-}
-
-<span class="pl-s">export</span> <span class="pl-st">function</span> <span class="pl-en">ReturnType</span>(<span class="pl-vpf">type</span>: <span class="pl-s3">Function</span>): Decorator {
-    <span class="pl-k">return</span> Reflect.metadata(<span class="pl-s1"><span class="pl-pds">"</span>design:returntype<span class="pl-pds">"</span></span>, type);
-}
-
-<span class="pl-c">// app.js</span>
-define([<span class="pl-s1"><span class="pl-pds">"</span>exports<span class="pl-pds">"</span></span>, annotations<span class="pl-s1"><span class="pl-pds">"</span>], function (exports, annotations) {</span>
-<span class="pl-s1">    var Component = annotations.Component;</span>
-<span class="pl-s1">    var Type = annotations.Type;</span>
-<span class="pl-s1">    var ParamTypes = annotations.ParamTypes;</span>
-<span class="pl-s1">    var ReturnType = annotations.ReturnType;</span>
-<span class="pl-s1"></span>
-<span class="pl-s1">    function MyComponent(a, b) {</span>
-<span class="pl-s1">    }</span>
-<span class="pl-s1"></span>
-<span class="pl-s1">    MyComponent = Reflect.decorate([Component({ ... }), Type(Function), ParamTypes([UserServiceBase, LocationServiceBase])], MyComponent);</span>
-<span class="pl-s1">    exports.MyComponent = MyComponent;</span>
-<span class="pl-s1">})</span></pre></div>
-
-<p>TypeScript would <strong>not</strong> be providing these helpers, it would be up to library authors to add these if they determine they are necessary. </p>
-
-<h3>
-<a id="c23-open-issues" class="anchor" href="#c23-open-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>
-<a name="C.2.3"></a>C.2.3 Open issues</h3>
-
-<ul>
-<li>Do we want to enable more elaborate serialization? 
-
-<ul>
-<li>Serialize interfaces or type literals? For example, serialize the type literal <code>{ a: string; b: number }</code> as <code>{ a: String, b: Number }</code> instead of just <code>Object</code>.</li>
-<li>Serialize generic type references? One suggestion was to serialize <code>Array&lt;Number&gt;</code> as <code>[Array, Number]</code>
-</li>
-<li>Serialize tuple types?</li>
-<li>Serialize union types?</li>
-</ul>
-</li>
-</ul>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/rbuckton">rbuckton</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
-  </body>
-</html>
+  </pre>
+</emu-clause>
+
+<emu-clause id="reflect">
+  <h1><span class="secnum">4</span>Reflect API</h1>
+  <emu-note><span class="note">Note</span>This section is non-normative.</emu-note>
+  <p>In addition to a declarative approach to defining decorators, it is necessary to also include an imperative API capable of applying decorators, as well as defining, reflecting over, and removing decorator metadata from an object, property, or parameter.</p>
+  <p>A shim for this API can be found here: <a href="https://github.com/rbuckton/ReflectDecorators">https://github.com/rbuckton/ReflectDecorators</a></p>
+  <pre><code class="javascript hljs">Reflect.decorate(decorators, target, propertyKey?, descriptor?)</code></pre>  
+</emu-clause>
+
+<emu-annex id="grammar">
+  <h1><span class="secnum">A</span>Grammar</h1>
+  <emu-annex id="grammar-expressions">
+    <h1><span class="secnum">A.1</span>Expressions</h1>
+    <emu-production id="grammar-memberexpression" name="MemberExpression" params="Yield, Decorator">
+      <emu-nt>MemberExpression<emu-mods> [Yield, Decorator]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield">PrimaryExpression<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs constraints="~Decorator"><emu-constraints>[~Decorator]</emu-constraints><emu-nt params="?Yield, ?Decorator">MemberExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-t>[</emu-t><emu-nt params="In, ?Yield">Expression<emu-mods> [In, ?Yield]</emu-mods></emu-nt><emu-t>]</emu-t></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield, ?Decorator">MemberExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-t>.</emu-t><emu-nt>IdentifierName<emu-mods></emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield, ?Decorator">MemberExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-nt params="?Yield">TemplateLiteral<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield, ?Decorator">SuperProperty<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt>MetaProperty<emu-mods></emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-t>new</emu-t><emu-nt params="?Yield, ?Decorator">MemberExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-nt params="?Yield">Arguments<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+    <emu-production id="grammar-superproperty" name="SuperProperty" params="Yield, Decorator">
+      <emu-nt>SuperProperty<emu-mods> [Yield, Decorator]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs constraints="~Decorator"><emu-constraints>[~Decorator]</emu-constraints><emu-t>super</emu-t><emu-t>[</emu-t><emu-nt params="In, ?Yield">Expression<emu-mods> [In, ?Yield]</emu-mods></emu-nt><emu-t>]</emu-t></emu-rhs>
+    </emu-production>
+    <emu-production id="grammar-newexpression" name="NewExpression" params="Yield, Decorator">
+      <emu-nt>NewExpression<emu-mods> [Yield, Decorator]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield, ?Decorator">MemberExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-t>new</emu-t><emu-nt params="?Yield, ?Decorator">NewExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+    <emu-production id="grammar-callexpression" name="CallExpression" params="Yield, Decorator">
+      <emu-nt>CallExpression<emu-mods> [Yield, Decorator]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield, ?Decorator">MemberExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-nt params="?Yield">Arguments<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield">SuperCall<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield, ?Decorator">CallExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-nt params="?Yield">Arguments<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs constraints="~Decorator"><emu-constraints>[~Decorator]</emu-constraints><emu-nt params="?Yield">CallExpression<emu-mods> [?Yield]</emu-mods></emu-nt><emu-t>[</emu-t><emu-nt params="In, ?Yield">Expression<emu-mods> [In, ?Yield]</emu-mods></emu-nt><emu-t>]</emu-t></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield, ?Decorator">CallExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-t>.</emu-t><emu-nt>IdentifierName<emu-mods></emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield, ?Decorator">CallExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt><emu-nt params="?Yield">TemplateLiteral<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>      
+    </emu-production>
+    <emu-production id="grammar-lefthandsideexpression" name="LeftHandSideExpression" params="Yield, Decorator">
+      <emu-nt>LeftHandSideExpression<emu-mods> [Yield, Decorator]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield, ?Decorator">NewExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield, ?Decorator">CallExpression<emu-mods> [?Yield, ?Decorator]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+  </emu-annex>
+
+  <emu-annex id="functions-and-classes">
+    <h1><span class="secnum">A.2</span>Functions and Classes</h1>
+    <emu-production id="grammar-classdeclaration" name="ClassDeclaration" params="Yield, Default">
+      <emu-nt>ClassDeclaration<emu-mods> [Yield, Default]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield" optional="">DecoratorList<emu-mods> [?Yield] opt</emu-mods></emu-nt><emu-t>class</emu-t><emu-nt params="?Yield">BindingIdentifier<emu-mods> [?Yield]</emu-mods></emu-nt><emu-nt params="?Yield">ClassTail<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs constraints="+Default"><emu-constraints>[+Default]</emu-constraints><emu-nt params="?Yield" optional="">DecoratorList<emu-mods> [?Yield] opt</emu-mods></emu-nt><emu-t>class</emu-t><emu-nt params="?Yield">ClassTail<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+    <emu-production id="grammar-classexpression" name="ClassExpression" params="Yield, GeneratorParameter">
+      <emu-nt>ClassExpression<emu-mods> [Yield, GeneratorParameter]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield" optional="">DecoratorList<emu-mods> [?Yield] opt</emu-mods></emu-nt><emu-t>class</emu-t><emu-nt params="?Yield" optional="">BindingIdentifier<emu-mods> [?Yield] opt</emu-mods></emu-nt><emu-nt params="?Yield, ?GeneratorParameter">ClassTail<emu-mods> [?Yield, ?GeneratorParameter]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+    <emu-production id="grammar-classelement" name="ClassElement" params="Yield">
+      <emu-nt>ClassElement<emu-mods> [Yield]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield" optional="">DecoratorList<emu-mods> [?Yield] opt</emu-mods></emu-nt><emu-nt params="?Yield">MethodDefinition<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt params="?Yield" optional="">DecoratorList<emu-mods> [?Yield] opt</emu-mods></emu-nt><emu-t>static</emu-t><emu-nt params="?Yield">MethodDefinition<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-t>;</emu-t></emu-rhs>
+    </emu-production>
+    <emu-production id="grammar-decoratorlist" name="DecoratorList" params="Yield">
+      <emu-nt>DecoratorList<emu-mods> [Yield]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-nt params="?Yield" optional="">DecoratorList<emu-mods> [?Yield] opt</emu-mods></emu-nt><emu-nt params="?Yield">Decorator<emu-mods> [?Yield]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+    <emu-production id="grammar-decorator" name="Decorator" params="Yield">
+      <emu-nt>Decorator<emu-mods> [Yield]</emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-t>@</emu-t><emu-nt params="Decorator, ?Yield">LeftHandSideExpression<emu-mods> [Decorator, ?Yield]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+  </emu-annex>
+
+  <emu-annex id="scripts-and-modules">
+    <h1><span class="secnum">A.3</span>Scripts and Modules</h1>
+    <emu-production id="grammar-exportdeclaration" name="ExportDeclaration">
+      <emu-nt>ExportDeclaration<emu-mods></emu-mods><emu-mods></emu-mods></emu-nt><emu-geq>:</emu-geq><emu-rhs><emu-t>export</emu-t><emu-t>*</emu-t><emu-nt>FromClause<emu-mods></emu-mods></emu-nt><emu-t>;</emu-t></emu-rhs>
+      <emu-rhs><emu-t>export</emu-t><emu-nt>ExportClause<emu-mods></emu-mods></emu-nt><emu-nt>FromClause<emu-mods></emu-mods></emu-nt><emu-t>;</emu-t></emu-rhs>
+      <emu-rhs><emu-t>export</emu-t><emu-nt>ExportClause<emu-mods></emu-mods></emu-nt><emu-t>;</emu-t></emu-rhs>
+      <emu-rhs><emu-t>export</emu-t><emu-nt>VariableStatement<emu-mods></emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-t>export</emu-t><emu-gann>[lookahead ≠ <emu-t>@</emu-t>]</emu-gann><emu-nt>Declaration<emu-mods></emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-t>export</emu-t><emu-t>default</emu-t><emu-nt params="Default">HoistableDeclaration<emu-mods> [Default]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-t>export</emu-t><emu-t>default</emu-t><emu-gann>[lookahead ≠ <emu-t>@</emu-t>]</emu-gann><emu-nt params="Default">ClassDeclaration<emu-mods> [Default]</emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-t>export</emu-t><emu-t>default</emu-t><emu-gann>[lookahead ∉ { <emu-t>function</emu-t>, <emu-t>class</emu-t>, <emu-t>@</emu-t> }]</emu-gann><emu-nt>AssignmentExpression<emu-mods></emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt>DecoratorList<emu-mods></emu-mods></emu-nt><emu-t>export</emu-t><emu-gann>[lookahead ≠ <emu-t>@</emu-t>]</emu-gann><emu-nt>ClassDeclaration<emu-mods></emu-mods></emu-nt></emu-rhs>
+      <emu-rhs><emu-nt>DecoratorList<emu-mods></emu-mods></emu-nt><emu-t>export</emu-t><emu-t>default</emu-t><emu-gann>[lookahead ≠ <emu-t>@</emu-t>]</emu-gann><emu-nt params="Default">ClassDeclaration<emu-mods> [Default]</emu-mods></emu-nt></emu-rhs>
+    </emu-production>
+  </emu-annex>
+</emu-annex></body>
