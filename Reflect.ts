@@ -1549,7 +1549,7 @@ module Reflect {
           targetMetadata.set(targetKeyOrIndex, keyMetadata);
         }
 
-        keyMetadata.set(metadataKey, metadata);
+        keyMetadata.set(metadataKey, metadataValue);
     }
 
     function hasMetadataCore(metadataKey: any, target: Object, targetKeyOrIndex: string | symbol | number): boolean {
