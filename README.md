@@ -318,7 +318,7 @@ Serializes as:
 [Number, Boolean, C, Object, Number, Object, Function, Object]
 ```
 
-### <a name="C.2.2"/>C.2.2 Details
+### Details
 
 * number serialized as Number
 * string serialized as String
