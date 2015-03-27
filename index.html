@@ -6,7 +6,7 @@
 </head><body><emu-biblio href="./biblio.json"></emu-biblio> 
 
 <h1>Decorators Proposal - ECMAScript</h1>
-<div><h2>Table of Contents</h2><ol class="toc"><li><a href="#introduction"><span class="secnum"></span> Introduction</a></li><li><a href="#proposal-terms"><span class="secnum">1</span> Terms</a><ol class="toc"><li><a href="#proposal-terms-decorator"><span class="secnum">1.1</span> Decorator</a></li><li><a href="#proposal-terms-classdecoratorfunction"><span class="secnum">1.2</span> Class Decorator Function</a></li><li><a href="#proposal-terms-propertydecoratorfunction"><span class="secnum">1.3</span> Property/Method Decorator Function</a></li><li><a href="#proposal-terms-decoratorfactory"><span class="secnum">1.4</span> Decorator Factory</a></li></ol></li><li><a href="#proposal-decoratortargets"><span class="secnum">2</span> Decorator Targets</a></li><li><a href="#proposal-decoratoreval"><span class="secnum">3</span> Decorator Evaluation and Application Order</a></li><li><a href="#operations"><span class="secnum">4</span> Abstract Operations</a><ol class="toc"><li><a href="#operations-decoration"><span class="secnum">4.1</span> Decorator Operations</a><ol class="toc"><li><a href="#operations-decoration-decorate"><span class="secnum">4.1.1</span> Decorate ( Decorators, O, P, desc )</a></li><li><a href="#operations-decoration-decorateconstructor"><span class="secnum">4.1.2</span> DecorateConstructor ( Decorators, F )</a></li><li><a href="#operations-decoration-decorateproperty"><span class="secnum">4.1.3</span> DecorateProperty ( Decorators, O, P, desc )</a></li></ol></li><li><a href="#operations-object"><span class="secnum">4.2</span> Operations on Objects</a><ol class="toc"><li><a href="#getorcreatemetadatamap"><span class="secnum">4.2.1</span> GetOrCreateMetadataMap ( O, P, Create )</a></li><li><a href="#hasmetadata"><span class="secnum">4.2.2</span> [[HasMetadata]] ( MetadataKey, P )</a></li><li><a href="#ordinaryhasmetadata"><span class="secnum">4.2.3</span> OrdinaryHasMetadata ( MetadataKey, O, P )</a></li><li><a href="#hasownmetadata"><span class="secnum">4.2.4</span> [[HasOwnMetadata]] ( MetadataKey, P )</a></li><li><a href="#ordinaryhasownmetadata"><span class="secnum">4.2.5</span> OrdinaryHasOwnMetadata ( MetadataKey, O, P )</a></li><li><a href="#getmetadata"><span class="secnum">4.2.6</span> [[GetMetadata]] ( MetadataKey, P )</a></li><li><a href="#ordinarygetmetadata"><span class="secnum">4.2.7</span> OrdinaryGetMetadata ( MetadataKey, O, P )</a></li><li><a href="#getownmetadata"><span class="secnum">4.2.8</span> [[GetOwnMetadata]] ( MetadataKey, P, ParamIndex )</a></li><li><a href="#ordinarygetownmetadata"><span class="secnum">4.2.9</span> OrdinaryGetOwnMetadata ( MetadataKey, O, P )</a></li><li><a href="#defineownmetadata"><span class="secnum">4.2.10</span> [[DefineOwnMetadata]] ( MetadataKey, MetadataValue, P )</a></li><li><a href="#ordinarydefineownmetadata"><span class="secnum">4.2.11</span> OrdinaryDefineOwnMetadata ( MetadataKey, MetadataValue, O, P )</a></li><li><a href="#metadatakeys"><span class="secnum">4.2.12</span> [[MetadataKeys]] ( P )</a></li><li><a href="#ordinarymetadatakeys"><span class="secnum">4.2.13</span> OrdinaryMetadataKeys ( O, P )</a></li><li><a href="#ownmetadatakeys"><span class="secnum">4.2.14</span> [[OwnMetadataKeys]] ( P )</a></li><li><a href="#ordinaryownmetadatakeys"><span class="secnum">4.2.15</span> OrdinaryOwnMetadataKeys ( O, P )</a></li><li><a href="#deletemetadata"><span class="secnum">4.2.16</span> [[DeleteMetadata]]( MetadataKey, P )</a></li></ol></li></ol></li><li><a href="#reflection"><span class="secnum">5</span> Reflection</a><ol class="toc"><li><a href="#reflect"><span class="secnum">5.1</span> The Reflect Object</a><ol class="toc"><li><a href="#reflect-metadatadecoratorfunctions"><span class="secnum">5.1.1</span> Metadata Decorator Functions</a></li><li><a href="#reflect-decorate"><span class="secnum">5.1.2</span> Reflect.decorate ( decorators, target, propertyKey, attributes )</a></li><li><a href="#reflect-metadata"><span class="secnum">5.1.3</span> Reflect.metadata ( metadataKey, metadataValue )</a></li><li><a href="#reflect-definemetadata"><span class="secnum">5.1.4</span> Reflect.defineMetadata ( metadataKey, metadataValue, target, propertyKey )</a></li><li><a href="#reflect-hasmetadata"><span class="secnum">5.1.5</span> Reflect.hasMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-hasownmetadata"><span class="secnum">5.1.6</span> Reflect.hasOwnMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-getmetadata"><span class="secnum">5.1.7</span> Reflect.getMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-getownmetadata"><span class="secnum">5.1.8</span> Reflect.getOwnMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-getmetadatakeys"><span class="secnum">5.1.9</span> Reflect.getMetadataKeys ( target, propertyKey )</a></li><li><a href="#reflect-getownmetadata"><span class="secnum">5.1.10</span> Reflect.getOwnMetadataKeys ( target, propertyKey )</a></li><li><a href="#reflect-deletemetadata"><span class="secnum">5.1.11</span> Reflect.deleteMetadata ( metadataKey, target, propertyKey )</a></li></ol></li></ol></li><li><a href="#grammar"><span class="secnum">A</span> Grammar</a><ol class="toc"><li><a href="#grammar-expressions"><span class="secnum">A.1</span> Expressions</a></li><li><a href="#functions-and-classes"><span class="secnum">A.2</span> Functions and Classes</a></li><li><a href="#scripts-and-modules"><span class="secnum">A.3</span> Scripts and Modules</a></li></ol></li></ol></div><emu-intro id="introduction">
+<div><h2>Table of Contents</h2><ol class="toc"><li><a href="#introduction"><span class="secnum"></span> Introduction</a></li><li><a href="#proposal-terms"><span class="secnum">1</span> Terms</a><ol class="toc"><li><a href="#proposal-terms-decorator"><span class="secnum">1.1</span> Decorator</a></li><li><a href="#proposal-terms-classdecoratorfunction"><span class="secnum">1.2</span> Class Decorator Function</a></li><li><a href="#proposal-terms-propertydecoratorfunction"><span class="secnum">1.3</span> Property/Method Decorator Function</a></li><li><a href="#proposal-terms-decoratorfactory"><span class="secnum">1.4</span> Decorator Factory</a></li></ol></li><li><a href="#proposal-decoratortargets"><span class="secnum">2</span> Decorator Targets</a></li><li><a href="#proposal-decoratoreval"><span class="secnum">3</span> Decorator Evaluation and Application Order</a></li><li><a href="#operations"><span class="secnum">4</span> Abstract Operations</a><ol class="toc"><li><a href="#operations-decoration"><span class="secnum">4.1</span> Decorator Operations</a><ol class="toc"><li><a href="#operations-decoration-decorate"><span class="secnum">4.1.1</span> Decorate ( Decorators, O, P, desc )</a></li><li><a href="#operations-decoration-decorateconstructor"><span class="secnum">4.1.2</span> DecorateConstructor ( Decorators, F )</a></li><li><a href="#operations-decoration-decorateproperty"><span class="secnum">4.1.3</span> DecorateProperty ( Decorators, O, P, desc )</a></li></ol></li><li><a href="#operations-object"><span class="secnum">4.2</span> Operations on Objects</a><ol class="toc"><li><a href="#createlistfromiterator"><span class="secnum">4.2.1</span> CreateListFromIterator ( iterator [, elementTypes] )</a></li><li><a href="#getorcreatemetadatamap"><span class="secnum">4.2.2</span> GetOrCreateMetadataMap ( O, P, Create )</a></li><li><a href="#hasmetadata"><span class="secnum">4.2.3</span> [[HasMetadata]] ( MetadataKey, P )</a></li><li><a href="#ordinaryhasmetadata"><span class="secnum">4.2.4</span> OrdinaryHasMetadata ( MetadataKey, O, P )</a></li><li><a href="#hasownmetadata"><span class="secnum">4.2.5</span> [[HasOwnMetadata]] ( MetadataKey, P )</a></li><li><a href="#ordinaryhasownmetadata"><span class="secnum">4.2.6</span> OrdinaryHasOwnMetadata ( MetadataKey, O, P )</a></li><li><a href="#getmetadata"><span class="secnum">4.2.7</span> [[GetMetadata]] ( MetadataKey, P )</a></li><li><a href="#ordinarygetmetadata"><span class="secnum">4.2.8</span> OrdinaryGetMetadata ( MetadataKey, O, P )</a></li><li><a href="#getownmetadata"><span class="secnum">4.2.9</span> [[GetOwnMetadata]] ( MetadataKey, P, ParamIndex )</a></li><li><a href="#ordinarygetownmetadata"><span class="secnum">4.2.10</span> OrdinaryGetOwnMetadata ( MetadataKey, O, P )</a></li><li><a href="#defineownmetadata"><span class="secnum">4.2.11</span> [[DefineOwnMetadata]] ( MetadataKey, MetadataValue, P )</a></li><li><a href="#ordinarydefineownmetadata"><span class="secnum">4.2.12</span> OrdinaryDefineOwnMetadata ( MetadataKey, MetadataValue, O, P )</a></li><li><a href="#metadatakeys"><span class="secnum">4.2.13</span> [[MetadataKeys]] ( P )</a></li><li><a href="#ordinarymetadatakeys"><span class="secnum">4.2.14</span> OrdinaryMetadataKeys ( O, P )</a></li><li><a href="#ownmetadatakeys"><span class="secnum">4.2.15</span> [[OwnMetadataKeys]] ( P )</a></li><li><a href="#ordinaryownmetadatakeys"><span class="secnum">4.2.16</span> OrdinaryOwnMetadataKeys ( O, P )</a></li><li><a href="#deletemetadata"><span class="secnum">4.2.17</span> [[DeleteMetadata]]( MetadataKey, P )</a></li></ol></li></ol></li><li><a href="#reflection"><span class="secnum">5</span> Reflection</a><ol class="toc"><li><a href="#reflect"><span class="secnum">5.1</span> The Reflect Object</a><ol class="toc"><li><a href="#reflect-metadatadecoratorfunctions"><span class="secnum">5.1.1</span> Metadata Decorator Functions</a></li><li><a href="#reflect-decorate"><span class="secnum">5.1.2</span> Reflect.decorate ( decorators, target, propertyKey, attributes )</a></li><li><a href="#reflect-metadata"><span class="secnum">5.1.3</span> Reflect.metadata ( metadataKey, metadataValue )</a></li><li><a href="#reflect-definemetadata"><span class="secnum">5.1.4</span> Reflect.defineMetadata ( metadataKey, metadataValue, target, propertyKey )</a></li><li><a href="#reflect-hasmetadata"><span class="secnum">5.1.5</span> Reflect.hasMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-hasownmetadata"><span class="secnum">5.1.6</span> Reflect.hasOwnMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-getmetadata"><span class="secnum">5.1.7</span> Reflect.getMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-getownmetadata"><span class="secnum">5.1.8</span> Reflect.getOwnMetadata ( metadataKey, target, propertyKey )</a></li><li><a href="#reflect-getmetadatakeys"><span class="secnum">5.1.9</span> Reflect.getMetadataKeys ( target, propertyKey )</a></li><li><a href="#reflect-getownmetadata"><span class="secnum">5.1.10</span> Reflect.getOwnMetadataKeys ( target, propertyKey )</a></li><li><a href="#reflect-deletemetadata"><span class="secnum">5.1.11</span> Reflect.deleteMetadata ( metadataKey, target, propertyKey )</a></li></ol></li></ol></li><li><a href="#grammar"><span class="secnum">A</span> Grammar</a><ol class="toc"><li><a href="#grammar-expressions"><span class="secnum">A.1</span> Expressions</a></li><li><a href="#functions-and-classes"><span class="secnum">A.2</span> Functions and Classes</a></li><li><a href="#scripts-and-modules"><span class="secnum">A.3</span> Scripts and Modules</a></li></ol></li></ol></div><emu-intro id="introduction">
   <h1><span class="secnum"></span>Introduction</h1>
   <p>Proposal to add Decorators to ECMAScript.</p>
   <p>For the TypeScript specific proposal, see <a href="typescript.html">http://rbuckton.github.io/reflectdecorators/typescript.html</a></p>
@@ -162,14 +162,9 @@ let C = Reflect.decorate(classDecorators, C)
       <emu-alg aoid="DecorateConstructor" id="ao-DecorateConstructor"><ol>
   <li>Let <var>result</var> be <var>F</var>.</li>
   <li>Let <var>iterator</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-getiterator">GetIterator</a>(<var>Decorators</var>). </li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>iterator</var>).</li>
-  <li>Repeat
+  <li>Let <var>list</var> be <a href="#ao-CreateListFromIterator">CreateListFromIterator</a>(<var>iterator</var>, «Object»).</li>
+  <li>For each <var>decorator</var> in <var>list</var> in reverse order
     <ol>
-      <li>Let <var>next</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iteratorstep">IteratorStep</a>(<var>iterator</var>).</li>
-      <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>next</var>).</li>
-      <li>If <var>next</var> is <emu-val>false</emu-val>, return <var>result</var>.</li>
-      <li>Let <var>decorator</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iteratorvalue">IteratorValue</a>(<var>next</var>).</li>
-      <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>decorator</var>).</li>
       <li>Let <var>decorated</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-call-f-v-args">Call</a>(<var>decorator</var>, <emu-val>null</emu-val>, <var>result</var>).</li>
       <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>decorated</var>).</li>
       <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iscallable">IsCallable</a>(<var>decorated</var>), then
@@ -189,14 +184,9 @@ let C = Reflect.decorate(classDecorators, C)
   <li>Let <var>result</var> be <var>desc</var>.</li>
   <li>Let <var>key</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-topropertykey">ToPropertyKey</a>(<var>P</var>).</li>
   <li>Let <var>iterator</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-getiterator">GetIterator</a>(<var>Decorators</var>). </li>
-  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>iterator</var>).</li>
-  <li>Repeat
-    <ol>
-      <li>Let <var>next</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iteratorstep">IteratorStep</a>(<var>iterator</var>).</li>
-      <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>next</var>).</li>
-      <li>If <var>next</var> is <emu-val>false</emu-val>, return <var>result</var>.</li>
-      <li>Let <var>decorator</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iteratorvalue">IteratorValue</a>(<var>next</var>).</li>
-      <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>decorator</var>).</li>
+  <li>Let <var>list</var> be <a href="#ao-CreateListFromIterator">CreateListFromIterator</a>(<var>iterator</var>, «Object»).</li>
+  <li>For each <var>decorator</var> in <var>list</var> in reverse order
+    <ol start="6">
       <li>Let <var>decorated</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-call-f-v-args">Call</a>(<var>decorator</var>, <emu-val>null</emu-val>, <var>O</var>, <var>key</var>, <var>result</var>).</li>
       <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>decorated</var>).</li>
       <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>decorated</var>) is Object, then
@@ -212,9 +202,33 @@ let C = Reflect.decorate(classDecorators, C)
   </emu-clause>
   <emu-clause id="operations-object">
     <h1><span class="secnum">4.2</span>Operations on Objects</h1>  
+    <emu-clause id="createlistfromiterator">
+      <h1><span class="secnum">4.2.1</span>CreateListFromIterator ( iterator [, elementTypes] )</h1>
+      <p>When the abstract operation CreateListFromIterator is called with ECMAScript language value <var>iterator</var>, the following steps are taken:</p>
+      <emu-alg aoid="CreateListFromIterator" id="ao-CreateListFromIterator"><ol>
+  <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>iterator</var>).</li>
+  <li>If <var>elementTypes</var> was not passed, let <var>elementTypes</var> be (Undefined, Null, Boolean, String, Symbol, Number, Object).</li>
+  <li>Let <var>list</var> be an empty List.</li>
+  <li>Repeat
+    <ol>
+      <li>Let <var>next</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iteratorstep">IteratorStep</a>(<var>iterator</var>).</li>
+      <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>next</var>).</li>
+      <li>If <var>next</var> is <emu-val>false</emu-val>, return <var>list</var>.</li>
+      <li>Let <var>nextValue</var> be <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iteratorvalue">IteratorValue</a>(<var>next</var>).</li>
+      <li><a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-returnifabrupt">ReturnIfAbrupt</a>(<var>nextValue</var>).</li>
+      <li>If <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-data-types-and-values">Type</a>(<var>nextValue</var>) is not an element of <var>elementTypes</var>, then
+        <ol>
+          <li>Return <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-iteratorclose">IteratorClose</a>(<var>iterator</var>, Completion{[[type]]: throw, [[value]]: a newly created <emu-val>TypeError</emu-val> object, [[target]: empty}).</li>
+        </ol>
+      </li>
+      <li>Append <var>nextValue</var> as the last element of <var>list</var>.</li>
+    </ol>
+  </li>
+</ol></emu-alg>
+    </emu-clause>
     <emu-clause id="getorcreatemetadatamap">
-      <h1><span class="secnum">4.2.1</span>GetOrCreateMetadataMap ( O, P, Create )</h1>
-      <p>When the abstract operation GetOrCreateMetadataMap is called Object <var>O</var>, property key <var>P</var>, and Boolean <var>Create</var> the following steps are taken:</p>
+      <h1><span class="secnum">4.2.2</span>GetOrCreateMetadataMap ( O, P, Create )</h1>
+      <p>When the abstract operation GetOrCreateMetadataMap is called with Object <var>O</var>, property key <var>P</var>, and Boolean <var>Create</var> the following steps are taken:</p>
       <emu-alg aoid="GetOrCreateMetadataMap" id="ao-GetOrCreateMetadataMap"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
   <li>Let <var>metadataMap</var> be <emu-val>undefined</emu-val>.</li>
@@ -241,14 +255,14 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="hasmetadata">
-      <h1><span class="secnum">4.2.2</span>[[HasMetadata]] ( MetadataKey, P )</h1>
+      <h1><span class="secnum">4.2.3</span>[[HasMetadata]] ( MetadataKey, P )</h1>
       <p>When the [[HasMetadata]] internal method of <var>O</var> is called with ECMAScript language value <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg><ol>
   <li>Return <a href="#ao-OrdinaryHasMetadata">OrdinaryHasMetadata</a>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ordinaryhasmetadata">
-      <h1><span class="secnum">4.2.3</span>OrdinaryHasMetadata ( MetadataKey, O, P )</h1>
+      <h1><span class="secnum">4.2.4</span>OrdinaryHasMetadata ( MetadataKey, O, P )</h1>
       <p>When the abstract operation OrdinaryHasMetadata is called with ECMAScript language value <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg aoid="OrdinaryHasMetadata" id="ao-OrdinaryHasMetadata"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
@@ -265,14 +279,14 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="hasownmetadata">
-      <h1><span class="secnum">4.2.4</span>[[HasOwnMetadata]] ( MetadataKey, P )</h1>
+      <h1><span class="secnum">4.2.5</span>[[HasOwnMetadata]] ( MetadataKey, P )</h1>
       <p>When the [[HasOwnMetadata]] internal method of <var>O</var> is called with ECMAScript language value <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg><ol>
   <li>Return <a href="#ao-OrdinaryHasOwnMetadata">OrdinaryHasOwnMetadata</a>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ordinaryhasownmetadata">
-      <h1><span class="secnum">4.2.5</span>OrdinaryHasOwnMetadata ( MetadataKey, O, P )</h1>
+      <h1><span class="secnum">4.2.6</span>OrdinaryHasOwnMetadata ( MetadataKey, O, P )</h1>
       <p>When the abstract operation OrdinaryHasOwnMetadata is called with ECMAScript language value <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg aoid="OrdinaryHasOwnMetadata" id="ao-OrdinaryHasOwnMetadata"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
@@ -283,14 +297,14 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="getmetadata">
-      <h1><span class="secnum">4.2.6</span>[[GetMetadata]] ( MetadataKey, P )</h1>
+      <h1><span class="secnum">4.2.7</span>[[GetMetadata]] ( MetadataKey, P )</h1>
       <p>When the [[GetMatadata]] internal method of <var>O</var> is called with ECMAScript language value <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg><ol>
   <li>Return <a href="#ao-OrdinaryGetMetadata">OrdinaryGetMetadata</a>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ordinarygetmetadata">
-      <h1><span class="secnum">4.2.7</span>OrdinaryGetMetadata ( MetadataKey, O, P )</h1>
+      <h1><span class="secnum">4.2.8</span>OrdinaryGetMetadata ( MetadataKey, O, P )</h1>
       <p>When the abstract operation OrdinaryGetMetadata is called with ECMAScript language value <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg aoid="OrdinaryGetMetadata" id="ao-OrdinaryGetMetadata"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
@@ -311,14 +325,14 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="getownmetadata">
-      <h1><span class="secnum">4.2.8</span>[[GetOwnMetadata]] ( MetadataKey, P, ParamIndex )</h1>
+      <h1><span class="secnum">4.2.9</span>[[GetOwnMetadata]] ( MetadataKey, P, ParamIndex )</h1>
       <p>When the [[GetOwnMetadata]] internal method of <var>O</var> is called with ECMAScript language value <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg><ol>
   <li>Return <a href="#ao-OrdinaryGetOwnMetadata">OrdinaryGetOwnMetadata</a>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ordinarygetownmetadata">
-      <h1><span class="secnum">4.2.9</span>OrdinaryGetOwnMetadata ( MetadataKey, O, P )</h1>
+      <h1><span class="secnum">4.2.10</span>OrdinaryGetOwnMetadata ( MetadataKey, O, P )</h1>
       <p>When the abstract operation OrdinaryGetOwnMetadata is called with ECMAScript language value <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg aoid="OrdinaryGetOwnMetadata" id="ao-OrdinaryGetOwnMetadata"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
@@ -329,14 +343,14 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="defineownmetadata">
-      <h1><span class="secnum">4.2.10</span>[[DefineOwnMetadata]] ( MetadataKey, MetadataValue, P )</h1>
+      <h1><span class="secnum">4.2.11</span>[[DefineOwnMetadata]] ( MetadataKey, MetadataValue, P )</h1>
       <p>When the [[DefineOwnMetadata]] internal method of <var>O</var> is called with ECMAScript language value <var>MetadataKey</var>, ECMAScript language value <var>MetadataValue</var>, and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg><ol>
   <li>Return <a href="#ao-OrdinaryDefineOwnMetadata">OrdinaryDefineOwnMetadata</a>(<var>MetadataKey</var>, <var>MetadataValue</var>, <var>O</var>, <var>P</var>)</li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ordinarydefineownmetadata">
-      <h1><span class="secnum">4.2.11</span>OrdinaryDefineOwnMetadata ( MetadataKey, MetadataValue, O, P )</h1>
+      <h1><span class="secnum">4.2.12</span>OrdinaryDefineOwnMetadata ( MetadataKey, MetadataValue, O, P )</h1>
       <p>When the abstract operation OrdinaryDefineOwnProperty is called with ECMAScript language value <var>MetadataKey</var>, ECMAScript language value <var>MetadataValue</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
       <emu-alg aoid="OrdinaryDefineOwnMetadata" id="ao-OrdinaryDefineOwnMetadata"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
@@ -346,14 +360,14 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="metadatakeys">
-      <h1><span class="secnum">4.2.12</span>[[MetadataKeys]] ( P )</h1>
+      <h1><span class="secnum">4.2.13</span>[[MetadataKeys]] ( P )</h1>
       <p>When the [[MetadataKeys]] internal method of <var>O</var> is called with property key <var>P</var> the following steps are taken:</p>
       <emu-alg><ol>
   <li>Return <a href="#ao-OrdinaryMetadataKeys">OrdinaryMetadataKeys</a>(<var>O</var>, <var>P</var>).</li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ordinarymetadatakeys">
-      <h1><span class="secnum">4.2.13</span>OrdinaryMetadataKeys ( O, P )</h1>
+      <h1><span class="secnum">4.2.14</span>OrdinaryMetadataKeys ( O, P )</h1>
       <p>When the abstract operation OrdinaryMetadataKeys is called with Object <var>O</var> and property key <var>P</var> the following steps are taken:</p>
       <emu-alg aoid="OrdinaryMetadataKeys" id="ao-OrdinaryMetadataKeys"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
@@ -410,14 +424,14 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ownmetadatakeys">
-      <h1><span class="secnum">4.2.14</span>[[OwnMetadataKeys]] ( P )</h1>
+      <h1><span class="secnum">4.2.15</span>[[OwnMetadataKeys]] ( P )</h1>
       <p>When the [[OwnMetadataKeys]] internal method of <var>O</var> is called with property key <var>P</var> the following steps are taken:</p>
       <emu-alg><ol>
   <li>Return <a href="#ao-OrdinaryOwnMetadataKeys">OrdinaryOwnMetadataKeys</a>(<var>O</var>, <var>P</var>).</li>
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="ordinaryownmetadatakeys">
-      <h1><span class="secnum">4.2.15</span>OrdinaryOwnMetadataKeys ( O, P )</h1>
+      <h1><span class="secnum">4.2.16</span>OrdinaryOwnMetadataKeys ( O, P )</h1>
       <p>When the abstract operation OrdinaryOwnMetadataKeys is called with Object <var>O</var> and property key <var>P</var> the following steps are taken:</p>
       <emu-alg aoid="OrdinaryOwnMetadataKeys" id="ao-OrdinaryOwnMetadataKeys"><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
@@ -452,7 +466,7 @@ let C = Reflect.decorate(classDecorators, C)
 </ol></emu-alg>
     </emu-clause>
     <emu-clause id="deletemetadata">
-      <h1><span class="secnum">4.2.16</span>[[DeleteMetadata]]( MetadataKey, P )</h1>
+      <h1><span class="secnum">4.2.17</span>[[DeleteMetadata]]( MetadataKey, P )</h1>
       <p>When the [[DeleteMetadata]] internal method of <var>O</var> is called with ECMAScript language value <var>MetadataKey</var> and property key <var>P</var> the following steps are taken:</p>
       <emu-alg><ol>
   <li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <a href="https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ispropertykey">IsPropertyKey</a>(<var>P</var>) is <emu-val>true</emu-val>.</li>
