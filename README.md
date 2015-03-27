@@ -1,7 +1,7 @@
 Proposal to add Decorators to ES7, along with a prototype for an ES7 Reflection API for Decorator Metadata
 
-The ECMAScript proposal for Decorators can be found at: (http://rbuckton.github.io/ReflectDecorators/index.html)
-The TypeScript proposal for Decorators can be found at: (http://rbuckton.github.io/ReflectDecorators/typescript.html)
+The ECMAScript proposal for Decorators can be found at: (http://rbuckton.github.io/ReflectDecorators/index.html)  
+The TypeScript proposal for Decorators can be found at: (http://rbuckton.github.io/ReflectDecorators/typescript.html)  
 
 # Motivating examples
 
