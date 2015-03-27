@@ -1,0 +1,34 @@
+{
+  "name": "ReflectDecorators",
+  "version": "0.0.1",
+  "description": "Polyfill for Metadata Reflection",
+  "main": "Reflect.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rbuckton/ReflectDecorators.git"
+  },
+  "keywords": [
+    "decorator",
+    "metadata",
+    "javascript",
+    "reflect"
+  ],
+  "author": {
+    "name": "Ron Buckton",
+    "email": "ron.buckton@microsoft.com",
+    "url": "http://github.com/rbuckton"
+  },
+  "license": {
+    "license": "Apache-2.0",
+    "url": "http://github.com/rbuckton/ReflectDecorators/raw/master/LICENSE"
+  },
+  "bugs": {
+    "url": "https://github.com/rbuckton/ReflectDecorators/issues"
+  },
+  "homepage": "http://rbuckton.github.io/ReflectDecorators",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "typescript": ">=1.5"
+  }
+}
