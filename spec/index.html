@@ -156,18 +156,13 @@ let C = Reflect.decorate(classDecorators, C)
       <emu-alg aoid="DecorateConstructor">
       1. Let _result_ be _F_.
       2. Let _iterator_ be GetIterator(_Decorators_).      
-      3. ReturnIfAbrupt(_iterator_).
-      4. Repeat
-        1. Let _next_ be IteratorStep(_iterator_).
-        2. ReturnIfAbrupt(_next_).
-        3. If _next_ is *false*, return _result_.
-        4. Let _decorator_ be IteratorValue(_next_).
-        5. ReturnIfAbrupt(_decorator_).
-        6. Let _decorated_ be Call(_decorator_, *null*, _result_).
-        7. ReturnIfAbrupt(_decorated_).
-        8. If IsCallable(_decorated_), then
+      3. Let _list_ be CreateListFromIterator(_iterator_, «Object»).
+      4. For each _decorator_ in _list_ in reverse order
+        1. Let _decorated_ be Call(_decorator_, *null*, _result_).
+        2. ReturnIfAbrupt(_decorated_).
+        3. If IsCallable(_decorated_), then
           1. Set _result_ to be _decorated_.
-        9. Else if _decorated_ is not *undefined*, throw a *TypeError* exception.
+        4. Else if _decorated_ is not *undefined*, throw a *TypeError* exception.
       </emu-alg>
     </emu-clause>
     <emu-clause id="operations-decoration-decorateproperty">
@@ -176,14 +171,9 @@ let C = Reflect.decorate(classDecorators, C)
       <emu-alg aoid="DecorateProperty">
       1. Let _result_ be _desc_.
       2. Let _key_ be ToPropertyKey(_P_).
-      2. Let _iterator_ be GetIterator(_Decorators_).      
-      3. ReturnIfAbrupt(_iterator_).
-      4. Repeat
-        1. Let _next_ be IteratorStep(_iterator_).
-        2. ReturnIfAbrupt(_next_).
-        3. If _next_ is *false*, return _result_.
-        4. Let _decorator_ be IteratorValue(_next_).
-        5. ReturnIfAbrupt(_decorator_).
+      3. Let _iterator_ be GetIterator(_Decorators_).      
+      4. Let _list_ be CreateListFromIterator(_iterator_, «Object»).
+      5. For each _decorator_ in _list_ in reverse order
         6. Let _decorated_ be Call(_decorator_, *null*, _O_, _key_, _result_).
         7. ReturnIfAbrupt(_decorated_).
         8. If Type(_decorated_) is Object, then
@@ -194,9 +184,27 @@ let C = Reflect.decorate(classDecorators, C)
   </emu-clause>
   <emu-clause id="operations-object">
     <h1>Operations on Objects</h1>  
+    <emu-clause id="createlistfromiterator">
+      <h1>CreateListFromIterator ( iterator [, elementTypes] )</h1>
+      <p>When the abstract operation CreateListFromIterator is called with ECMAScript language value <var>iterator</var>, the following steps are taken:</p>
+      <emu-alg aoid="CreateListFromIterator">
+      1. ReturnIfAbrupt(_iterator_).
+      2. If _elementTypes_ was not passed, let _elementTypes_ be (Undefined, Null, Boolean, String, Symbol, Number, Object).
+      3. Let _list_ be an empty List.
+      4. Repeat
+        1. Let _next_ be IteratorStep(_iterator_).
+        2. ReturnIfAbrupt(_next_).
+        3. If _next_ is *false*, return _list_.
+        4. Let _nextValue_ be IteratorValue(_next_).
+        5. ReturnIfAbrupt(_nextValue_).
+        6. If Type(_nextValue_) is not an element of _elementTypes_, then
+          1. Return IteratorClose(_iterator_, Completion{[[type]]: throw, [[value]]: a newly created *TypeError* object, [[target]: empty}).
+        7. Append _nextValue_ as the last element of _list_.
+      </emu-alg>
+    </emu-clause>
     <emu-clause id="getorcreatemetadatamap">
       <h1>GetOrCreateMetadataMap ( O, P, Create )</h1>
-      <p>When the abstract operation GetOrCreateMetadataMap is called Object <var>O</var>, property key <var>P</var>, and Boolean <var>Create</var> the following steps are taken:</p>
+      <p>When the abstract operation GetOrCreateMetadataMap is called with Object <var>O</var>, property key <var>P</var>, and Boolean <var>Create</var> the following steps are taken:</p>
       <emu-alg aoid="GetOrCreateMetadataMap">
       1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
       2. Let _metadataMap_ be *undefined*.
