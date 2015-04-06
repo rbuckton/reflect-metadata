@@ -14,19 +14,13 @@ limitations under the License.
 "use strict";
 var Reflect;
 (function (Reflect) {
+    // Load global or shim versions of Map, Set, and WeakMap
+    var functionPrototype = Object.getPrototypeOf(Function);
     var _Map = typeof Map === "function" ? Map : CreateMapPolyfill();
     var _Set = typeof Set === "function" ? Set : CreateSetPolyfill();
     var _WeakMap = typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
-    var isMissing = function (x) { return x == null; };
-    var isPropertyKey = function (x) { return typeof x === "string" || typeof x === "symbol"; };
-    var isFunction = function (x) { return typeof x === "function"; };
-    var isObject = function (x) { return typeof x === "object" ? x !== null : typeof x === "function"; };
-    var isArray = Array.isArray;
-    var getOwnPropertyDescriptorCore = Reflect.getOwnPropertyDescriptor || Object.getOwnPropertyDescriptor;
-    var definePropertyCore = Reflect.defineProperty || Object.defineProperty;
-    var getPrototypeOfCore = Reflect.getPrototypeOf || Object.getPrototypeOf;
-    // global metadata store
-    var weakMetadata = new _WeakMap();
+    // [[Metadata]] internal slot
+    var __Metadata__ = new _WeakMap();
     /**
       * Applies a set of decorators to a property of a target object.
       * @param decorators An array of decorators.
@@ -67,32 +61,41 @@ var Reflect;
       *
       */
     function decorate(decorators, target, targetKey, targetDescriptor) {
-        if (!isArray(decorators)) {
-            throw new TypeError();
-        }
-        if (!isMissing(targetDescriptor)) {
-            if (!isObject(targetDescriptor)) {
+        if (!IsUndefined(targetDescriptor)) {
+            if (!IsArray(decorators)) {
                 throw new TypeError();
             }
-            else if (!isMissing(targetKey)) {
+            else if (!IsObject(target)) {
                 throw new TypeError();
             }
-            else if (!isObject(target)) {
+            else if (IsUndefined(targetKey)) {
                 throw new TypeError();
             }
-        }
-        else if (!isMissing(targetKey)) {
-            if (!isObject(target)) {
+            else if (!IsObject(targetDescriptor)) {
                 throw new TypeError();
             }
+            targetKey = ToPropertyKey(targetKey);
+            return DecoratePropertyWithDescriptor(decorators, target, targetKey, targetDescriptor);
         }
-        else if (!isFunction(target)) {
-            throw new TypeError();
+        else if (!IsUndefined(targetKey)) {
+            if (!IsArray(decorators)) {
+                throw new TypeError();
+            }
+            else if (!IsObject(target)) {
+                throw new TypeError();
+            }
+            targetKey = ToPropertyKey(targetKey);
+            return DecoratePropertyWithoutDescriptor(decorators, target, targetKey);
         }
-        if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else {
+            if (!IsArray(decorators)) {
+                throw new TypeError();
+            }
+            else if (!IsConstructor(target)) {
+                throw new TypeError();
+            }
+            return DecorateConstructor(decorators, target);
         }
-        return decorateCore(decorators, target, targetKey, targetDescriptor);
     }
     Reflect.decorate = decorate;
     /**
@@ -137,16 +140,19 @@ var Reflect;
       */
     function metadata(metadataKey, metadataValue) {
         function decorator(target, targetKey) {
-            if (!isMissing(targetKey)) {
-                if (!isObject(target)) {
+            if (!IsUndefined(targetKey)) {
+                if (!IsObject(target)) {
                     throw new TypeError();
                 }
-                targetKey = toPropertyKey(targetKey);
+                targetKey = ToPropertyKey(targetKey);
+                return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, targetKey);
             }
-            else if (!isFunction(target)) {
-                throw new TypeError();
+            else {
+                if (!IsConstructor(target)) {
+                    throw new TypeError();
+                }
+                return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, undefined);
             }
-            return defineMetadataCore(metadataKey, metadataValue, target, targetKey);
         }
         return decorator;
     }
@@ -191,13 +197,13 @@ var Reflect;
       *
       */
     function defineMetadata(metadataKey, metadataValue, target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return defineMetadataCore(metadataKey, metadataValue, target, targetKey);
+        return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, targetKey);
     }
     Reflect.defineMetadata = defineMetadata;
     /**
@@ -235,13 +241,13 @@ var Reflect;
       *
       */
     function hasMetadata(metadataKey, target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return hasMetadataCore(metadataKey, target, targetKey);
+        return OrdinaryHasMetadata(metadataKey, target, targetKey);
     }
     Reflect.hasMetadata = hasMetadata;
     /**
@@ -279,13 +285,13 @@ var Reflect;
       *
       */
     function hasOwnMetadata(metadataKey, target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return hasOwnMetadataCore(metadataKey, target, targetKey);
+        return OrdinaryHasOwnMetadata(metadataKey, target, targetKey);
     }
     Reflect.hasOwnMetadata = hasOwnMetadata;
     /**
@@ -323,13 +329,13 @@ var Reflect;
       *
       */
     function getMetadata(metadataKey, target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return getMetadataCore(metadataKey, target, targetKey);
+        return OrdinaryGetMetadata(metadataKey, target, targetKey);
     }
     Reflect.getMetadata = getMetadata;
     /**
@@ -367,13 +373,13 @@ var Reflect;
       *
       */
     function getOwnMetadata(metadataKey, target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return getOwnMetadataCore(metadataKey, target, targetKey);
+        return OrdinaryGetOwnMetadata(metadataKey, target, targetKey);
     }
     Reflect.getOwnMetadata = getOwnMetadata;
     /**
@@ -410,13 +416,13 @@ var Reflect;
       *
       */
     function getMetadataKeys(target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return getMetadataKeysCore(target, targetKey);
+        return OrdinaryMetadataKeys(target, targetKey);
     }
     Reflect.getMetadataKeys = getMetadataKeys;
     /**
@@ -453,13 +459,13 @@ var Reflect;
       *
       */
     function getOwnMetadataKeys(target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return getOwnMetadataKeysCore(target, targetKey);
+        return OrdinaryOwnMetadataKeys(target, targetKey);
     }
     Reflect.getOwnMetadataKeys = getOwnMetadataKeys;
     /**
@@ -497,29 +503,38 @@ var Reflect;
       *
       */
     function deleteMetadata(metadataKey, target, targetKey) {
-        if (!isObject(target)) {
+        if (!IsObject(target)) {
             throw new TypeError();
         }
-        else if (!isMissing(targetKey)) {
-            targetKey = toPropertyKey(targetKey);
+        else if (!IsUndefined(targetKey)) {
+            targetKey = ToPropertyKey(targetKey);
         }
-        return deleteMetadataCore(metadataKey, target, targetKey);
+        // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#deletemetadata-metadatakey-p-
+        var metadataMap = GetOrCreateMetadataMap(target, targetKey, false);
+        if (IsUndefined(metadataMap)) {
+            return undefined;
+        }
+        if (!metadataMap.delete(metadataKey)) {
+            return false;
+        }
+        if (metadataMap.size > 0) {
+            return true;
+        }
+        var targetMetadata = __Metadata__.get(target);
+        targetMetadata.delete(targetKey);
+        if (targetMetadata.size > 0) {
+            return true;
+        }
+        __Metadata__.delete(target);
+        return true;
     }
     Reflect.deleteMetadata = deleteMetadata;
-    function decorateCore(decorators, target, targetKey, targetDescriptor) {
-        if (isPropertyKey(targetKey)) {
-            return decorateProperty(decorators, target, targetKey, targetDescriptor);
-        }
-        else {
-            return decorateConstructor(decorators, target);
-        }
-    }
-    function decorateConstructor(decorators, target) {
+    function DecorateConstructor(decorators, target) {
         for (var i = decorators.length - 1; i >= 0; --i) {
             var decorator = decorators[i];
             var decorated = decorator(target);
-            if (decorated != null) {
-                if (!isFunction(decorated)) {
+            if (!IsUndefined(decorated)) {
+                if (!IsConstructor(decorated)) {
                     throw new TypeError();
                 }
                 target = decorated;
@@ -527,12 +542,12 @@ var Reflect;
         }
         return target;
     }
-    function decorateProperty(decorators, target, propertyKey, descriptor) {
+    function DecoratePropertyWithDescriptor(decorators, target, propertyKey, descriptor) {
         for (var i = decorators.length - 1; i >= 0; --i) {
             var decorator = decorators[i];
             var decorated = decorator(target, propertyKey, descriptor);
-            if (descriptor != null && decorated != null) {
-                if (!isObject(decorated)) {
+            if (!IsUndefined(decorated)) {
+                if (!IsObject(decorated)) {
                     throw new TypeError();
                 }
                 descriptor = decorated;
@@ -540,14 +555,21 @@ var Reflect;
         }
         return descriptor;
     }
-    function getOrCreateMetadataMap(target, targetKey, create) {
-        var targetMetadata = weakMetadata.get(target);
+    function DecoratePropertyWithoutDescriptor(decorators, target, propertyKey) {
+        for (var i = decorators.length - 1; i >= 0; --i) {
+            var decorator = decorators[i];
+            decorator(target, propertyKey);
+        }
+    }
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#getorcreatemetadatamap--o-p-create-
+    function GetOrCreateMetadataMap(target, targetKey, create) {
+        var targetMetadata = __Metadata__.get(target);
         if (!targetMetadata) {
             if (!create) {
                 return undefined;
             }
             targetMetadata = new _Map();
-            weakMetadata.set(target, targetMetadata);
+            __Metadata__.set(target, targetMetadata);
         }
         var keyMetadata = targetMetadata.get(targetKey);
         if (!keyMetadata) {
@@ -559,86 +581,149 @@ var Reflect;
         }
         return keyMetadata;
     }
-    function defineMetadataCore(metadataKey, metadataValue, target, targetKey) {
-        var keyMetadata = getOrCreateMetadataMap(target, targetKey, true);
-        keyMetadata.set(metadataKey, metadataValue);
-    }
-    function hasMetadataCore(metadataKey, target, targetKey) {
-        while (target) {
-            if (hasOwnMetadataCore(metadataKey, target, targetKey)) {
-                return true;
-            }
-            target = getPrototypeOfCore(target);
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinaryhasmetadata--metadatakey-o-p-
+    function OrdinaryHasMetadata(MetadataKey, O, P) {
+        var hasOwn = OrdinaryHasOwnMetadata(MetadataKey, O, P);
+        if (hasOwn) {
+            return true;
+        }
+        var parent = GetPrototypeOf(O);
+        if (parent !== null) {
+            return OrdinaryHasMetadata(MetadataKey, parent, P);
         }
         return false;
     }
-    function hasOwnMetadataCore(metadataKey, target, targetKey) {
-        var keyMetadata = getOrCreateMetadataMap(target, targetKey, false);
-        if (keyMetadata) {
-            return keyMetadata.has(metadataKey);
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinaryhasownmetadata--metadatakey-o-p-
+    function OrdinaryHasOwnMetadata(MetadataKey, O, P) {
+        var metadataMap = GetOrCreateMetadataMap(O, P, false);
+        if (metadataMap === undefined) {
+            return false;
         }
-        return false;
+        return Boolean(metadataMap.has(MetadataKey));
     }
-    function getMetadataCore(metadataKey, target, targetKey) {
-        while (target) {
-            if (hasOwnMetadataCore(metadataKey, target, targetKey)) {
-                return getOwnMetadataCore(metadataKey, target, targetKey);
-            }
-            target = getPrototypeOfCore(target);
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinarygetmetadata--metadatakey-o-p-
+    function OrdinaryGetMetadata(MetadataKey, O, P) {
+        var hasOwn = OrdinaryHasOwnMetadata(MetadataKey, O, P);
+        if (hasOwn) {
+            return OrdinaryGetOwnMetadata(MetadataKey, O, P);
         }
-        return undefined;
-    }
-    function getOwnMetadataCore(metadataKey, target, targetKey) {
-        var keyMetadata = getOrCreateMetadataMap(target, targetKey, false);
-        if (keyMetadata) {
-            return keyMetadata.get(metadataKey);
+        var parent = GetPrototypeOf(O);
+        if (parent !== null) {
+            return OrdinaryGetMetadata(MetadataKey, parent, P);
         }
         return undefined;
     }
-    function getMetadataKeysCore(target, targetKey) {
-        var keySet = new _Set();
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinarygetownmetadata--metadatakey-o-p-
+    function OrdinaryGetOwnMetadata(MetadataKey, O, P) {
+        var metadataMap = GetOrCreateMetadataMap(O, P, false);
+        if (metadataMap === undefined) {
+            return undefined;
+        }
+        return metadataMap.get(MetadataKey);
+    }
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinarydefineownmetadata--metadatakey-metadatavalue-o-p-
+    function OrdinaryDefineOwnMetadata(MetadataKey, MetadataValue, O, P) {
+        var metadataMap = GetOrCreateMetadataMap(O, P, true);
+        metadataMap.set(MetadataKey, MetadataValue);
+    }
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinarymetadatakeys--o-p-
+    function OrdinaryMetadataKeys(O, P) {
+        var ownKeys = OrdinaryOwnMetadataKeys(O, P);
+        var parent = GetPrototypeOf(O);
+        if (parent === null) {
+            return ownKeys;
+        }
+        var parentKeys = OrdinaryMetadataKeys(parent, P);
+        if (parentKeys.length <= 0) {
+            return ownKeys;
+        }
+        if (ownKeys.length <= 0) {
+            return parentKeys;
+        }
+        var set = new _Set();
         var keys = [];
-        while (target) {
-            for (var _i = 0, _a = getOwnMetadataKeysCore(target, targetKey); _i < _a.length; _i++) {
-                var key = _a[_i];
-                if (!keySet.has(key)) {
-                    keySet.add(key);
-                    keys.push(key);
-                }
+        for (var _i = 0; _i < ownKeys.length; _i++) {
+            var key = ownKeys[_i];
+            var hasKey = set.has(key);
+            if (!hasKey) {
+                set.add(key);
+                keys.push(key);
             }
-            target = getPrototypeOfCore(target);
+        }
+        for (var _a = 0; _a < parentKeys.length; _a++) {
+            var key = parentKeys[_a];
+            var hasKey = set.has(key);
+            if (!hasKey) {
+                set.add(key);
+                keys.push(key);
+            }
         }
         return keys;
     }
-    function getOwnMetadataKeysCore(target, targetKey) {
-        var result = [];
-        var keyMetadata = getOrCreateMetadataMap(target, targetKey, false);
-        if (keyMetadata) {
-            keyMetadata.forEach(function (_, key) { return result.push(key); });
+    // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinaryownmetadatakeys--o-p-
+    function OrdinaryOwnMetadataKeys(target, targetKey) {
+        var metadataMap = GetOrCreateMetadataMap(target, targetKey, false);
+        var keys = [];
+        if (metadataMap) {
+            metadataMap.forEach(function (_, key) { return keys.push(key); });
         }
-        return result;
+        return keys;
     }
-    function deleteMetadataCore(metadataKey, target, targetKey) {
-        var keyMetadata = getOrCreateMetadataMap(target, targetKey, false);
-        if (keyMetadata) {
-            if (keyMetadata.delete(metadataKey)) {
-                if (keyMetadata.size === 0) {
-                    var targetMetadata = weakMetadata.get(target);
-                    targetMetadata.delete(targetKey);
-                    if (targetMetadata.size === 0) {
-                        weakMetadata.delete(target);
-                    }
-                }
-                return true;
-            }
-        }
-        return false;
+    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-language-types-undefined-type
+    function IsUndefined(x) {
+        return x === undefined;
     }
-    function toPropertyKey(value) {
-        if (!isPropertyKey(value)) {
-            return String(value);
+    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-isarray
+    function IsArray(x) {
+        return Array.isArray(x);
+    }
+    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object-type
+    function IsObject(x) {
+        return typeof x === "object" ? x !== null : typeof x === "function";
+    }
+    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-isconstructor
+    function IsConstructor(x) {
+        return typeof x === "function";
+    }
+    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-language-types-symbol-type
+    function IsSymbol(x) {
+        return typeof x === "symbol";
+    }
+    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-topropertykey
+    function ToPropertyKey(value) {
+        if (IsSymbol(value)) {
+            return value;
         }
-        return value;
+        return String(value);
+    }
+    function GetPrototypeOf(O) {
+        // TypeScript doesn't set __proto__ in ES5, as it's non-standard. 
+        // Try to determine the superclass from the prototype.
+        var proto = Object.getPrototypeOf(O);
+        if (typeof O !== "function" || O === functionPrototype) {
+            return proto;
+        }
+        // If this is not the same as Function.[[Prototype]], then this is definately inherited.
+        if (proto !== functionPrototype) {
+            return proto;
+        }
+        // If the super prototype is Object.prototype, null, or undefined, then we cannot determine the heritage.
+        var prototype = O.prototype;
+        var prototypeProto = Object.getPrototypeOf(prototype);
+        if (prototypeProto == null || prototypeProto === Object.prototype) {
+            return proto;
+        }
+        // if the constructor was not a function, then we cannot determine the heritage.
+        var constructor = prototypeProto.constructor;
+        if (typeof constructor !== "function") {
+            return proto;
+        }
+        // if we have some kind of self-reference, then we cannot determine the heritage.
+        if (constructor === O) {
+            return proto;
+        }
+        // we have a pretty good guess at the heritage.
+        return constructor;
     }
     // naive Map shim
     function CreateMapPolyfill() {
@@ -664,7 +749,7 @@ var Reflect;
             },
             get: function (key) {
                 var index = this._find(key);
-                if (index > 0) {
+                if (index >= 0) {
                     this._cache = key;
                     return this._values[index];
                 }
@@ -679,7 +764,7 @@ var Reflect;
             },
             delete: function (key) {
                 var index = this._find(key);
-                if (index) {
+                if (index >= 0) {
                     this._keys.splice(index, 1);
                     this._values.splice(index, 1);
                     this._cache = cacheSentinel;
@@ -702,8 +787,10 @@ var Reflect;
                 }
             },
             _find: function (key) {
-                for (var i = 0; i < this._keys.length; ++i) {
-                    if (this._keys[i] === key) {
+                var keys = this._keys;
+                var size = keys.length;
+                for (var i = 0; i < size; ++i) {
+                    if (keys[i] === key) {
                         return i;
                     }
                 }
@@ -716,105 +803,145 @@ var Reflect;
     function CreateSetPolyfill() {
         var cacheSentinel = {};
         function Set() {
-            this._values = [];
-            this._cache = cacheSentinel;
+            this._map = new _Map();
         }
         Set.prototype = {
             get size() {
-                return this._values.length;
+                return this._map.length;
             },
             has: function (value) {
-                if (value === this._cache) {
-                    return true;
-                }
-                if (this._find(value) >= 0) {
-                    this._cache = value;
-                    return true;
-                }
-                return false;
+                return this._map.has(value);
             },
             add: function (value) {
-                if (this._find(value) < 0) {
-                    this._values.push(value);
-                }
-                this._cache = value;
+                this._map.set(value, value);
                 return this;
             },
             delete: function (value) {
-                var index = this._find(value);
-                if (index >= 0) {
-                    this._values.splice(index, 1);
-                    this._cache = cacheSentinel;
-                    return true;
-                }
-                return false;
+                return this._map.delete(value);
             },
             clear: function () {
-                this._values.length = 0;
-                this._cache = cacheSentinel;
+                this._map.clear();
             },
             forEach: function (callback, thisArg) {
-                for (var i = 0; i < this._values.length; ++i) {
-                    var value = this._values[i];
-                    this._cache = value;
-                    callback.call(thisArg, value, value, this);
-                }
-            },
-            _find: function (value) {
-                for (var i = 0; i < this._values.length; ++i) {
-                    if (this._values[i] === value) {
-                        return i;
-                    }
-                }
-                return -1;
+                this._map.forEach(callback, thisArg);
             }
         };
         return Set;
     }
     // naive WeakMap shim
     function CreateWeakMapPolyfill() {
+        var UUID_SIZE = 16;
+        var isNode = typeof global !== "undefined" &&
+            typeof module === "object" &&
+            typeof module.exports === "object" &&
+            typeof require === "function";
+        var nodeCrypto = isNode && require("crypto");
         var hasOwn = Object.prototype.hasOwnProperty;
         var keys = {};
-        var desc = { configurable: true, enumerable: false, writable: true };
+        var rootKey = CreateUniqueKey();
         function WeakMap() {
-            this.clear();
+            this._key = CreateUniqueKey();
         }
         WeakMap.prototype = {
             has: function (target) {
-                return hasOwn.call(target, this._key);
+                var table = GetOrCreateWeakMapTable(target, false);
+                if (table) {
+                    return this._key in table;
+                }
+                return false;
             },
             get: function (target) {
-                if (hasOwn.call(target, this._key)) {
-                    return target[this._key];
+                var table = GetOrCreateWeakMapTable(target, false);
+                if (table) {
+                    return table[this._key];
                 }
                 return undefined;
             },
             set: function (target, value) {
-                if (!hasOwn.call(target, this._key)) {
-                    Object.defineProperty(target, this._key, desc);
-                }
-                target[this._key] = value;
+                var table = GetOrCreateWeakMapTable(target, true);
+                table[this._key] = value;
                 return this;
             },
             delete: function (target) {
-                if (hasOwn.call(target, this._key)) {
-                    return delete target[this._key];
+                var table = GetOrCreateWeakMapTable(target, false);
+                if (table && this._key in table) {
+                    return delete table[this._key];
                 }
                 return false;
             },
             clear: function () {
                 // NOTE: not a real clear, just makes the previous data unreachable
-                var key;
-                do
-                    key = "@@WeakMap@" + Math.random().toString(16).substr(2);
-                while (!hasOwn.call(keys, key));
-                keys[key] = true;
-                this._key = key;
+                this._key = CreateUniqueKey();
             }
         };
+        function FillRandomBytes(buffer, size) {
+            for (var i = 0; i < size; ++i) {
+                buffer[i] = Math.random() * 255 | 0;
+            }
+        }
+        function GenRandomBytes(size) {
+            if (nodeCrypto) {
+                var data = nodeCrypto.randomBytes(size);
+                return data;
+            }
+            else if (typeof Uint8Array === "function") {
+                var data = new Uint8Array(size);
+                if (typeof crypto !== "undefined") {
+                    crypto.getRandomValues(data);
+                }
+                else if (typeof msCrypto !== "undefined") {
+                    msCrypto.getRandomValues(data);
+                }
+                else {
+                    FillRandomBytes(data, size);
+                }
+                return data;
+            }
+            else {
+                var data = new Array(size);
+                FillRandomBytes(data, size);
+                return data;
+            }
+        }
+        function CreateUUID() {
+            var data = GenRandomBytes(UUID_SIZE);
+            // mark as random - RFC 4122 § 4.4
+            data[6] = data[6] & 0x4f | 0x40;
+            data[8] = data[8] & 0xbf | 0x80;
+            var result = "";
+            for (var offset = 0; offset < UUID_SIZE; ++offset) {
+                var byte = data[offset];
+                if (offset === 4 || offset === 6 || offset === 8) {
+                    result += "-";
+                }
+                if (byte < 16) {
+                    result += "0";
+                }
+                result += byte.toString(16).toLowerCase();
+            }
+            return result;
+        }
+        function CreateUniqueKey() {
+            var key;
+            do {
+                key = "@@WeakMap@@" + CreateUUID();
+            } while (hasOwn.call(keys, key));
+            keys[key] = true;
+            return key;
+        }
+        function GetOrCreateWeakMapTable(target, create) {
+            if (!hasOwn.call(target, rootKey)) {
+                if (!create) {
+                    return undefined;
+                }
+                Object.defineProperty(target, rootKey, { value: Object.create(null) });
+            }
+            return target[rootKey];
+        }
         return WeakMap;
     }
 })(Reflect || (Reflect = {}));
+// hook global Reflect
 (function (__global) {
     if (typeof __global.Reflect !== "undefined") {
         if (__global.Reflect !== Reflect) {
