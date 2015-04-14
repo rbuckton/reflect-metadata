@@ -16,13 +16,13 @@ limitations under the License.
 type ClassMemberDecorator = MethodDecorator | PropertyDecorator;
 type Decorator = ClassDecorator | ClassMemberDecorator;
 
-declare var global: any;
-declare var WorkerGlobalScope: any;
-declare var module: any;
-declare var crypto: Crypto;
-declare var require: Function;
-
 module Reflect {
+    declare var global: any;
+    declare var WorkerGlobalScope: any;
+    declare var module: any;
+    declare var crypto: Crypto;
+    declare var require: Function;
+
     // Load global or shim versions of Map, Set, and WeakMap
     const functionPrototype = Object.getPrototypeOf(Function);
     const _Map: typeof Map = typeof Map === "function" ? Map : CreateMapPolyfill();
@@ -1472,22 +1472,23 @@ module Reflect {
         [offset: number]: number;
         length: number;
     }
-}
 
-// hook global Reflect
-(function(__global: any) {
-    if (typeof __global.Reflect !== "undefined") {
-        if (__global.Reflect !== Reflect) {
-            for (var p in Reflect) {
-                __global.Reflect[p] = (<any>Reflect)[p];
+
+    // hook global Reflect
+    (function(__global: any) {
+        if (typeof __global.Reflect !== "undefined") {
+            if (__global.Reflect !== Reflect) {
+                for (var p in Reflect) {
+                    __global.Reflect[p] = (<any>Reflect)[p];
+                }
             }
         }
-    }
-    else {
-        __global.Reflect = Reflect;
-    }
-})(
-    typeof window !== "undefined" ? window :
-    typeof WorkerGlobalScope !== "undefined" ? self :
-    typeof global !== "undefined" ? global :
-        Function("return this;")());
+        else {
+            __global.Reflect = Reflect;
+        }
+    })(
+        typeof window !== "undefined" ? window :
+        typeof WorkerGlobalScope !== "undefined" ? self :
+        typeof global !== "undefined" ? global :
+            Function("return this;")());
+}

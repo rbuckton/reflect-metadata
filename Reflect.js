@@ -697,13 +697,17 @@ var Reflect;
         return String(value);
     }
     function GetPrototypeOf(O) {
-        // TypeScript doesn't set __proto__ in ES5, as it's non-standard. 
-        // Try to determine the superclass from the prototype.
         var proto = Object.getPrototypeOf(O);
         if (typeof O !== "function" || O === functionPrototype) {
             return proto;
         }
+        // TypeScript doesn't set __proto__ in ES5, as it's non-standard. 
+        // Try to determine the superclass constructor. Compatible implementations
+        // must either set __proto__ on a subclass constructor to the superclass constructor,
+        // or ensure each class has a valid `constructor` property on its prototype that
+        // points back to the constructor.
         // If this is not the same as Function.[[Prototype]], then this is definately inherited.
+        // This is the case when in ES6 or when using __proto__ in a compatible browser.
         if (proto !== functionPrototype) {
             return proto;
         }
@@ -940,21 +944,21 @@ var Reflect;
         }
         return WeakMap;
     }
-})(Reflect || (Reflect = {}));
-// hook global Reflect
-(function (__global) {
-    if (typeof __global.Reflect !== "undefined") {
-        if (__global.Reflect !== Reflect) {
-            for (var p in Reflect) {
-                __global.Reflect[p] = Reflect[p];
+    // hook global Reflect
+    (function (__global) {
+        if (typeof __global.Reflect !== "undefined") {
+            if (__global.Reflect !== Reflect) {
+                for (var p in Reflect) {
+                    __global.Reflect[p] = Reflect[p];
+                }
             }
         }
-    }
-    else {
-        __global.Reflect = Reflect;
-    }
-})(typeof window !== "undefined" ? window :
-    typeof WorkerGlobalScope !== "undefined" ? self :
-        typeof global !== "undefined" ? global :
-            Function("return this;")());
+        else {
+            __global.Reflect = Reflect;
+        }
+    })(typeof window !== "undefined" ? window :
+        typeof WorkerGlobalScope !== "undefined" ? self :
+            typeof global !== "undefined" ? global :
+                Function("return this;")());
+})(Reflect || (Reflect = {}));
 //# sourceMappingURL=Reflect.js.map
