@@ -168,4 +168,4 @@ function ParamTypes(...types) {
 * Metadata for a method is attached to the class (or prototype) via the property key. It would not then be available if trying to read metadata on the function of the method (e.g. "tearing-off" the method from the class). @rbuckton
 
 [Metadata-Spec]: https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md
-[Decorators]: https://github.com/jonathandturner/decorators/blob/master/readme.md
+[Decorators]: https://github.com/jonathandturner/decorators/blob/master/README.md
