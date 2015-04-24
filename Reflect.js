@@ -145,13 +145,13 @@ var Reflect;
                     throw new TypeError();
                 }
                 targetKey = ToPropertyKey(targetKey);
-                return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, targetKey);
+                OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, targetKey);
             }
             else {
                 if (!IsConstructor(target)) {
                     throw new TypeError();
                 }
-                return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, undefined);
+                OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, undefined);
             }
         }
         return decorator;
@@ -512,7 +512,7 @@ var Reflect;
         // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#deletemetadata-metadatakey-p-
         var metadataMap = GetOrCreateMetadataMap(target, targetKey, false);
         if (IsUndefined(metadataMap)) {
-            return undefined;
+            return false;
         }
         if (!metadataMap.delete(metadataKey)) {
             return false;

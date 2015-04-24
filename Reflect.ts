@@ -13,9 +13,6 @@ limitations under the License.
 ***************************************************************************** */
 "use strict";
 
-type ClassMemberDecorator = MethodDecorator | PropertyDecorator;
-type Decorator = ClassDecorator | ClassMemberDecorator;
-
 module Reflect {
     declare var global: any;
     declare var WorkerGlobalScope: any;
@@ -26,7 +23,7 @@ module Reflect {
     // Load global or shim versions of Map, Set, and WeakMap
     const functionPrototype = Object.getPrototypeOf(Function);
     const _Map: typeof Map = typeof Map === "function" ? Map : CreateMapPolyfill();
-    const _Set: typeof Set = typeof Set === "function" ? Set : CreateSetPolyfill();    
+    const _Set: typeof Set = typeof Set === "function" ? Set : CreateSetPolyfill();
     const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
     
     // [[Metadata]] internal slot
@@ -53,6 +50,7 @@ module Reflect {
       * @param decorators An array of decorators.
       * @param target The target object.
       * @param targetKey The property key to decorate.
+      * @param descriptor A property descriptor      
       * @remarks Decorators are applied in reverse order.
       * @example
       *
@@ -82,8 +80,7 @@ module Reflect {
       *             Object.getOwnPropertyDescriptor(C.prototype, "method")));
       *
       */
-    export function decorate(decorators: ClassMemberDecorator[], target: Object, targetKey: string | symbol, descriptor?: PropertyDescriptor): PropertyDescriptor;
-
+    export function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: Object, targetKey: string | symbol, descriptor?: PropertyDescriptor): PropertyDescriptor;
 
     /**
       * Applies a set of decorators to a property of a target object.
@@ -124,7 +121,7 @@ module Reflect {
       *             Object.getOwnPropertyDescriptor(C.prototype, "method")));
       *
       */
-    export function decorate(decorators: Decorator[], target: Object, targetKey?: string | symbol, targetDescriptor?: PropertyDescriptor): any {
+    export function decorate(decorators: (ClassDecorator | MethodDecorator | PropertyDecorator)[], target: Object, targetKey?: string | symbol, targetDescriptor?: PropertyDescriptor): any {
         if (!IsUndefined(targetDescriptor)) {
             if (!IsArray(decorators)) {
                 throw new TypeError();
@@ -205,7 +202,7 @@ module Reflect {
       *     }
       *
       */
-    export function metadata(metadataKey: any, metadataValue: any): Decorator {
+    export function metadata(metadataKey: any, metadataValue: any) {
         function decorator(target: Function): void;
         function decorator(target: Object, targetKey: string | symbol): void;
         function decorator(target: Object, targetKey?: string | symbol): void {
@@ -215,14 +212,14 @@ module Reflect {
                 }
 
                 targetKey = ToPropertyKey(targetKey);
-                return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, targetKey);
+                OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, targetKey);
             }
             else {
                 if (!IsConstructor(target)) {
                     throw new TypeError();
                 }
 
-                return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, /*targetKey*/ undefined);
+                OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, /*targetKey*/ undefined);
             }
         }
 
@@ -982,7 +979,7 @@ module Reflect {
         // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#deletemetadata-metadatakey-p-
         let metadataMap = GetOrCreateMetadataMap(target, targetKey, /*create*/ false);
         if (IsUndefined(metadataMap)) {
-            return undefined;
+            return false;
         }
 
         if (!metadataMap.delete(metadataKey)) {
@@ -998,7 +995,7 @@ module Reflect {
         if (targetMetadata.size > 0) {
             return true;
         }
-        
+
         __Metadata__.delete(target);
         return true;
     }
@@ -1160,7 +1157,7 @@ module Reflect {
         let metadataMap = GetOrCreateMetadataMap(target, targetKey, /*create*/ false);
         let keys: any[] = [];
         if (metadataMap) {
-            metadataMap.forEach((_, key) => keys.push(key));            
+            metadataMap.forEach((_, key) => keys.push(key));
         }
 
         return keys;
@@ -1183,7 +1180,7 @@ module Reflect {
 
     // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-isconstructor
     function IsConstructor(x: any): boolean {
-        return typeof x === "function";   
+        return typeof x === "function";
     }
 
     // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-ecmascript-language-types-symbol-type
@@ -1248,8 +1245,8 @@ module Reflect {
             this._cache = cacheSentinel;
         }
         Map.prototype = {
-            get size() { 
-                return this._keys.length; 
+            get size() {
+                return this._keys.length;
             },
             has(key: any): boolean {
                 if (key === this._cache) {
@@ -1321,8 +1318,8 @@ module Reflect {
             this._map = new _Map<any, any>();
         }
         Set.prototype = {
-            get size() { 
-                return this._map.length; 
+            get size() {
+                return this._map.length;
             },
             has(value: any): boolean {
                 return this._map.has(value);
@@ -1347,15 +1344,15 @@ module Reflect {
     // naive WeakMap shim
     function CreateWeakMapPolyfill() {
         const UUID_SIZE = 16;
-        const isNode = typeof global !== "undefined" && 
-            typeof module === "object" && 
-            typeof module.exports === "object" && 
+        const isNode = typeof global !== "undefined" &&
+            typeof module === "object" &&
+            typeof module.exports === "object" &&
             typeof require === "function";
         const nodeCrypto = isNode && require("crypto");
         const hasOwn = Object.prototype.hasOwnProperty;
         const keys: { [key: string]: boolean; } = {};
         const rootKey = CreateUniqueKey();
-        
+
         function WeakMap() {
             this._key = CreateUniqueKey();
         }
@@ -1488,7 +1485,7 @@ module Reflect {
         }
     })(
         typeof window !== "undefined" ? window :
-        typeof WorkerGlobalScope !== "undefined" ? self :
-        typeof global !== "undefined" ? global :
-            Function("return this;")());
+            typeof WorkerGlobalScope !== "undefined" ? self :
+                typeof global !== "undefined" ? global :
+                    Function("return this;")());
 }
