@@ -1344,10 +1344,7 @@ module Reflect {
     // naive WeakMap shim
     function CreateWeakMapPolyfill() {
         const UUID_SIZE = 16;
-        const isNode = typeof global !== "undefined" &&
-            typeof module === "object" &&
-            typeof module.exports === "object" &&
-            typeof require === "function";
+        const isNode = Object.prototype.toString.call(global.process) === '[object process]';
         const nodeCrypto = isNode && require("crypto");
         const hasOwn = Object.prototype.hasOwnProperty;
         const keys: { [key: string]: boolean; } = {};
