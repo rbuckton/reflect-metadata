@@ -12,9 +12,9 @@ MERCHANTABLITY OR NON-INFRINGEMENT.
 See the Apache Version 2.0 License for specific language governing permissions
 and limitations under the License.
 ***************************************************************************** */
-"use strict";
-
 module Reflect {
+    "use strict";
+    
     declare var global: any;
     declare var WorkerGlobalScope: any;
     declare var module: any;

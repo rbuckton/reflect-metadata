@@ -12,9 +12,9 @@ MERCHANTABLITY OR NON-INFRINGEMENT.
 See the Apache Version 2.0 License for specific language governing permissions
 and limitations under the License.
 ***************************************************************************** */
-"use strict";
 var Reflect;
 (function (Reflect) {
+    "use strict";
     // Load global or shim versions of Map, Set, and WeakMap
     var functionPrototype = Object.getPrototypeOf(Function);
     var _Map = typeof Map === "function" ? Map : CreateMapPolyfill();
