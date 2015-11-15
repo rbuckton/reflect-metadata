@@ -108,7 +108,10 @@ declare module Reflect {
       *     }
       *
       */
-    function metadata(metadataKey: any, metadataValue: any): ClassDecorator | MethodDecorator | PropertyDecorator;
+    function metadata(metadataKey: any, metadataValue: any): {
+        (target: Function): void;
+        (target: Object, propertyKey: string | symbol): void;
+    };
     /**
       * Define a unique metadata entry on the target.
       * @param metadataKey A key used to store and retrieve metadata.
