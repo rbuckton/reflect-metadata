@@ -152,7 +152,7 @@ var Reflect;
                 if (!IsConstructor(target)) {
                     throw new TypeError();
                 }
-                OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, undefined);
+                OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, /*targetKey*/ undefined);
             }
         }
         return decorator;
@@ -511,7 +511,7 @@ var Reflect;
             targetKey = ToPropertyKey(targetKey);
         }
         // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#deletemetadata-metadatakey-p-
-        var metadataMap = GetOrCreateMetadataMap(target, targetKey, false);
+        var metadataMap = GetOrCreateMetadataMap(target, targetKey, /*create*/ false);
         if (IsUndefined(metadataMap)) {
             return false;
         }
@@ -596,7 +596,7 @@ var Reflect;
     }
     // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinaryhasownmetadata--metadatakey-o-p-
     function OrdinaryHasOwnMetadata(MetadataKey, O, P) {
-        var metadataMap = GetOrCreateMetadataMap(O, P, false);
+        var metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ false);
         if (metadataMap === undefined) {
             return false;
         }
@@ -616,7 +616,7 @@ var Reflect;
     }
     // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinarygetownmetadata--metadatakey-o-p-
     function OrdinaryGetOwnMetadata(MetadataKey, O, P) {
-        var metadataMap = GetOrCreateMetadataMap(O, P, false);
+        var metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ false);
         if (metadataMap === undefined) {
             return undefined;
         }
@@ -624,7 +624,7 @@ var Reflect;
     }
     // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinarydefineownmetadata--metadatakey-metadatavalue-o-p-
     function OrdinaryDefineOwnMetadata(MetadataKey, MetadataValue, O, P) {
-        var metadataMap = GetOrCreateMetadataMap(O, P, true);
+        var metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ true);
         metadataMap.set(MetadataKey, MetadataValue);
     }
     // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinarymetadatakeys--o-p-
@@ -663,7 +663,7 @@ var Reflect;
     }
     // https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#ordinaryownmetadatakeys--o-p-
     function OrdinaryOwnMetadataKeys(target, targetKey) {
-        var metadataMap = GetOrCreateMetadataMap(target, targetKey, false);
+        var metadataMap = GetOrCreateMetadataMap(target, targetKey, /*create*/ false);
         var keys = [];
         if (metadataMap) {
             metadataMap.forEach(function (_, key) { return keys.push(key); });
@@ -846,26 +846,26 @@ var Reflect;
         }
         WeakMap.prototype = {
             has: function (target) {
-                var table = GetOrCreateWeakMapTable(target, false);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 if (table) {
                     return this._key in table;
                 }
                 return false;
             },
             get: function (target) {
-                var table = GetOrCreateWeakMapTable(target, false);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 if (table) {
                     return table[this._key];
                 }
                 return undefined;
             },
             set: function (target, value) {
-                var table = GetOrCreateWeakMapTable(target, true);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ true);
                 table[this._key] = value;
                 return this;
             },
             delete: function (target) {
-                var table = GetOrCreateWeakMapTable(target, false);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 if (table && this._key in table) {
                     return delete table[this._key];
                 }
