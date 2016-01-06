@@ -26,7 +26,7 @@
     "tests"
   ],
   "devDependencies": {
-    "typescript": ">=1.5.0-alpha"
+    "typescript": "^1.7.5"
   },
   "repository": {
     "type": "git",
