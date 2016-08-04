@@ -643,16 +643,16 @@ var Reflect;
         }
         var set = new _Set();
         var keys = [];
-        for (var _i = 0; _i < ownKeys.length; _i++) {
-            var key = ownKeys[_i];
+        for (var _i = 0, ownKeys_1 = ownKeys; _i < ownKeys_1.length; _i++) {
+            var key = ownKeys_1[_i];
             var hasKey = set.has(key);
             if (!hasKey) {
                 set.add(key);
                 keys.push(key);
             }
         }
-        for (var _a = 0; _a < parentKeys.length; _a++) {
-            var key = parentKeys[_a];
+        for (var _a = 0, parentKeys_1 = parentKeys; _a < parentKeys_1.length; _a++) {
+            var key = parentKeys_1[_a];
             var hasKey = set.has(key);
             if (!hasKey) {
                 set.add(key);
@@ -702,7 +702,7 @@ var Reflect;
         if (typeof O !== "function" || O === functionPrototype) {
             return proto;
         }
-        // TypeScript doesn't set __proto__ in ES5, as it's non-standard. 
+        // TypeScript doesn't set __proto__ in ES5, as it's non-standard.
         // Try to determine the superclass constructor. Compatible implementations
         // must either set __proto__ on a subclass constructor to the superclass constructor,
         // or ensure each class has a valid `constructor` property on its prototype that
@@ -714,7 +714,7 @@ var Reflect;
         }
         // If the super prototype is Object.prototype, null, or undefined, then we cannot determine the heritage.
         var prototype = O.prototype;
-        var prototypeProto = Object.getPrototypeOf(prototype);
+        var prototypeProto = prototype && Object.getPrototypeOf(prototype);
         if (prototypeProto == null || prototypeProto === Object.prototype) {
             return proto;
         }
@@ -837,7 +837,10 @@ var Reflect;
     function CreateWeakMapPolyfill() {
         var UUID_SIZE = 16;
         var isNode = typeof global !== "undefined" && Object.prototype.toString.call(global.process) === '[object process]';
-        var nodeCrypto = isNode && require("crypto");
+        var nodeCrypto = isNode && function () { try {
+            return (void 0, require)("crypto");
+        }
+        catch (e) { } }();
         var hasOwn = Object.prototype.hasOwnProperty;
         var keys = {};
         var rootKey = CreateUniqueKey();
