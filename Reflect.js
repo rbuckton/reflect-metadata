@@ -643,16 +643,16 @@ var Reflect;
         }
         var set = new _Set();
         var keys = [];
-        for (var _i = 0, ownKeys_1 = ownKeys; _i < ownKeys_1.length; _i++) {
-            var key = ownKeys_1[_i];
+        for (var _i = 0; _i < ownKeys.length; _i++) {
+            var key = ownKeys[_i];
             var hasKey = set.has(key);
             if (!hasKey) {
                 set.add(key);
                 keys.push(key);
             }
         }
-        for (var _a = 0, parentKeys_1 = parentKeys; _a < parentKeys_1.length; _a++) {
-            var key = parentKeys_1[_a];
+        for (var _a = 0; _a < parentKeys.length; _a++) {
+            var key = parentKeys[_a];
             var hasKey = set.has(key);
             if (!hasKey) {
                 set.add(key);
@@ -838,7 +838,7 @@ var Reflect;
         var UUID_SIZE = 16;
         var isNode = typeof global !== "undefined" && Object.prototype.toString.call(global.process) === '[object process]';
         var nodeCrypto = isNode && function () { try {
-            return (void 0, require)("crypto");
+            return require("crypto");
         }
         catch (e) { } }();
         var hasOwn = Object.prototype.hasOwnProperty;

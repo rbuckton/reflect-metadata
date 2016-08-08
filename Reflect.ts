@@ -1395,7 +1395,7 @@ namespace Reflect {
     function CreateWeakMapPolyfill() {
         const UUID_SIZE = 16;
         const isNode = typeof global !== "undefined" && Object.prototype.toString.call(global.process) === '[object process]';
-        const nodeCrypto = isNode && function () { try { return (void 0, require)("crypto"); } catch (e) { } }();
+        const nodeCrypto = isNode && function () { try { return require("crypto"); } catch (e) { } }();
         const hasOwn = Object.prototype.hasOwnProperty;
         const keys: { [key: string]: boolean; } = {};
         const rootKey = CreateUniqueKey();
