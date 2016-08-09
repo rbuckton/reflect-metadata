@@ -15,6 +15,30 @@ and limitations under the License.
 var Reflect;
 (function (Reflect) {
     "use strict";
+    var hasOwn = Object.prototype.hasOwnProperty;
+    // feature test for Object.create support
+    var supportsCreate = typeof Object.create === "function";
+    // feature test for __proto__ support
+    var supportsProto = (function () {
+        var sentinel = {};
+        function __() { }
+        __.prototype = sentinel;
+        var instance = new __();
+        return instance.__proto__ === sentinel;
+    })();
+    var createDictionary = supportsCreate ? function () { return MakeDictionary(Object.create(null)); } :
+        supportsProto ? function () { return MakeDictionary({ __proto__: null }); } :
+            function () { return MakeDictionary({}); };
+    var HashMap;
+    (function (HashMap) {
+        var downLevel = !supportsCreate && !supportsProto;
+        HashMap.has = downLevel
+            ? function (map, key) { return hasOwn.call(map, key); }
+            : function (map, key) { return key in map; };
+        HashMap.get = downLevel
+            ? function (map, key) { return hasOwn.call(map, key) ? map[key] : undefined; }
+            : function (map, key) { return map[key]; };
+    })(HashMap || (HashMap = {}));
     // Load global or shim versions of Map, Set, and WeakMap
     var functionPrototype = Object.getPrototypeOf(Function);
     var _Map = typeof Map === "function" ? Map : CreateMapPolyfill();
@@ -733,163 +757,173 @@ var Reflect;
     // naive Map shim
     function CreateMapPolyfill() {
         var cacheSentinel = {};
-        function Map() {
-            this._keys = [];
-            this._values = [];
-            this._cache = cacheSentinel;
-        }
-        Map.prototype = {
-            get size() {
-                return this._keys.length;
-            },
-            has: function (key) {
-                if (key === this._cache) {
-                    return true;
-                }
+        return (function () {
+            function Map() {
+                this._keys = [];
+                this._values = [];
+                this._cache = cacheSentinel;
+                this._cacheIndex = -2;
+            }
+            Object.defineProperty(Map.prototype, "size", {
+                get: function () {
+                    return this._keys.length;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Map.prototype.has = function (key) {
                 if (this._find(key) >= 0) {
-                    this._cache = key;
                     return true;
                 }
                 return false;
-            },
-            get: function (key) {
+            };
+            Map.prototype.get = function (key) {
                 var index = this._find(key);
                 if (index >= 0) {
-                    this._cache = key;
                     return this._values[index];
                 }
                 return undefined;
-            },
-            set: function (key, value) {
-                this.delete(key);
-                this._keys.push(key);
-                this._values.push(value);
-                this._cache = key;
-                return this;
-            },
-            delete: function (key) {
+            };
+            Map.prototype.set = function (key, value) {
                 var index = this._find(key);
                 if (index >= 0) {
-                    this._keys.splice(index, 1);
-                    this._values.splice(index, 1);
+                    this._keys[index] = key;
+                    this._values[index] = value;
+                }
+                else {
+                    this._keys.push(key);
+                    this._values.push(value);
+                    this._cache = key;
+                    this._cacheIndex = this._keys.length - 1;
+                }
+                return this;
+            };
+            Map.prototype.delete = function (key) {
+                var index = this._find(key);
+                if (index >= 0) {
+                    var size = this._keys.length;
+                    for (var i = index + 1; i < size; i++) {
+                        this._keys[i - 1] = this._keys[i];
+                        this._values[i - 1] = this._values[i];
+                    }
+                    this._keys.length--;
+                    this._values.length--;
                     this._cache = cacheSentinel;
+                    this._cacheIndex = -2;
                     return true;
                 }
                 return false;
-            },
-            clear: function () {
+            };
+            Map.prototype.clear = function () {
                 this._keys.length = 0;
                 this._values.length = 0;
                 this._cache = cacheSentinel;
-            },
-            forEach: function (callback, thisArg) {
+                this._cacheIndex = -2;
+            };
+            Map.prototype.forEach = function (callback, thisArg) {
                 var size = this.size;
                 for (var i = 0; i < size; ++i) {
                     var key = this._keys[i];
                     var value = this._values[i];
-                    this._cache = key;
-                    callback.call(this, value, key, this);
+                    callback.call(thisArg, value, key, this);
                 }
-            },
-            _find: function (key) {
+            };
+            Map.prototype._find = function (key) {
+                if (this._cache === key) {
+                    return this._cacheIndex;
+                }
                 var keys = this._keys;
                 var size = keys.length;
                 for (var i = 0; i < size; ++i) {
                     if (keys[i] === key) {
-                        return i;
+                        return this._cache = key, this._cacheIndex = i;
                     }
                 }
-                return -1;
-            }
-        };
-        return Map;
+                return this._cache = key, this._cacheIndex = -1;
+            };
+            return Map;
+        })();
     }
     // naive Set shim
     function CreateSetPolyfill() {
-        var cacheSentinel = {};
-        function Set() {
-            this._map = new _Map();
-        }
-        Set.prototype = {
-            get size() {
-                return this._map.length;
-            },
-            has: function (value) {
+        return (function () {
+            function Set() {
+                this._map = new _Map();
+            }
+            Object.defineProperty(Set.prototype, "size", {
+                get: function () {
+                    return this._map.size;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Set.prototype.has = function (value) {
                 return this._map.has(value);
-            },
-            add: function (value) {
+            };
+            Set.prototype.add = function (value) {
                 this._map.set(value, value);
                 return this;
-            },
-            delete: function (value) {
+            };
+            Set.prototype.delete = function (value) {
                 return this._map.delete(value);
-            },
-            clear: function () {
+            };
+            Set.prototype.clear = function () {
                 this._map.clear();
-            },
-            forEach: function (callback, thisArg) {
+            };
+            Set.prototype.forEach = function (callback, thisArg) {
                 this._map.forEach(callback, thisArg);
-            }
-        };
-        return Set;
+            };
+            return Set;
+        })();
     }
     // naive WeakMap shim
     function CreateWeakMapPolyfill() {
         var UUID_SIZE = 16;
-        var isNode = typeof global !== "undefined" && Object.prototype.toString.call(global.process) === '[object process]';
-        var nodeCrypto = isNode && function () { try {
-            return require("crypto");
-        }
-        catch (e) { } }();
-        var hasOwn = Object.prototype.hasOwnProperty;
-        var keys = {};
+        var keys = createDictionary();
         var rootKey = CreateUniqueKey();
-        function WeakMap() {
-            this._key = CreateUniqueKey();
-        }
-        WeakMap.prototype = {
-            has: function (target) {
+        return (function () {
+            function WeakMap() {
+                this._key = CreateUniqueKey();
+            }
+            WeakMap.prototype.has = function (target) {
                 var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 if (table) {
-                    return this._key in table;
+                    return HashMap.has(table, this._key);
                 }
                 return false;
-            },
-            get: function (target) {
+            };
+            WeakMap.prototype.get = function (target) {
                 var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 if (table) {
-                    return table[this._key];
+                    return HashMap.get(table, this._key);
                 }
                 return undefined;
-            },
-            set: function (target, value) {
+            };
+            WeakMap.prototype.set = function (target, value) {
                 var table = GetOrCreateWeakMapTable(target, /*create*/ true);
                 table[this._key] = value;
                 return this;
-            },
-            delete: function (target) {
+            };
+            WeakMap.prototype.delete = function (target) {
                 var table = GetOrCreateWeakMapTable(target, /*create*/ false);
-                if (table && this._key in table) {
+                if (table && HashMap.has(table, this._key)) {
                     return delete table[this._key];
                 }
                 return false;
-            },
-            clear: function () {
+            };
+            WeakMap.prototype.clear = function () {
                 // NOTE: not a real clear, just makes the previous data unreachable
                 this._key = CreateUniqueKey();
-            }
-        };
+            };
+            return WeakMap;
+        })();
         function FillRandomBytes(buffer, size) {
             for (var i = 0; i < size; ++i) {
                 buffer[i] = Math.random() * 255 | 0;
             }
         }
         function GenRandomBytes(size) {
-            if (nodeCrypto) {
-                var data = nodeCrypto.randomBytes(size);
-                return data;
-            }
-            else if (typeof Uint8Array === "function") {
+            if (typeof Uint8Array === "function") {
                 var data = new Uint8Array(size);
                 if (typeof crypto !== "undefined") {
                     crypto.getRandomValues(data);
@@ -930,7 +964,7 @@ var Reflect;
             var key;
             do {
                 key = "@@WeakMap@@" + CreateUUID();
-            } while (hasOwn.call(keys, key));
+            } while (HashMap.has(keys, key));
             keys[key] = true;
             return key;
         }
@@ -939,18 +973,24 @@ var Reflect;
                 if (!create) {
                     return undefined;
                 }
-                Object.defineProperty(target, rootKey, { value: Object.create(null) });
+                Object.defineProperty(target, rootKey, { value: createDictionary() });
             }
             return target[rootKey];
         }
-        return WeakMap;
+    }
+    function MakeDictionary(obj) {
+        obj.__DICTIONARY_MODE__ = 1;
+        delete obj.____DICTIONARY_MODE__;
+        return obj;
     }
     // hook global Reflect
     (function (__global) {
         if (typeof __global.Reflect !== "undefined") {
             if (__global.Reflect !== Reflect) {
                 for (var p in Reflect) {
-                    __global.Reflect[p] = Reflect[p];
+                    if (hasOwn.call(Reflect, p)) {
+                        __global.Reflect[p] = Reflect[p];
+                    }
                 }
             }
         }
