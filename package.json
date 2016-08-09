@@ -1,6 +1,6 @@
 {
   "name": "reflect-metadata",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Polyfill for Metadata Reflection API",
   "main": "Reflect.js",
   "typings": "typings.d.ts",
@@ -8,9 +8,10 @@
     "definition": "reflect-metadata.d.ts"
   },
   "scripts": {
+    "prepublish": "npm run test",
     "build": "tsc",
     "build-test": "tsc --project ./test/",
-    "test": "npm run build-test & node ./temp/test/run.js"
+    "test": "npm run build & npm run build-test & node ./temp/test/run.js"
   },
   "repository": {
     "type": "git",
