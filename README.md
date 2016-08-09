@@ -4,6 +4,12 @@ Proposal to add Decorators to ES7, along with a prototype for an ES7 Reflection 
 
 * [Detailed proposal][Metadata-Spec]
 
+## Installation
+
+```
+npm install reflect-metadata
+```
+
 ## Background
 
 * Decorators add the ability to augment a class and its members as the class is defined, through a declarative syntax.
@@ -160,6 +166,10 @@ function ParamTypes(...types) {
   // }
 }
 ```
+
+* To enable experimental support for metadata decorators in your TypeScript project, you must add `"experimentalDecorators": true` to your tsconfig.json file.
+* To enable experimental support for auto-generated type metadata in your TypeScript project, you must add `"emitDecoratorMetadata": true` to your tsconfig.json file.
+  * Please note that auto-generated type metadata may have issues with circular or forward references for types.
 
 ## Issues
 
