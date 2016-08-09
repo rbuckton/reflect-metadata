@@ -1,6 +1,6 @@
 {
   "name": "reflect-metadata",
-  "version": "0.1.3",
+  "version": "0.1.8",
   "description": "Polyfill for Metadata Reflection API",
   "homepage": "https://github.com/rbuckton/ReflectDecorators",
   "authors": [
