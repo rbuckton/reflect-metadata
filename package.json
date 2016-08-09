@@ -5,7 +5,7 @@
   "main": "Reflect.js",
   "typings": "typings.d.ts",
   "typescript": {
-    "definition": "reflect-metadata.d.ts"
+    "definition": "Reflect.d.ts"
   },
   "scripts": {
     "prepublish": "npm run test",
