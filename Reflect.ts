@@ -1274,7 +1274,7 @@ namespace Reflect {
             private _values: V[] = [];
             private _cacheKey = cacheSentinel;
             private _cacheIndex = -2;
-            size = 0;
+            get size() { return this._keys.length; }
             has(key: K): boolean { return this._find(key, /*insert*/ false) >= 0; }
             get(key: K): V {
                 const index = this._find(key, /*insert*/ false);
@@ -1293,7 +1293,6 @@ namespace Reflect {
                         this._keys[i - 1] = this._keys[i];
                         this._values[i - 1] = this._values[i];
                     }
-                    this.size--;
                     this._keys.length--;
                     this._values.length--;
                     this._cacheKey = cacheSentinel;
@@ -1303,7 +1302,6 @@ namespace Reflect {
                 return false;
             }
             clear(): void {
-                this.size = 0;
                 this._keys.length = 0;
                 this._values.length = 0;
                 this._cacheKey = cacheSentinel;
@@ -1319,7 +1317,6 @@ namespace Reflect {
                     index = this._keys.length;
                     this._keys.push(key);
                     this._values.push(undefined);
-                    this.size++;
                 }
                 return this._cacheKey = key, this._cacheIndex = index;
             }
@@ -1330,26 +1327,11 @@ namespace Reflect {
     function CreateSetPolyfill(): SetConstructor {
         return class Set<T> {
             private _map = new _Map<any, any>();
-            size = 0;
-            has(value: T): boolean {
-                return this._map.has(value);
-            }
-            add(value: T): Set<T> {
-                this._map.set(value, value);
-                this.size = this._map.size;
-                return this;
-            }
-            delete(value: T): boolean {
-                if (this._map.delete(value)) {
-                    this.size--;
-                    return true;
-                }
-                return false;
-            }
-            clear(): void {
-                this.size = 0;
-                this._map.clear();
-            }
+            get size() { return this._map.size; }
+            has(value: T): boolean { return this._map.has(value); }
+            add(value: T): Set<T> { return this._map.set(value, value), this; }
+            delete(value: T): boolean { return this._map.delete(value); }
+            clear(): void { this._map.clear(); }
             keys() { return this._map.keys(); }
             values() { return this._map.values(); }
             entries() { return this._map.entries(); }

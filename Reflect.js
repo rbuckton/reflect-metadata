@@ -765,8 +765,12 @@ var Reflect;
                 this._values = [];
                 this._cacheKey = cacheSentinel;
                 this._cacheIndex = -2;
-                this.size = 0;
             }
+            Object.defineProperty(Map.prototype, "size", {
+                get: function () { return this._keys.length; },
+                enumerable: true,
+                configurable: true
+            });
             Map.prototype.has = function (key) { return this._find(key, /*insert*/ false) >= 0; };
             Map.prototype.get = function (key) {
                 var index = this._find(key, /*insert*/ false);
@@ -785,7 +789,6 @@ var Reflect;
                         this._keys[i - 1] = this._keys[i];
                         this._values[i - 1] = this._values[i];
                     }
-                    this.size--;
                     this._keys.length--;
                     this._values.length--;
                     this._cacheKey = cacheSentinel;
@@ -795,7 +798,6 @@ var Reflect;
                 return false;
             };
             Map.prototype.clear = function () {
-                this.size = 0;
                 this._keys.length = 0;
                 this._values.length = 0;
                 this._cacheKey = cacheSentinel;
@@ -812,7 +814,6 @@ var Reflect;
                     index = this._keys.length;
                     this._keys.push(key);
                     this._values.push(undefined);
-                    this.size++;
                 }
                 return this._cacheKey = key, this._cacheIndex = index;
             };
@@ -824,27 +825,16 @@ var Reflect;
         return (function () {
             function Set() {
                 this._map = new _Map();
-                this.size = 0;
             }
-            Set.prototype.has = function (value) {
-                return this._map.has(value);
-            };
-            Set.prototype.add = function (value) {
-                this._map.set(value, value);
-                this.size = this._map.size;
-                return this;
-            };
-            Set.prototype.delete = function (value) {
-                if (this._map.delete(value)) {
-                    this.size--;
-                    return true;
-                }
-                return false;
-            };
-            Set.prototype.clear = function () {
-                this.size = 0;
-                this._map.clear();
-            };
+            Object.defineProperty(Set.prototype, "size", {
+                get: function () { return this._map.size; },
+                enumerable: true,
+                configurable: true
+            });
+            Set.prototype.has = function (value) { return this._map.has(value); };
+            Set.prototype.add = function (value) { return this._map.set(value, value), this; };
+            Set.prototype.delete = function (value) { return this._map.delete(value); };
+            Set.prototype.clear = function () { this._map.clear(); };
             Set.prototype.keys = function () { return this._map.keys(); };
             Set.prototype.values = function () { return this._map.values(); };
             Set.prototype.entries = function () { return this._map.entries(); };
