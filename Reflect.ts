@@ -1017,7 +1017,7 @@ namespace Reflect {
       *
       */
     export function deleteMetadata(metadataKey: any, target: Object, targetKey?: string | symbol): boolean {
-        // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#deletemetadata-metadatakey-p-
+        // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#deletemetadata-metadatakey-p-
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         const metadataMap = GetOrCreateMetadataMap(target, targetKey, /*create*/ false);
@@ -1062,7 +1062,7 @@ namespace Reflect {
         }
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#getorcreatemetadatamap--o-p-create-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#getorcreatemetadatamap--o-p-create-
     function GetOrCreateMetadataMap(target: Object, targetKey: string | symbol, create: boolean): Map<any, any> {
         let targetMetadata = Metadata.get(target);
         if (!targetMetadata) {
@@ -1079,7 +1079,7 @@ namespace Reflect {
         return keyMetadata;
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#ordinaryhasmetadata--metadatakey-o-p-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinaryhasmetadata--metadatakey-o-p-
     function OrdinaryHasMetadata(MetadataKey: any, O: Object, P: string | symbol): boolean {
         const hasOwn = OrdinaryHasOwnMetadata(MetadataKey, O, P);
         if (hasOwn) return true;
@@ -1087,13 +1087,13 @@ namespace Reflect {
         return parent !== null ? OrdinaryHasMetadata(MetadataKey, parent, P) : false;
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#ordinaryhasownmetadata--metadatakey-o-p-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinaryhasownmetadata--metadatakey-o-p-
     function OrdinaryHasOwnMetadata(MetadataKey: any, O: Object, P: string | symbol): boolean {
         const metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ false);
         return metadataMap !== undefined && Boolean(metadataMap.has(MetadataKey));
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#ordinarygetmetadata--metadatakey-o-p-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarygetmetadata--metadatakey-o-p-
     function OrdinaryGetMetadata(MetadataKey: any, O: Object, P: string | symbol): any {
         const hasOwn = OrdinaryHasOwnMetadata(MetadataKey, O, P);
         if (hasOwn) return OrdinaryGetOwnMetadata(MetadataKey, O, P);
@@ -1101,19 +1101,19 @@ namespace Reflect {
         return parent !== null ? OrdinaryGetMetadata(MetadataKey, parent, P) : undefined;
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#ordinarygetownmetadata--metadatakey-o-p-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarygetownmetadata--metadatakey-o-p-
     function OrdinaryGetOwnMetadata(MetadataKey: any, O: Object, P: string | symbol): any {
         const metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ false);
         return metadataMap === undefined ? undefined : metadataMap.get(MetadataKey);
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#ordinarydefineownmetadata--metadatakey-metadatavalue-o-p-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarydefineownmetadata--metadatakey-metadatavalue-o-p-
     function OrdinaryDefineOwnMetadata(MetadataKey: any, MetadataValue: any, O: Object, P: string | symbol): void {
         const metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ true);
         metadataMap.set(MetadataKey, MetadataValue);
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#ordinarymetadatakeys--o-p-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarymetadatakeys--o-p-
     function OrdinaryMetadataKeys(O: Object, P: string | symbol): any[] {
         const ownKeys = OrdinaryOwnMetadataKeys(O, P);
         const parent = GetPrototypeOf(O);
@@ -1127,7 +1127,7 @@ namespace Reflect {
         return getKeys(keys);
     }
 
-    // https://github.com/rbuckton/ReflectDecorators/blob/master/specs/metadata.md#ordinaryownmetadatakeys--o-p-
+    // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinaryownmetadatakeys--o-p-
     function OrdinaryOwnMetadataKeys(target: Object, targetKey: string | symbol): any[] {
         const metadataMap = GetOrCreateMetadataMap(target, targetKey, /*create*/ false);
         const keys: any[] = [];
