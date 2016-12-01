@@ -80,7 +80,7 @@ class C {
 
 // Metadata introspection
 let obj = new C("a", 1);
-let paramTypes = Reflect.getMetadata("design:paramtypes", inst, "add"); // [Number, Number]
+let paramTypes = Reflect.getMetadata("design:paramtypes", obj, "add"); // [Number, Number]
 ```
 
 # Abstract Operations
