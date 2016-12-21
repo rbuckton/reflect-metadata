@@ -3,7 +3,7 @@
   "version": "0.1.8",
   "description": "Polyfill for Metadata Reflection API",
   "main": "Reflect.js",
-  "typings": "typings.d.ts",
+  "types": "typings.d.ts",
   "typescript": {
     "definition": "Reflect.d.ts"
   },
@@ -41,6 +41,6 @@
   "homepage": "http://rbuckton.github.io/ReflectDecorators",
   "dependencies": {},
   "devDependencies": {
-    "typescript": "^1.7.5"
+    "typescript": "^2.1.4"
   }
 }

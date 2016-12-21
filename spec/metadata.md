@@ -92,21 +92,19 @@ let paramTypes = Reflect.getMetadata("design:paramtypes", inst, "add"); // [Numb
 When the abstract operation GetOrCreateMetadataMap is called with Object <var>O</var>, [property key][] <var>P</var>, and Boolean <var>Create</var> the following steps are taken:
 
   1. [Assert][]: <var>P</var> is **undefined** or [IsPropertyKey][](<var>P</var>) is **true**.
-  2. Let <var>metadataMap</var> be **undefined**.
-  3. Let <var>succeeded</var> be **true**.
-  4. Let <var>targetMetadata</var> be the value of <var>O</var>'s \[\[Metadata\]\] [internal slot][].
-  5. If <var>targetMetadata</var> is **undefined**, then
+  2. Let <var>targetMetadata</var> be the value of <var>O</var>'s \[\[Metadata\]\] [internal slot][].
+  3. If <var>targetMetadata</var> is **undefined**, then
     1. If <var>Create</var> is **false**, return **undefined**.
     2. Set <var>targetMetadata</var> to be a newly created **Map** object.
     3. Set the \[\[Metadata\]\] [internal slot][] of <var>O</var> to <var>targetMetadata</var>.
-  6. Let <var>metadataMap</var> be [Invoke][](<var>targetMetadata</var>, `"get"`, <var>P</var>).
-  7. [ReturnIfAbrupt][](<var>metadataMap</var>).
-  8. If <var>metadataMap</var> is **undefined**, then
+  4. Let <var>metadataMap</var> be [Invoke][](<var>targetMetadata</var>, `"get"`, <var>P</var>).
+  5. [ReturnIfAbrupt][](<var>metadataMap</var>).
+  6. If <var>metadataMap</var> is **undefined**, then
     1. If <var>Create</var> is **false**, return **undefined**.
     2. Set <var>metadataMap</var> to be a newly created **Map** object.
     3. Let <var>setStatus</var> be [Invoke][](<var>targetMetadata</var>, `"set"`, <var>P</var>, <var>metadataMap</var>).
     4. [ReturnIfAbrupt][](<var>setStatus</var>).
-  9. Return <var>metadataMap</var>.
+  7. Return <var>metadataMap</var>.
 
 # Ordinary and Exotic Objects Behaviours
 

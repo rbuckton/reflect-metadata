@@ -101,7 +101,7 @@ export function ReflectDecoratorPipelineForPropertyOverload() {
     ];
     let target = {};
     let result = Reflect.decorate(decorators, target, "name", undefined);
-    assert.strictEqual(result, undefined);
+    assert.strictEqual(result, A);
 }
 
 export function ReflectDecoratorPipelineForPropertyDescriptorOverload() {
