@@ -1,5 +1,5 @@
-// Reflect.defineMetadata ( metadataKey, metadataValue, target, propertyKey )
-// - https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#reflectdefinemetadata--metadatakey-metadatavalue-target-propertykey-
+// 4.1.2 Reflect.defineMetadata ( metadataKey, metadataValue, target, propertyKey )
+// https://rbuckton.github.io/reflect-metadata/#reflect.definemetadata
 
 import "../Reflect";
 import { assert } from "chai";

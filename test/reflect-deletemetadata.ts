@@ -1,5 +1,5 @@
-// Reflect.deleteMetadata ( metadataKey, target [, propertyKey] )
-// - https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#reflectdeletemetadata--metadatakey-target--propertykey-
+// 4.1.10 Reflect.deleteMetadata ( metadataKey, target [, propertyKey] )
+// https://rbuckton.github.io/reflect-metadata/#reflect.deletemetadata
 
 import "../Reflect";
 import { assert } from "chai";

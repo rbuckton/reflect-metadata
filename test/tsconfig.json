@@ -5,7 +5,8 @@
     "sourceMap": true,
     "module": "commonjs",
     "types": ["node", "mocha"],
-    "typeRoots": ["../../node_modules/@types"]
+    "typeRoots": ["../../node_modules/@types"],
+    "rootDir": "."
   },
   "include": [
     "**/*.ts"

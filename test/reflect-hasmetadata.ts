@@ -1,5 +1,5 @@
-// Reflect.hasMetadata ( metadataKey, target [, propertyKey] )
-// - https://github.com/jonathandturner/decorators/blob/master/specs/metadata.md#reflecthasmetadata--metadatakey-target--propertykey-
+// 4.1.4 Reflect.hasMetadata ( metadataKey, target [, propertyKey] )
+// https://rbuckton.github.io/reflect-metadata/#reflect.hasmetadata
 
 import "../Reflect";
 import { assert } from "chai";
