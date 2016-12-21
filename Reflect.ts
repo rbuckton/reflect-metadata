@@ -15,8 +15,6 @@ and limitations under the License.
 namespace Reflect {
     "use strict";
 
-    type object = {}; // placeholder until https://github.com/Microsoft/TypeScript/pull/12501
-
     type HashMap<V> = Record<string, V>;
 
     interface BufferLike {
@@ -135,7 +133,7 @@ namespace Reflect {
     const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
 
     // [[Metadata]] internal slot
-    const Metadata = new _WeakMap<object, Map<string | symbol | undefined, Map<any, any>>>();
+    const Metadata = new _WeakMap<any, Map<string | symbol | undefined, Map<any, any>>>();
 
     /**
       * Applies a set of decorators to a target object.
@@ -188,7 +186,7 @@ namespace Reflect {
       *             Object.getOwnPropertyDescriptor(Example.prototype, "method")));
       *
       */
-    export function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: object, targetKey: string | symbol, targetDescriptor?: PropertyDescriptor | null): PropertyDescriptor | undefined;
+    export function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: any, targetKey: string | symbol, targetDescriptor?: PropertyDescriptor | null): PropertyDescriptor | undefined;
 
     /**
       * Applies a set of decorators to a property of a target object.
@@ -225,7 +223,7 @@ namespace Reflect {
       *             Object.getOwnPropertyDescriptor(Example.prototype, "method")));
       *
       */
-    export function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: object, targetKey: string | symbol, targetDescriptor: PropertyDescriptor): PropertyDescriptor;
+    export function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: any, targetKey: string | symbol, targetDescriptor: PropertyDescriptor): PropertyDescriptor;
 
     /**
       * Applies a set of decorators to a property of a target object.
@@ -266,7 +264,7 @@ namespace Reflect {
       *             Object.getOwnPropertyDescriptor(Example.prototype, "method")));
       *
       */
-    export function decorate(decorators: (ClassDecorator | MemberDecorator)[], target: object, targetKey?: string | symbol, targetDescriptor?: PropertyDescriptor | null): PropertyDescriptor | Function | undefined {
+    export function decorate(decorators: (ClassDecorator | MemberDecorator)[], target: any, targetKey?: string | symbol, targetDescriptor?: PropertyDescriptor | null): PropertyDescriptor | Function | undefined {
         if (!IsUndefined(targetKey)) {
             if (!IsArray(decorators)) throw new TypeError();
             if (!IsObject(target)) throw new TypeError();
@@ -324,8 +322,8 @@ namespace Reflect {
       */
     export function metadata(metadataKey: any, metadataValue: any) {
         function decorator(target: Function): void;
-        function decorator(target: object, targetKey: string | symbol): void;
-        function decorator(target: object, targetKey?: string | symbol): void {
+        function decorator(target: any, targetKey: string | symbol): void;
+        function decorator(target: any, targetKey?: string | symbol): void {
             if (!IsUndefined(targetKey)) {
                 if (!IsObject(target)) throw new TypeError();
                 targetKey = ToPropertyKey(targetKey);
@@ -358,7 +356,7 @@ namespace Reflect {
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: object): void;
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: any): void;
 
     /**
       * Define a unique metadata entry on the target.
@@ -395,7 +393,7 @@ namespace Reflect {
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: object, targetKey: string | symbol): void;
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: any, targetKey: string | symbol): void;
 
     /**
       * Define a unique metadata entry on the target.
@@ -436,7 +434,7 @@ namespace Reflect {
       *     }
       *
       */
-    export function defineMetadata(metadataKey: any, metadataValue: any, target: object, targetKey?: string | symbol): void {
+    export function defineMetadata(metadataKey: any, metadataValue: any, target: any, targetKey?: string | symbol): void {
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, targetKey);
@@ -456,7 +454,7 @@ namespace Reflect {
       *     result = Reflect.hasMetadata("custom:annotation", Example);
       *
       */
-    export function hasMetadata(metadataKey: any, target: object): boolean;
+    export function hasMetadata(metadataKey: any, target: any): boolean;
 
     /**
       * Gets a value indicating whether the target object or its prototype chain has the provided metadata key defined.
@@ -488,7 +486,7 @@ namespace Reflect {
       *     result = Reflect.hasMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function hasMetadata(metadataKey: any, target: object, targetKey: string | symbol): boolean;
+    export function hasMetadata(metadataKey: any, target: any, targetKey: string | symbol): boolean;
 
     /**
       * Gets a value indicating whether the target object or its prototype chain has the provided metadata key defined.
@@ -524,7 +522,7 @@ namespace Reflect {
       *     result = Reflect.hasMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function hasMetadata(metadataKey: any, target: object, targetKey?: string | symbol): boolean {
+    export function hasMetadata(metadataKey: any, target: any, targetKey?: string | symbol): boolean {
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         return OrdinaryHasMetadata(metadataKey, target, targetKey);
@@ -544,7 +542,7 @@ namespace Reflect {
       *     result = Reflect.hasOwnMetadata("custom:annotation", Example);
       *
       */
-    export function hasOwnMetadata(metadataKey: any, target: object): boolean;
+    export function hasOwnMetadata(metadataKey: any, target: any): boolean;
 
     /**
       * Gets a value indicating whether the target object has the provided metadata key defined.
@@ -576,7 +574,7 @@ namespace Reflect {
       *     result = Reflect.hasOwnMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function hasOwnMetadata(metadataKey: any, target: object, targetKey: string | symbol): boolean;
+    export function hasOwnMetadata(metadataKey: any, target: any, targetKey: string | symbol): boolean;
 
     /**
       * Gets a value indicating whether the target object has the provided metadata key defined.
@@ -612,7 +610,7 @@ namespace Reflect {
       *     result = Reflect.hasOwnMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function hasOwnMetadata(metadataKey: any, target: object, targetKey?: string | symbol): boolean {
+    export function hasOwnMetadata(metadataKey: any, target: any, targetKey?: string | symbol): boolean {
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         return OrdinaryHasOwnMetadata(metadataKey, target, targetKey);
@@ -632,7 +630,7 @@ namespace Reflect {
       *     result = Reflect.getMetadata("custom:annotation", Example);
       *
       */
-    export function getMetadata(metadataKey: any, target: object): any;
+    export function getMetadata(metadataKey: any, target: any): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
@@ -664,7 +662,7 @@ namespace Reflect {
       *     result = Reflect.getMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function getMetadata(metadataKey: any, target: object, targetKey: string | symbol): any;
+    export function getMetadata(metadataKey: any, target: any, targetKey: string | symbol): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
@@ -700,7 +698,7 @@ namespace Reflect {
       *     result = Reflect.getMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function getMetadata(metadataKey: any, target: object, targetKey?: string | symbol): any {
+    export function getMetadata(metadataKey: any, target: any, targetKey?: string | symbol): any {
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         return OrdinaryGetMetadata(metadataKey, target, targetKey);
@@ -720,7 +718,7 @@ namespace Reflect {
       *     result = Reflect.getOwnMetadata("custom:annotation", Example);
       *
       */
-    export function getOwnMetadata(metadataKey: any, target: object): any;
+    export function getOwnMetadata(metadataKey: any, target: any): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object.
@@ -752,7 +750,7 @@ namespace Reflect {
       *     result = Reflect.getOwnMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function getOwnMetadata(metadataKey: any, target: object, targetKey: string | symbol): any;
+    export function getOwnMetadata(metadataKey: any, target: any, targetKey: string | symbol): any;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object.
@@ -788,7 +786,7 @@ namespace Reflect {
       *     result = Reflect.getOwnMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function getOwnMetadata(metadataKey: any, target: object, targetKey?: string | symbol): any {
+    export function getOwnMetadata(metadataKey: any, target: any, targetKey?: string | symbol): any {
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         return OrdinaryGetOwnMetadata(metadataKey, target, targetKey);
@@ -807,7 +805,7 @@ namespace Reflect {
       *     result = Reflect.getMetadataKeys(Example);
       *
       */
-    export function getMetadataKeys(target: object): any[];
+    export function getMetadataKeys(target: any): any[];
 
     /**
       * Gets the metadata keys defined on the target object or its prototype chain.
@@ -838,7 +836,7 @@ namespace Reflect {
       *     result = Reflect.getMetadataKeys(Example.prototype, "method");
       *
       */
-    export function getMetadataKeys(target: object, targetKey: string | symbol): any[];
+    export function getMetadataKeys(target: any, targetKey: string | symbol): any[];
 
     /**
       * Gets the metadata keys defined on the target object or its prototype chain.
@@ -873,7 +871,7 @@ namespace Reflect {
       *     result = Reflect.getMetadataKeys(Example.prototype, "method");
       *
       */
-    export function getMetadataKeys(target: object, targetKey?: string | symbol): any[] {
+    export function getMetadataKeys(target: any, targetKey?: string | symbol): any[] {
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         return OrdinaryMetadataKeys(target, targetKey);
@@ -892,7 +890,7 @@ namespace Reflect {
       *     result = Reflect.getOwnMetadataKeys(Example);
       *
       */
-    export function getOwnMetadataKeys(target: object): any[];
+    export function getOwnMetadataKeys(target: any): any[];
 
     /**
       * Gets the unique metadata keys defined on the target object.
@@ -923,7 +921,7 @@ namespace Reflect {
       *     result = Reflect.getOwnMetadataKeys(Example.prototype, "method");
       *
       */
-    export function getOwnMetadataKeys(target: object, targetKey: string | symbol): any[];
+    export function getOwnMetadataKeys(target: any, targetKey: string | symbol): any[];
 
     /**
       * Gets the unique metadata keys defined on the target object.
@@ -958,7 +956,7 @@ namespace Reflect {
       *     result = Reflect.getOwnMetadataKeys(Example.prototype, "method");
       *
       */
-    export function getOwnMetadataKeys(target: object, targetKey?: string | symbol): any[] {
+    export function getOwnMetadataKeys(target: any, targetKey?: string | symbol): any[] {
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
         return OrdinaryOwnMetadataKeys(target, targetKey);
@@ -978,7 +976,7 @@ namespace Reflect {
       *     result = Reflect.deleteMetadata("custom:annotation", Example);
       *
       */
-    export function deleteMetadata(metadataKey: any, target: object): boolean;
+    export function deleteMetadata(metadataKey: any, target: any): boolean;
 
     /**
       * Deletes the metadata entry from the target object with the provided key.
@@ -1010,7 +1008,7 @@ namespace Reflect {
       *     result = Reflect.deleteMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function deleteMetadata(metadataKey: any, target: object, targetKey: string | symbol): boolean;
+    export function deleteMetadata(metadataKey: any, target: any, targetKey: string | symbol): boolean;
 
     /**
       * Deletes the metadata entry from the target object with the provided key.
@@ -1046,7 +1044,7 @@ namespace Reflect {
       *     result = Reflect.deleteMetadata("custom:annotation", Example.prototype, "method");
       *
       */
-    export function deleteMetadata(metadataKey: any, target: object, targetKey?: string | symbol): boolean {
+    export function deleteMetadata(metadataKey: any, target: any, targetKey?: string | symbol): boolean {
         // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#deletemetadata-metadatakey-p-
         if (!IsObject(target)) throw new TypeError();
         if (!IsUndefined(targetKey)) targetKey = ToPropertyKey(targetKey);
@@ -1073,7 +1071,7 @@ namespace Reflect {
         return target;
     }
 
-    function DecorateProperty(decorators: MemberDecorator[], target: object, propertyKey: string | symbol, descriptor: PropertyDescriptor | undefined): PropertyDescriptor | undefined {
+    function DecorateProperty(decorators: MemberDecorator[], target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor | undefined): PropertyDescriptor | undefined {
         for (let i = decorators.length - 1; i >= 0; --i) {
             const decorator = decorators[i];
             const decorated = decorator(target, propertyKey, descriptor);
@@ -1093,9 +1091,9 @@ namespace Reflect {
 
     // GetOrCreateMetadataMap(O, P, Create)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#getorcreatemetadatamap--o-p-create-
-    function GetOrCreateMetadataMap(O: object, P: string | symbol | undefined, Create: true): Map<any, any>;
-    function GetOrCreateMetadataMap(O: object, P: string | symbol | undefined, Create: false): Map<any, any> | undefined;
-    function GetOrCreateMetadataMap(O: object, P: string | symbol | undefined, Create: boolean): Map<any, any> | undefined {
+    function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: true): Map<any, any>;
+    function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: false): Map<any, any> | undefined;
+    function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: boolean): Map<any, any> | undefined {
         let targetMetadata = Metadata.get(O);
         if (IsUndefined(targetMetadata)) {
             if (!Create) return undefined;
@@ -1116,7 +1114,7 @@ namespace Reflect {
 
     // OrdinaryHasMetadata(MetadataKey, O, P)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinaryhasmetadata--metadatakey-o-p-
-    function OrdinaryHasMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): boolean {
+    function OrdinaryHasMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): boolean {
         const hasOwn = OrdinaryHasOwnMetadata(MetadataKey, O, P);
         if (hasOwn) return true;
         const parent = OrdinaryGetPrototypeOf(O);
@@ -1126,7 +1124,7 @@ namespace Reflect {
 
     // OrdinaryHasOwnMetadata(MetadataKey, O, P)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinaryhasownmetadata--metadatakey-o-p-
-    function OrdinaryHasOwnMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): boolean {
+    function OrdinaryHasOwnMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): boolean {
         const metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ false);
         if (IsUndefined(metadataMap)) return false;
         return ToBoolean(metadataMap.has(MetadataKey));
@@ -1134,7 +1132,7 @@ namespace Reflect {
 
     // OrdinaryGetMetadata(MetadataKey, O, P)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarygetmetadata--metadatakey-o-p-
-    function OrdinaryGetMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): any {
+    function OrdinaryGetMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): any {
         const hasOwn = OrdinaryHasOwnMetadata(MetadataKey, O, P);
         if (hasOwn) return OrdinaryGetOwnMetadata(MetadataKey, O, P);
         const parent = OrdinaryGetPrototypeOf(O);
@@ -1144,7 +1142,7 @@ namespace Reflect {
 
     // OrdinaryGetOwnMetadata(MetadataKey, O, P)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarygetownmetadata--metadatakey-o-p-
-    function OrdinaryGetOwnMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): any {
+    function OrdinaryGetOwnMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): any {
         const metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ false);
         if (IsUndefined(metadataMap)) return undefined;
         return metadataMap.get(MetadataKey);
@@ -1152,14 +1150,14 @@ namespace Reflect {
 
     // OrdinaryDefineOwnMetadata(MetadataKey, MetadataValue, O, P)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarydefineownmetadata--metadatakey-metadatavalue-o-p-
-    function OrdinaryDefineOwnMetadata(MetadataKey: any, MetadataValue: any, O: object, P: string | symbol | undefined): void {
+    function OrdinaryDefineOwnMetadata(MetadataKey: any, MetadataValue: any, O: any, P: string | symbol | undefined): void {
         const metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ true);
         metadataMap.set(MetadataKey, MetadataValue);
     }
 
     // OrdinaryMetadataKeys(O, P)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinarymetadatakeys--o-p-
-    function OrdinaryMetadataKeys(O: object, P: string | symbol | undefined): any[] {
+    function OrdinaryMetadataKeys(O: any, P: string | symbol | undefined): any[] {
         const ownKeys = OrdinaryOwnMetadataKeys(O, P);
         const parent = OrdinaryGetPrototypeOf(O);
         if (parent === null) return ownKeys;
@@ -1187,7 +1185,7 @@ namespace Reflect {
 
     // OrdinaryOwnMetadataKeys(O, P)
     // https://github.com/rbuckton/ReflectDecorators/blob/master/spec/metadata.md#ordinaryownmetadatakeys--o-p-
-    function OrdinaryOwnMetadataKeys(O: object, P: string | symbol | undefined): any[] {
+    function OrdinaryOwnMetadataKeys(O: any, P: string | symbol | undefined): any[] {
         const metadataMap = GetOrCreateMetadataMap(O, P, /*create*/ false);
         const keys: any[] = [];
         if (IsUndefined(metadataMap)) return keys;
@@ -1297,7 +1295,7 @@ namespace Reflect {
 
     // 7.1.1.1 OrdinaryToPrimitive(O, hint)
     // https://tc39.github.io/ecma262/#sec-ordinarytoprimitive
-    function OrdinaryToPrimitive(O: object, hint: "string" | "number"): undefined | null | boolean | string | symbol | number {
+    function OrdinaryToPrimitive(O: any, hint: "string" | "number"): undefined | null | boolean | string | symbol | number {
         if (hint === "string") {
             const toString = O.toString;
             if (IsCallable(toString)) {
@@ -1420,7 +1418,7 @@ namespace Reflect {
 
     // 9.1.1.1 OrdinaryGetPrototypeOf(O)
     // https://tc39.github.io/ecma262/#sec-ordinarygetprototypeof
-    function OrdinaryGetPrototypeOf(O: any): object {
+    function OrdinaryGetPrototypeOf(O: any): any {
         const proto = Object.getPrototypeOf(O);
         if (typeof O !== "function" || O === functionPrototype) return proto;
 

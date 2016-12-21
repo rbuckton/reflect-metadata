@@ -1,0 +1,419 @@
+﻿<!doctype html>
+<meta charset="utf8">
+<title>Metadata</title>
+<link rel="stylesheet" href="ecmarkup.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
+<script src="ecmarkup.js"></script>
+<script>
+  if (location.hostname === 'rbuckton.github.io' && location.protocol !== 'https:') {
+    location.protocol = 'https:';
+  }
+</script>
+<pre class=metadata>
+  title: Metadata Proposal - ECMAScript
+  status: proposal
+  location: https://rbuckton.github.io/ReflectDecorators
+  copyright: false
+  contributors: Ron Buckton
+</pre>
+
+<emu-intro id="introduction">
+  <h1>Metadata Proposal - ECMAScript</h1>
+  <p>Proposal to add Metadata to ECMAScript.</p>
+</emu-intro>
+
+<emu-clause id="syntax">
+  <h1>Syntax</h1>
+  <emu-note>This section is non-normative.</emu-note>
+  <pre><code class="javascript">
+    // define metadata on an object or property
+    Reflect.defineMetadata(metadataKey, metadataValue, target);
+    Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey);
+
+    // check for presence of a metadata key on the prototype chain of an object or property
+    let result = Reflect.hasMetadata(metadataKey, target);
+    let result = Reflect.hasMetadata(metadataKey, target, propertyKey);
+
+    // check for presence of an own metadata key of an object or property
+    let result = Reflect.hasOwnMetadata(metadataKey, target);
+    let result = Reflect.hasOwnMetadata(metadataKey, target, propertyKey);
+
+    // get metadata value of a metadata key on the prototype chain of an object or property
+    let result = Reflect.getMetadata(metadataKey, target);
+    let result = Reflect.getMetadata(metadataKey, target, propertyKey);
+
+    // get metadata value of an own metadata key of an object or property
+    let result = Reflect.getOwnMetadata(metadataKey, target);
+    let result = Reflect.getOwnMetadata(metadataKey, target, propertyKey);
+
+    // get all metadata keys on the prototype chain of an object or property
+    let result = Reflect.getMetadataKeys(target);
+    let result = Reflect.getMetadataKeys(target, propertyKey);
+
+    // get all own metadata keys of an object or property
+    let result = Reflect.getOwnMetadataKeys(target);
+    let result = Reflect.getOwnMetadataKeys(target, propertyKey);
+
+    // delete metadata from an object or property
+    let result = Reflect.deleteMetadata(metadataKey, target);
+    let result = Reflect.deleteMetadata(metadataKey, target, propertyKey);
+
+    // apply metadata via a decorator to a constructor
+    @Reflect.metadata(metadataKey, metadataValue)
+    class C {
+      // apply metadata via a decorator to a method (property)
+      @Reflect.metadata(metadataKey, metadataValue)
+      method() {
+      }
+    }
+
+    // Design-time type annotations
+    function Type(type) { return Reflect.metadata("design:type", type); }
+    function ParamTypes(...types) { return Reflect.metadata("design:paramtypes", types); }
+    function ReturnType(type) { return Reflect.metadata("design:returntype", type); }
+
+    // Decorator application
+    @ParamTypes(String, Number)
+    class C {
+      constructor(text, i) {
+      }
+
+      @Type(String)
+      get name() { return "text"; }
+
+      @Type(Function)
+      @ParamTypes(Number, Number)
+      @ReturnType(Number)
+      add(x, y) {
+        return x + y;
+      }
+    }
+
+    // Metadata introspection
+    let obj = new C("a", 1);
+    let paramTypes = Reflect.getMetadata("design:paramtypes", inst, "add"); // [Number, Number]
+  </code></pre>
+</emu-clause>
+
+<emu-clause id="abstract-operations">
+  <h1>Abstract Operations</h1>
+  <emu-clause id="operations-on-objects">
+    <h1>Operations on Objects</h1>
+    <emu-clause id="getorcreatemetadatamap" aoid="GetOrCreateMetadataMap">
+      <h1>GetOrCreateMetadataMap ( O, P, Create )</h1>
+      <p>When the abstract operation GetOrCreateMetadataMap is called with Object _O_, property key _P_, and Boolean _Create_ the following steps are taken:</p>
+      <emu-alg>
+        1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+        2. Let _targetMetadata_ be the value of _O_'s [[Metadata]] internal slot.
+        3. If _targetMetadata_ is *undefined*, then
+          1. If _Create_ is *false*, return *undefined*.
+          2. Set _targetMetadata_ to be a newly created *Map* object.
+          3. Set the [[Metadata]] internal slot of _O_ to _targetMetadata_.
+        4. Let _metadataMap_ be ? Invoke(_targetMetadata_, `"get"`, _P_).
+        5. If _metadataMap_ is *undefined*, then
+          1. If _Create_ is *false*, return *undefined*.
+          2. Set _metadataMap_ to be a newly created *Map* object.
+          3. Perform ? Invoke(_targetMetadata_, `"set"`, _P_, _metadataMap_).
+        6. Return _metadataMap_.
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="ordinary-and-exotic-objects-behaviors">
+  <h1>Ordinary and Exotic Objects Behaviors</h1>
+
+  <emu-clause id="ordinary-object-internal-methods-and-internal-slots">
+    <h1>Ordinary Object Internal Methods and Internal Slots</h1>
+    <p>All ordinary objects have an internal slot called [[Metadata]]. The value of this internal slot is either *null* or a *Map* object and is used for storing metadata for an object.</p>
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-hasmetadata">
+      <h1>[[HasMetadata]] ( MetadataKey, P )</h1>
+      <p>When the [[HasMetadata]] internal method of _O_ is called with ECMAScript language value _MetadataKey_ and property key _P_, the following steps are taken:</p>
+      <emu-alg>
+        1. Return ? OrdinaryHasMetadata(_MetadataKey_, _O_, _P_).
+      </emu-alg>
+      <emu-clause id="ordinaryhasmetadata" aoid="OrdinaryHasMetadata">
+        <h1>OrdinaryHasMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryHasMetadata is called with ECMAScript language value _MetadataKey_, Object _O_, and property key _P_, the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+          2. Let _hasOwn_ be ? OrdinaryHasOwnMetadata(_MetadataKey_, _O_, _P_).
+          3. If _hasOwn_ is *true*, return *true*.
+          4. Let _parent_ be ? _O_.[[GetPrototypeOf]]().
+          5. If _parent_ is not *null*, then
+            1. Return ? _parent_.[[HasMetadata]](_MetadataKey_, _P_).
+          6. Return *false*.
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-hasownmetadata">
+      <h1>[[HasOwnMetadata]] ( MetadataKey, P )</h1>
+      <p>When the [[HasOwnMetadata]] internal method of _O_ is called with ECMAScript language value _MetadataKey_ and property key _P_, the following steps are taken:</p>
+      <emu-alg>
+        1. Return ? OrdinaryHasOwnMetadata(_MetadataKey_, _O_, _P_).
+      </emu-alg>
+      <emu-clause id="ordinaryhasownmetadata" aoid="OrdinaryHasOwnMetadata">
+        <h1>OrdinaryHasOwnMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryHasOwnMetadata is called with ECMAScript language value _MetadataKey_, Object _O_, and property key _P_, the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+          2. Let _metadataMap_ be ? GetOrCreateMetadataMap(_O_, _P_, *false*).
+          3. If _metadataMap_ is *undefined*, return *false*.
+          4. Return ? Invoke(_metadataMap_, `"has"`, _MetadataKey_).
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-getmetadata">
+      <h1>[[GetMetadata]] ( MetadataKey, P )</h1>
+      <p>When the [[GetMatadata]] internal method of _O_ is called with ECMAScript language value _MetadataKey_ and property key _P_, the following steps are taken:</p>
+      <emu-alg>
+        1. Return ? OrdinaryGetMetadata(_MetadataKey_, _O_, _P_).
+      </emu-alg>
+      <emu-clause id="ordinarygetmetadata" aoid="OrdinaryGetMetadata">
+        <h1>OrdinaryGetMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryGetMetadata is called with ECMAScript language value _MetadataKey_, Object _O_, and property key _P_, the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+          2. Let _hasOwn_ be ? OrdinaryHasOwnMetadata(_MetadataKey_, _O_, _P_).
+          3. If _hasOwn_ is *true*, then
+            1. Return ? OrdinaryGetOwnMetadata(_MetadataKey_, _O_, _P_).
+          4. Let _parent_ be ? _O_.[[GetPrototypeOf]]().
+          5. If _parent_ is not *null*, then
+            1. return ? _parent_.[[GetMetadata]](_MetadataKey_, _P_).
+          6. Return *undefined*.
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-getownmetadata">
+      <h1>[[GetOwnMetadata]] ( MetadataKey, P, ParamIndex )</h1>
+      <p>When the [[GetOwnMetadata]] internal method of _O_ is called with ECMAScript language value _MetadataKey_ and property key _P_, the following steps are taken:</p>
+      <emu-alg>
+        1. Return ? OrdinaryGetOwnMetadata(_MetadataKey_, _O_, _P_).
+      </emu-alg>
+      <emu-clause id="ordinarygetownmetadata" aoid="OrdinaryGetOwnMetadata">
+        <h1>OrdinaryGetOwnMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryGetOwnMetadata is called with ECMAScript language value _MetadataKey_, Object _O_, and property key _P_, the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+          2. Let _metadataMap_ be ? GetOrCreateMetadataMap(_O_, _P_, *false*).
+          3. If _metadataMap_ is *undefined*, return *undefined*.
+          4. Return ? Invoke(_metadataMap_, `"get"`, _MetadataKey_).
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-defineownmetadata">
+      <h1>[[DefineOwnMetadata]] ( MetadataKey, MetadataValue, P )</h1>
+      <p>When the [[DefineOwnMetadata]] internal method of _O_ is called with ECMAScript language value _MetadataKey_, ECMAScript language value _MetadataValue_, and property key _P_, the following steps are taken:</p>
+      <emu-alg>
+        1. Return ? OrdinaryDefineOwnMetadata(_MetadataKey_, _MetadataValue_, _O_, _P_)
+      </emu-alg>
+      <emu-clause id="ordinarydefineownmetadata" aoid="OrdinaryDefineOwnMetadata">
+        <h1>OrdinaryDefineOwnMetadata ( MetadataKey, MetadataValue, O, P )</h1>
+        <p>When the abstract operation OrdinaryDefineOwnProperty is called with ECMAScript language value _MetadataKey_, ECMAScript language value _MetadataValue_, Object _O_, and property key _P_, the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+          2. Let _metadataMap_ be ? GetOrCreateMetadataMap(_O_, _P_, *true*).
+          3. Return ? Invoke(_metadataMap_, `"set"`, _MetadataKey_, _MetadataValue_).
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-metadatakeys">
+      <h1>[[MetadataKeys]] ( P )</h1>
+      <p>When the [[MetadataKeys]] internal method of _O_ is called with property key _P_ the following steps are taken:</p>
+      <emu-alg>
+        1. Return ? OrdinaryMetadataKeys(_O_, _P_).
+      </emu-alg>
+      <emu-clause id="ordinarymetadatakeys" aoid="OrdinaryMetadataKeys">
+        <h1>OrdinaryMetadataKeys ( O, P )</h1>
+        <p>When the abstract operation OrdinaryMetadataKeys is called with Object _O_ and property key _P_ the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+          2. Let _ownKeys_ be ? OrdinaryOwnMetadataKeys(_O_, _P_).
+          3. Let _parent_ be ? _O_.[[GetPrototypeOf]]().
+          4. If _parent_ is *null*, then return _ownKeys_.
+          5. Let _parentKeys_ be ? _O_.[[OrdinaryMetadataKeys]](_P_).
+          6. Let _ownKeysLen_ = ? Get(_ownKeys_, "length").
+          7. If _ownKeysLen_ is *0*, return _parentKeys_.
+          8. Let _parentKeysLen_ = ? Get(_parentKeys_, "length").
+          9. If _parentKeysLen_ is *0*, return _ownKeys_.
+          10. Let _set_ be a newly created *Set* object.
+          11. Let _keys_ be ? ArrayCreate(0).
+          12. Let _k_ be *0*.
+          13. For each element _key_ of _ownKeys_
+            1. Let _hasKey_ be ? Invoke(_set_, `"has"`, _key_).
+            2. If _hasKey_ is *false*, then
+              1. Let _Pk_ be ! ToString(_k_).
+              2. Perform ? Invoke(_set_, "add", _key_).
+              3. Let _defineStatus_ be CreateDataProperty(_keys_, _Pk_, _key_).
+              4. Assert: _defineStatus_ is *true*.
+              5. Increase _k_ by *1*.
+          14. For each element _key_ of _parentKeys_
+            1. Let _hasKey_ be ? Invoke(_set_, `"has"`, _key_).
+            2. If _hasKey_ is *false*, then
+              1. Let _Pk_ be ! ToString(_k_).
+              2. Perform ? Invoke(_set_, `"add"`, _key_).
+              3. Let _defineStatus_ be CreateDataProperty(_keys_, _Pk_, _key_).
+              4. Assert: _defineStatus_ is *true*.
+              5. Increase _k_ by *1*.
+          15. Perform ? Set(_keys_, `"length"`, _k_).
+          16. return _keys_.
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-ownmetadatakeys">
+      <h1>[[OwnMetadataKeys]] ( P )</h1>
+      <p>When the [[OwnMetadataKeys]] internal method of _O_ is called with property key _P_ the following steps are taken:</p>
+      <emu-alg>
+        1. Return OrdinaryOwnMetadataKeys(_O_, _P_).
+      </emu-alg>
+      <emu-clause id="ordinaryownmetadatakeys" aoid="OrdinaryOwnMetadataKeys">
+        <h1>OrdinaryOwnMetadataKeys ( O, P )</h1>
+        <p>When the abstract operation OrdinaryOwnMetadataKeys is called with Object _O_ and property key _P_ the following steps are taken:</p>
+        <emu-alg>
+          1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+          2. Let _keys_ be ? ArrayCreate(0).
+          3. Let _metadataMap_ be ? GetOrCreateMetadataMap(_O_, _P_, *false*).
+          4. If _metadataMap_ is *undefined*, return _keys_.
+          5. Let _keysObj_ be ? Invoke(_metadataMap_, `"keys"`).
+          6. Let _iterator_ be ? GetIterator(_keysObj_).
+          7. Let _k_ be *0*.
+          8. Repeat
+            1. Let _Pk_ be ! ToString(_k_).
+            2. Let _next_ be ? IteratorStep(_iterator_).
+            3. If _next_ is *false*, then
+              1. Let _setStatus_ be ? Set(_keys_, `"length"`, _k_, _true_).
+              2. Assert: _setStatus_ is *true*.
+              3. Return _keys_.
+            4. Let _nextValue_ be ? IteratorValue(_next_).
+            5. Let _defineStatus_ be CreateDataPropertyOrThrow(_keys_, _Pk_, _nextValue_).
+            6. If _defineStatus_ is an abrupt completion, return ? IteratorClose(_iterator_, _defineStatus_).
+            7. Increase _k_ by *1*.
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="ordinary-object-internal-methods-and-internal-slots-deletemetadata">
+      <h1>[[DeleteMetadata]]( MetadataKey, P )</h1>
+      <p>When the [[DeleteMetadata]] internal method of _O_ is called with ECMAScript language value _MetadataKey_ and property key _P_ the following steps are taken:</p>
+      <emu-alg>
+        1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
+        2. Let _metadataMap_ be ? GetOrCreateMetadataMap(_O_, _P_, *false*).
+        4. If _metadataMap_ is *undefined*, return *false*.
+        5. Return ? Invoke(_metadataMap_, `"delete"`, _MetadataKey_).
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="reflection">
+  <h1>Reflection</h1>
+  <emu-clause id="reflect">
+    <h1>The Reflect Object</h1>
+    <p>This section contains amendments to the Reflect object.</p>
+    <emu-note>A shim for this API can be found here: <a href="https://github.com/rbuckton/ReflectDecorators">https://github.com/rbuckton/ReflectDecorators</a></emu-note>
+    <emu-clause id="reflect-metadatadecoratorfunctions">
+      <h1>Metadata Decorator Functions</h1>
+      <p>A metadata decorator function is an anonymous built-in function that has [[MetadataKey]] and [[MetadataValue]] internal slots.</p>
+      <p>When a metadata decorator function _F_ is called with arguments _target_ and _key_, the following steps are taken:</p>
+      <emu-alg>
+        1. Assert: _F_ has a [[MetadataKey]] internal slot whose value is an ECMAScript language value, or *undefined*.
+        2. Assert: _F_ has a [[MetadataValue]] internal slot whose value is an ECMAScript language value, or *undefined*.
+        3. If Type(_target_) is not Object, throw a *TypeError* exception.
+        4. If _key_ is not *undefined* and IsPropertyKey(_key_) is *false*, throw a *TypeError* exception.
+        5. Let _metadataKey_ be the value of _F_'s [[MetadataKey]] internal slot.
+        6. Let _metadataValue_ be the value of _F_'s [[MetadataValue]] internal slot.
+        7. Perform ? _target_.[[DefineMetadata]](_metadataKey_, _metadataValue_, _target_, _key_).
+        8. Return *undefined*.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect.metadata">
+      <h1>Reflect.metadata ( metadataKey, metadataValue )</h1>
+      <p>When the `metadata` function is called with arguments _metadataKey_ and _metadataValue_, the following steps are taken:</p>
+      <emu-alg>
+        1. Let _decorator_ be a new built-in function object as defined in Metadata Decorator Functions.
+        2. Set the [[MetadataKey]] internal slot of _decorator_ to _metadataKey_.
+        3. Set the [[MetadataValue]] internal slot of _decorator_ to _metadataValue_.
+        4. Return _decorator_.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect.definemetadata">
+      <h1>Reflect.defineMetadata ( metadataKey, metadataValue, target, propertyKey )</h1>
+      <p>When the `defineMetadata` function is called with arguments _metadataKey_, _metadataValue_, _target_, and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[DefineMetadata]](_metadataKey_, _metadataValue_, _propertyKey_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect.hasmetadata">
+      <h1>Reflect.hasMetadata ( metadataKey, target, propertyKey )</h1>
+      <p>When the `hasMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[HasMetadata]](_metadataKey_, _propertyKey_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect-hasownmetadata">
+      <h1>Reflect.hasOwnMetadata ( metadataKey, target, propertyKey )</h1>
+      <p>When the `hasOwnMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[HasOwn]](_metadataKey_, _propertyKey_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect-getmetadata">
+      <h1>Reflect.getMetadata ( metadataKey, target, propertyKey )</h1>
+      <p>When the `getMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[GetMetadata]](_metadataKey_, _propertyKey_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect-getownmetadata">
+      <h1>Reflect.getOwnMetadata ( metadataKey, target, propertyKey )</h1>
+      <p>When the `getOwnMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[GetOwnMetadata]](_metadataKey_, _propertyKey_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect-getmetadatakeys">
+      <h1>Reflect.getMetadataKeys ( target, propertyKey )</h1>
+      <p>When the `getMetadataKeys` function is called with arguments _target_ and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[GetMetadataKeys]](_propertyKey_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect-getownmetadata">
+      <h1>Reflect.getOwnMetadataKeys ( target, propertyKey )</h1>
+      <p>When the `getOwnMetadataKeys` function is called with arguments _target_ and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[GetOwnMetadataKeys]](_propertyKey_).
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="reflect-deletemetadata">
+      <h1>Reflect.deleteMetadata ( metadataKey, target, propertyKey )</h1>
+      <p>When the `deleteMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
+      <emu-alg>
+        1. If Type(_target_) is not Object, throw a *TypeError* exception.
+        2. Return ? _target_.[[DeleteMetadata]](_metadataKey_, _propertyKey_).
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
