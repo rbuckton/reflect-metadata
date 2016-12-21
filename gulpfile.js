@@ -18,7 +18,7 @@ gulp.task("build:reflect", () => gulp
     .pipe(project())
     .pipe(gulp.dest(".")));
 
-gulp.task("build:tests", () => gulp
+gulp.task("build:tests", ["build:reflect"], () => gulp
     .src(["test/**/*.ts"])
     .pipe(tests())
     .pipe(gulp.dest("test")));
@@ -33,15 +33,15 @@ gulp.task("build:spec", () => gulp
     }))
     .pipe(gulp.dest("docs")));
 
-gulp.task("build", ["build:reflect", "build:tests", "build:spec"]);
+gulp.task("build", ["build:tests", "build:spec"]);
 
 gulp.task("test", ["build:tests"], () => gulp
     .src(["test/**/*.js"], { read: false })
-    .pipe(mocha()));
+    .pipe(mocha({ reporter: "dot" })));
 
-gulp.task("watch:reflect", ["test"], () => gulp.watch(["Reflect.ts", "test/**/*"], ["test"]));
-gulp.task("watch:spec", ["build:spec"], () => gulp.watch(["spec.html"], ["build:spec"]));
-gulp.task("watch", ["test", "watch:reflect", "watch:spec"], () => {
+gulp.task("watch:reflect", () => gulp.watch(["Reflect.ts", "tsconfig.json", "test/**/*.ts", "test/**/tsconfig.json"], ["test"]));
+gulp.task("watch:spec", () => gulp.watch(["spec.html"], ["build:spec"]));
+gulp.task("watch", ["watch:reflect", "watch:spec"], () => {
     const server = gls.static("docs", 8080);
     const promise = server.start();
     gulp.watch(["docs/**/*"], file => server.notify(file));

@@ -1133,7 +1133,7 @@ namespace Reflect {
         const hasOwn = OrdinaryHasOwnMetadata(MetadataKey, O, P);
         if (hasOwn) return true;
         const parent = OrdinaryGetPrototypeOf(O);
-        if (!IsNull(parent)) OrdinaryHasMetadata(MetadataKey, parent, P);
+        if (!IsNull(parent)) return OrdinaryHasMetadata(MetadataKey, parent, P);
         return false;
     }
 
