@@ -1,12 +1,13 @@
 {
   "name": "reflect-metadata",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Polyfill for Metadata Reflection API",
   "homepage": "https://github.com/rbuckton/ReflectDecorators",
   "authors": [
     "Ron Buckton <ron.buckton@microsoft.com>"
   ],
   "main": "Reflect.js",
+  "types": "index.d.ts",
   "moduleType": [
     "globals",
     "node"
@@ -26,7 +27,7 @@
     "tests"
   ],
   "devDependencies": {
-    "typescript": "^1.7.5"
+    "typescript": "^2.1.4"
   },
   "repository": {
     "type": "git",

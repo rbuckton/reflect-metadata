@@ -12,4 +12,9 @@ MERCHANTABLITY OR NON-INFRINGEMENT.
 See the Apache Version 2.0 License for specific language governing permissions
 and limitations under the License.
 ***************************************************************************** */
+
+// NOTE: This file is obsolete and may be removed in a later release.
+//       For CommonJS/AMD/UMD/SystemJS declarations please use 'index.d.ts'.
+//       For standalone browser declarations, please use 'standalone.d.ts'.
+
 import "./reflect-metadata";

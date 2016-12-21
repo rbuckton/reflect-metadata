@@ -12,15 +12,6 @@ MERCHANTABLITY OR NON-INFRINGEMENT.
 See the Apache Version 2.0 License for specific language governing permissions
 and limitations under the License.
 ***************************************************************************** */
-
-// NOTE: This file is obsolete and may be removed in a later release.
-//       For CommonJS/AMD/UMD/SystemJS declarations please use 'index.d.ts'.
-//       For standalone browser declarations, please use 'standalone.d.ts'.
-
-declare module "reflect-metadata" {
-    // The "reflect-metadata" module has no imports or exports, but can be used by modules to load the polyfill.
-}
-
 declare namespace Reflect {
     /**
       * Applies a set of decorators to a target object.
