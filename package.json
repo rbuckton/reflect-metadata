@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rbuckton/ReflectDecorators.git"
+    "url": "https://github.com/rbuckton/reflect-metadata.git"
   },
   "keywords": [
     "decorator",
@@ -31,14 +31,14 @@
   "licenses": [
     {
       "license": "Apache-2.0",
-      "url": "http://github.com/rbuckton/ReflectDecorators/raw/master/LICENSE"
+      "url": "http://github.com/rbuckton/reflect-metadata/raw/master/LICENSE"
     }
   ],
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/rbuckton/ReflectDecorators/issues"
+    "url": "https://github.com/rbuckton/reflect-metadata/issues"
   },
-  "homepage": "http://rbuckton.github.io/ReflectDecorators",
+  "homepage": "http://rbuckton.github.io/reflect-metadata",
   "dependencies": {},
   "devDependencies": {
     "@types/chai": "^3.4.34",

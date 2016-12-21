@@ -2,7 +2,7 @@
   "name": "reflect-metadata",
   "version": "0.1.9",
   "description": "Polyfill for Metadata Reflection API",
-  "homepage": "https://github.com/rbuckton/ReflectDecorators",
+  "homepage": "https://github.com/rbuckton/reflect-metadata",
   "authors": [
     "Ron Buckton <ron.buckton@microsoft.com>"
   ],
@@ -31,6 +31,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rbuckton/ReflectDecorators.git"
+    "url": "https://github.com/rbuckton/reflect-metadata.git"
   }
 }

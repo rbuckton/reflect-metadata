@@ -37,8 +37,8 @@ declare global {
           * Applies a set of decorators to a property of a target object.
           * @param decorators An array of decorators.
           * @param target The target object.
-          * @param targetKey The property key to decorate.
-          * @param descriptor A property descriptor
+          * @param propertyKey The property key to decorate.
+          * @param attributes A property descriptor.
           * @remarks Decorators are applied in reverse order.
           * @example
           *
@@ -68,7 +68,7 @@ declare global {
           *             Object.getOwnPropertyDescriptor(Example.prototype, "method")));
           *
           */
-        function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: Object, targetKey: string | symbol, descriptor?: PropertyDescriptor): PropertyDescriptor;
+        function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: Object, propertyKey: string | symbol, attributes?: PropertyDescriptor): PropertyDescriptor;
         /**
           * A default metadata decorator factory that can be used on a class, class member, or parameter.
           * @param metadataKey The key for the metadata entry.
@@ -111,7 +111,7 @@ declare global {
           */
         function metadata(metadataKey: any, metadataValue: any): {
             (target: Function): void;
-            (target: Object, targetKey: string | symbol): void;
+            (target: Object, propertyKey: string | symbol): void;
         };
         /**
           * Define a unique metadata entry on the target.
@@ -138,7 +138,7 @@ declare global {
           * @param metadataKey A key used to store and retrieve metadata.
           * @param metadataValue A value that contains attached metadata.
           * @param target The target object on which to define metadata.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @example
           *
           *     class Example {
@@ -168,7 +168,7 @@ declare global {
           *     }
           *
           */
-        function defineMetadata(metadataKey: any, metadataValue: any, target: Object, targetKey: string | symbol): void;
+        function defineMetadata(metadataKey: any, metadataValue: any, target: Object, propertyKey: string | symbol): void;
         /**
           * Gets a value indicating whether the target object or its prototype chain has the provided metadata key defined.
           * @param metadataKey A key used to store and retrieve metadata.
@@ -188,7 +188,7 @@ declare global {
           * Gets a value indicating whether the target object or its prototype chain has the provided metadata key defined.
           * @param metadataKey A key used to store and retrieve metadata.
           * @param target The target object on which the metadata is defined.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @returns `true` if the metadata key was defined on the target object or its prototype chain; otherwise, `false`.
           * @example
           *
@@ -214,7 +214,7 @@ declare global {
           *     result = Reflect.hasMetadata("custom:annotation", Example.prototype, "method");
           *
           */
-        function hasMetadata(metadataKey: any, target: Object, targetKey: string | symbol): boolean;
+        function hasMetadata(metadataKey: any, target: Object, propertyKey: string | symbol): boolean;
         /**
           * Gets a value indicating whether the target object has the provided metadata key defined.
           * @param metadataKey A key used to store and retrieve metadata.
@@ -234,7 +234,7 @@ declare global {
           * Gets a value indicating whether the target object has the provided metadata key defined.
           * @param metadataKey A key used to store and retrieve metadata.
           * @param target The target object on which the metadata is defined.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @returns `true` if the metadata key was defined on the target object; otherwise, `false`.
           * @example
           *
@@ -260,7 +260,7 @@ declare global {
           *     result = Reflect.hasOwnMetadata("custom:annotation", Example.prototype, "method");
           *
           */
-        function hasOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol): boolean;
+        function hasOwnMetadata(metadataKey: any, target: Object, propertyKey: string | symbol): boolean;
         /**
           * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
           * @param metadataKey A key used to store and retrieve metadata.
@@ -280,7 +280,7 @@ declare global {
           * Gets the metadata value for the provided metadata key on the target object or its prototype chain.
           * @param metadataKey A key used to store and retrieve metadata.
           * @param target The target object on which the metadata is defined.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
           * @example
           *
@@ -306,7 +306,7 @@ declare global {
           *     result = Reflect.getMetadata("custom:annotation", Example.prototype, "method");
           *
           */
-        function getMetadata(metadataKey: any, target: Object, targetKey: string | symbol): any;
+        function getMetadata(metadataKey: any, target: Object, propertyKey: string | symbol): any;
         /**
           * Gets the metadata value for the provided metadata key on the target object.
           * @param metadataKey A key used to store and retrieve metadata.
@@ -326,7 +326,7 @@ declare global {
           * Gets the metadata value for the provided metadata key on the target object.
           * @param metadataKey A key used to store and retrieve metadata.
           * @param target The target object on which the metadata is defined.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @returns The metadata value for the metadata key if found; otherwise, `undefined`.
           * @example
           *
@@ -352,7 +352,7 @@ declare global {
           *     result = Reflect.getOwnMetadata("custom:annotation", Example.prototype, "method");
           *
           */
-        function getOwnMetadata(metadataKey: any, target: Object, targetKey: string | symbol): any;
+        function getOwnMetadata(metadataKey: any, target: Object, propertyKey: string | symbol): any;
         /**
           * Gets the metadata keys defined on the target object or its prototype chain.
           * @param target The target object on which the metadata is defined.
@@ -370,7 +370,7 @@ declare global {
         /**
           * Gets the metadata keys defined on the target object or its prototype chain.
           * @param target The target object on which the metadata is defined.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @returns An array of unique metadata keys.
           * @example
           *
@@ -396,7 +396,7 @@ declare global {
           *     result = Reflect.getMetadataKeys(Example.prototype, "method");
           *
           */
-        function getMetadataKeys(target: Object, targetKey: string | symbol): any[];
+        function getMetadataKeys(target: Object, propertyKey: string | symbol): any[];
         /**
           * Gets the unique metadata keys defined on the target object.
           * @param target The target object on which the metadata is defined.
@@ -414,7 +414,7 @@ declare global {
         /**
           * Gets the unique metadata keys defined on the target object.
           * @param target The target object on which the metadata is defined.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @returns An array of unique metadata keys.
           * @example
           *
@@ -440,7 +440,7 @@ declare global {
           *     result = Reflect.getOwnMetadataKeys(Example.prototype, "method");
           *
           */
-        function getOwnMetadataKeys(target: Object, targetKey: string | symbol): any[];
+        function getOwnMetadataKeys(target: Object, propertyKey: string | symbol): any[];
         /**
           * Deletes the metadata entry from the target object with the provided key.
           * @param metadataKey A key used to store and retrieve metadata.
@@ -460,7 +460,7 @@ declare global {
           * Deletes the metadata entry from the target object with the provided key.
           * @param metadataKey A key used to store and retrieve metadata.
           * @param target The target object on which the metadata is defined.
-          * @param targetKey The property key for the target.
+          * @param propertyKey The property key for the target.
           * @returns `true` if the metadata entry was found and deleted; otherwise, false.
           * @example
           *
@@ -486,6 +486,6 @@ declare global {
           *     result = Reflect.deleteMetadata("custom:annotation", Example.prototype, "method");
           *
           */
-        function deleteMetadata(metadataKey: any, target: Object, targetKey: string | symbol): boolean;
+        function deleteMetadata(metadataKey: any, target: Object, propertyKey: string | symbol): boolean;
     }
 }

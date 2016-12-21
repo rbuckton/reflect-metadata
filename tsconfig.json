@@ -1,11 +1,15 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "noImplicitAny": true,
+    "module": "commonjs",
+    "newLine": "LF",
     "sourceMap": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "strictNullChecks": true
+    "noImplicitReturns": true,
+    "noImplicitThis": true
   },
   "files": [
     "Reflect.ts"

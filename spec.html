@@ -1,6 +1,6 @@
 ﻿<!doctype html>
 <meta charset="utf8">
-<title>Metadata</title>
+<title>Metadata Proposal - ECMAScript</title>
 <link rel="stylesheet" href="ecmarkup.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/github.min.css">
 <script src="ecmarkup.js"></script>
@@ -12,7 +12,7 @@
 <pre class=metadata>
   title: Metadata Proposal - ECMAScript
   status: proposal
-  location: https://rbuckton.github.io/ReflectDecorators
+  location: https://rbuckton.github.io/reflect-metadata
   copyright: false
   contributors: Ron Buckton
 </pre>
@@ -140,8 +140,7 @@
           2. Let _hasOwn_ be ? OrdinaryHasOwnMetadata(_MetadataKey_, _O_, _P_).
           3. If _hasOwn_ is *true*, return *true*.
           4. Let _parent_ be ? _O_.[[GetPrototypeOf]]().
-          5. If _parent_ is not *null*, then
-            1. Return ? _parent_.[[HasMetadata]](_MetadataKey_, _P_).
+          5. If _parent_ is not *null*, Return ? _parent_.[[HasMetadata]](_MetadataKey_, _P_).
           6. Return *false*.
         </emu-alg>
       </emu-clause>
@@ -160,7 +159,7 @@
           1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
           2. Let _metadataMap_ be ? GetOrCreateMetadataMap(_O_, _P_, *false*).
           3. If _metadataMap_ is *undefined*, return *false*.
-          4. Return ? Invoke(_metadataMap_, `"has"`, _MetadataKey_).
+          4. Return ? ToBoolean(? Invoke(_metadataMap_, `"has"`, _MetadataKey_)).
         </emu-alg>
       </emu-clause>
     </emu-clause>
@@ -177,11 +176,9 @@
         <emu-alg>
           1. Assert: _P_ is *undefined* or IsPropertyKey(_P_) is *true*.
           2. Let _hasOwn_ be ? OrdinaryHasOwnMetadata(_MetadataKey_, _O_, _P_).
-          3. If _hasOwn_ is *true*, then
-            1. Return ? OrdinaryGetOwnMetadata(_MetadataKey_, _O_, _P_).
+          3. If _hasOwn_ is *true*, return ? OrdinaryGetOwnMetadata(_MetadataKey_, _O_, _P_).
           4. Let _parent_ be ? _O_.[[GetPrototypeOf]]().
-          5. If _parent_ is not *null*, then
-            1. return ? _parent_.[[GetMetadata]](_MetadataKey_, _P_).
+          5. If _parent_ is not *null*, return ? _parent_.[[GetMetadata]](_MetadataKey_, _P_).
           6. Return *undefined*.
         </emu-alg>
       </emu-clause>
@@ -345,7 +342,7 @@
     </emu-clause>
 
     <emu-clause id="reflect.definemetadata">
-      <h1>Reflect.defineMetadata ( metadataKey, metadataValue, target, propertyKey )</h1>
+      <h1>Reflect.defineMetadata ( metadataKey, metadataValue, target [, propertyKey] )</h1>
       <p>When the `defineMetadata` function is called with arguments _metadataKey_, _metadataValue_, _target_, and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
@@ -354,7 +351,7 @@
     </emu-clause>
 
     <emu-clause id="reflect.hasmetadata">
-      <h1>Reflect.hasMetadata ( metadataKey, target, propertyKey )</h1>
+      <h1>Reflect.hasMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the `hasMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
@@ -363,7 +360,7 @@
     </emu-clause>
 
     <emu-clause id="reflect-hasownmetadata">
-      <h1>Reflect.hasOwnMetadata ( metadataKey, target, propertyKey )</h1>
+      <h1>Reflect.hasOwnMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the `hasOwnMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
@@ -372,7 +369,7 @@
     </emu-clause>
 
     <emu-clause id="reflect-getmetadata">
-      <h1>Reflect.getMetadata ( metadataKey, target, propertyKey )</h1>
+      <h1>Reflect.getMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the `getMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
@@ -381,7 +378,7 @@
     </emu-clause>
 
     <emu-clause id="reflect-getownmetadata">
-      <h1>Reflect.getOwnMetadata ( metadataKey, target, propertyKey )</h1>
+      <h1>Reflect.getOwnMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the `getOwnMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
@@ -390,7 +387,7 @@
     </emu-clause>
 
     <emu-clause id="reflect-getmetadatakeys">
-      <h1>Reflect.getMetadataKeys ( target, propertyKey )</h1>
+      <h1>Reflect.getMetadataKeys ( target [, propertyKey] )</h1>
       <p>When the `getMetadataKeys` function is called with arguments _target_ and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
@@ -399,7 +396,7 @@
     </emu-clause>
 
     <emu-clause id="reflect-getownmetadata">
-      <h1>Reflect.getOwnMetadataKeys ( target, propertyKey )</h1>
+      <h1>Reflect.getOwnMetadataKeys ( target [, propertyKey] )</h1>
       <p>When the `getOwnMetadataKeys` function is called with arguments _target_ and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
@@ -408,7 +405,7 @@
     </emu-clause>
 
     <emu-clause id="reflect-deletemetadata">
-      <h1>Reflect.deleteMetadata ( metadataKey, target, propertyKey )</h1>
+      <h1>Reflect.deleteMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the `deleteMetadata` function is called with arguments _metadataKey_, _target_, and _propertyKey_, the following steps are taken:</p>
       <emu-alg>
         1. If Type(_target_) is not Object, throw a *TypeError* exception.
