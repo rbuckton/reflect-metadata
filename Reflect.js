@@ -40,9 +40,10 @@ var Reflect;
     })(HashMap || (HashMap = {}));
     // Load global or shim versions of Map, Set, and WeakMap
     var functionPrototype = Object.getPrototypeOf(Function);
-    var _Map = typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
-    var _Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
-    var _WeakMap = typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
+    var usePolyfill = typeof process === "object" && process.env && process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] === "true";
+    var _Map = !usePolyfill && typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
+    var _Set = !usePolyfill && typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
+    var _WeakMap = !usePolyfill && typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
     // [[Metadata]] internal slot
     // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
     var Metadata = new _WeakMap();
@@ -1027,20 +1028,20 @@ var Reflect;
                 this._key = CreateUniqueKey();
             }
             WeakMap.prototype.has = function (target) {
-                var table = GetOrCreateWeakMapTable(target, /*Create*/ false);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 return table !== undefined ? HashMap.has(table, this._key) : false;
             };
             WeakMap.prototype.get = function (target) {
-                var table = GetOrCreateWeakMapTable(target, /*Create*/ false);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 return table !== undefined ? HashMap.get(table, this._key) : undefined;
             };
             WeakMap.prototype.set = function (target, value) {
-                var table = GetOrCreateWeakMapTable(target, /*Create*/ true);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ true);
                 table[this._key] = value;
                 return this;
             };
             WeakMap.prototype.delete = function (target) {
-                var table = GetOrCreateWeakMapTable(target, /*Create*/ false);
+                var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                 return table !== undefined ? delete table[this._key] : false;
             };
             WeakMap.prototype.clear = function () {
