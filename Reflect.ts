@@ -1570,13 +1570,13 @@ namespace Reflect {
                 if (this._cacheKey === key)
                     index = this._cacheIndex;
                 else
-                    index = this._keys.indexOf(key);
+                    index = this._cacheIndex = this._keys.indexOf(this._cacheKey = key);
                 if (index < 0 && insert) {
-                    index = this._keys.length;
+                    index = this._cacheIndex = this._keys.length;
                     this._keys.push(key);
                     this._values.push(undefined);
                 }
-                return this._cacheKey = key, this._cacheIndex = index;
+                return index;
             }
         };
 
