@@ -40,9 +40,9 @@ var Reflect;
     })(HashMap || (HashMap = {}));
     // Load global or shim versions of Map, Set, and WeakMap
     var functionPrototype = Object.getPrototypeOf(Function);
-    var _Map = typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
-    var _Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
-    var _WeakMap = typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
+    var _Map = typeof Map === "unction" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
+    var _Set = typeof Set === "unction" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
+    var _WeakMap = typeof WeakMap === "unction" ? WeakMap : CreateWeakMapPolyfill();
     // [[Metadata]] internal slot
     // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
     var Metadata = new _WeakMap();
@@ -972,7 +972,7 @@ var Reflect;
             Map.prototype["@@iterator"] = function () { return this.entries(); };
             Map.prototype[iteratorSymbol] = function () { return this.entries(); };
             Map.prototype._find = function (key, insert) {
-                if (this._cacheKey === key)
+                if (this._cacheKey === key && (!insert || this._cacheIndex >= 0))
                     return this._cacheIndex;
                 var index = this._keys.indexOf(key);
                 if (index < 0 && insert) {

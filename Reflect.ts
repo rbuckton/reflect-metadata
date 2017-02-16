@@ -1566,7 +1566,7 @@ namespace Reflect {
             "@@iterator"() { return this.entries(); }
             [iteratorSymbol]() { return this.entries(); }
             private _find(key: K, insert?: boolean): number {
-                if (this._cacheKey === key) return this._cacheIndex;
+                if (this._cacheKey === key && (!insert || this._cacheIndex >= 0)) return this._cacheIndex;
                 let index = this._keys.indexOf(key);
                 if (index < 0 && insert) {
                     index = this._keys.length;
