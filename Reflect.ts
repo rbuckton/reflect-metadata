@@ -102,28 +102,27 @@ namespace Reflect {
 
     const hasOwn = Object.prototype.hasOwnProperty;
 
-    // feature test for Object.create support
-    const supportsCreate = typeof Object.create === "function";
-
-    // feature test for __proto__ support
-    const supportsProto = { __proto__: [] } instanceof Array;
-
     // feature test for Symbol support
     const supportsSymbol = typeof Symbol === "function";
     const toPrimitiveSymbol = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
     const iteratorSymbol = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
 
-    // create an object in dictionary mode (a.k.a. "slow" mode in v8)
-    const createDictionary =
-        supportsCreate ? <V>() => MakeDictionary(Object.create(null) as HashMap<V>) :
-            supportsProto ? <V>() => MakeDictionary({ __proto__: null as any } as HashMap<V>) :
-                <V>() => MakeDictionary({} as HashMap<V>);
-
     namespace HashMap {
+        const supportsCreate = typeof Object.create === "function"; // feature test for Object.create support
+        const supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
         const downLevel = !supportsCreate && !supportsProto;
+
+        // create an object in dictionary mode (a.k.a. "slow" mode in v8)
+        export const create = supportsCreate
+            ? <V>() => MakeDictionary(Object.create(null) as HashMap<V>)
+            : supportsProto
+                ? <V>() => MakeDictionary({ __proto__: null as any } as HashMap<V>)
+                : <V>() => MakeDictionary({} as HashMap<V>);
+
         export const has = downLevel
             ? <V>(map: HashMap<V>, key: string | number | symbol) => hasOwn.call(map, key)
             : <V>(map: HashMap<V>, key: string | number | symbol) => key in map;
+
         export const get = downLevel
             ? <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => hasOwn.call(map, key) ? map[key] : undefined
             : <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => map[key];
@@ -1566,14 +1565,15 @@ namespace Reflect {
             "@@iterator"() { return this.entries(); }
             [iteratorSymbol]() { return this.entries(); }
             private _find(key: K, insert?: boolean): number {
-                if (this._cacheKey === key && (!insert || this._cacheIndex >= 0)) return this._cacheIndex;
-                let index = this._keys.indexOf(key);
-                if (index < 0 && insert) {
-                    index = this._keys.length;
+                if (this._cacheKey !== key) {
+                    this._cacheIndex = this._keys.indexOf(this._cacheKey = key);
+                }
+                if (this._cacheIndex < 0 && insert) {
+                    this._cacheIndex = this._keys.length;
                     this._keys.push(key);
                     this._values.push(undefined);
                 }
-                return this._cacheKey = key, this._cacheIndex = index;
+                return this._cacheIndex;
             }
         };
 
@@ -1610,25 +1610,25 @@ namespace Reflect {
     // naive WeakMap shim
     function CreateWeakMapPolyfill(): WeakMapConstructor {
         const UUID_SIZE = 16;
-        const keys = createDictionary<boolean>();
+        const keys = HashMap.create<boolean>();
         const rootKey = CreateUniqueKey();
         return class WeakMap<K, V> {
             private _key = CreateUniqueKey();
             has(target: K): boolean {
-                const table = GetOrCreateWeakMapTable<K>(target, /*Create*/ false);
+                const table = GetOrCreateWeakMapTable<K>(target, /*create*/ false);
                 return table !== undefined ? HashMap.has(table, this._key) : false;
             }
             get(target: K): V {
-                const table = GetOrCreateWeakMapTable<K>(target, /*Create*/ false);
+                const table = GetOrCreateWeakMapTable<K>(target, /*create*/ false);
                 return table !== undefined ? HashMap.get(table, this._key) : undefined;
             }
             set(target: K, value: V): WeakMap<K, V> {
-                const table = GetOrCreateWeakMapTable<K>(target, /*Create*/ true);
+                const table = GetOrCreateWeakMapTable<K>(target, /*create*/ true);
                 table[this._key] = value;
                 return this;
             }
             delete(target: K): boolean {
-                const table = GetOrCreateWeakMapTable<K>(target, /*Create*/ false);
+                const table = GetOrCreateWeakMapTable<K>(target, /*create*/ false);
                 return table !== undefined ? delete table[this._key] : false;
             }
             clear(): void {
@@ -1650,7 +1650,7 @@ namespace Reflect {
         function GetOrCreateWeakMapTable<K>(target: K, create: boolean): HashMap<any> | undefined {
             if (!hasOwn.call(target, rootKey)) {
                 if (!create) return undefined;
-                Object.defineProperty(target, rootKey, { value: createDictionary<any>() });
+                Object.defineProperty(target, rootKey, { value: HashMap.create<any>() });
             }
             return (<any>target)[rootKey];
         }

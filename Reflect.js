@@ -16,21 +16,21 @@ var Reflect;
 (function (Reflect) {
     "use strict";
     var hasOwn = Object.prototype.hasOwnProperty;
-    // feature test for Object.create support
-    var supportsCreate = typeof Object.create === "function";
-    // feature test for __proto__ support
-    var supportsProto = { __proto__: [] } instanceof Array;
     // feature test for Symbol support
     var supportsSymbol = typeof Symbol === "function";
     var toPrimitiveSymbol = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
     var iteratorSymbol = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
-    // create an object in dictionary mode (a.k.a. "slow" mode in v8)
-    var createDictionary = supportsCreate ? function () { return MakeDictionary(Object.create(null)); } :
-        supportsProto ? function () { return MakeDictionary({ __proto__: null }); } :
-            function () { return MakeDictionary({}); };
     var HashMap;
     (function (HashMap) {
+        var supportsCreate = typeof Object.create === "function"; // feature test for Object.create support
+        var supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
         var downLevel = !supportsCreate && !supportsProto;
+        // create an object in dictionary mode (a.k.a. "slow" mode in v8)
+        HashMap.create = supportsCreate
+            ? function () { return MakeDictionary(Object.create(null)); }
+            : supportsProto
+                ? function () { return MakeDictionary({ __proto__: null }); }
+                : function () { return MakeDictionary({}); };
         HashMap.has = downLevel
             ? function (map, key) { return hasOwn.call(map, key); }
             : function (map, key) { return key in map; };
@@ -40,9 +40,9 @@ var Reflect;
     })(HashMap || (HashMap = {}));
     // Load global or shim versions of Map, Set, and WeakMap
     var functionPrototype = Object.getPrototypeOf(Function);
-    var _Map = typeof Map === "unction" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
-    var _Set = typeof Set === "unction" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
-    var _WeakMap = typeof WeakMap === "unction" ? WeakMap : CreateWeakMapPolyfill();
+    var _Map = typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
+    var _Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
+    var _WeakMap = typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
     // [[Metadata]] internal slot
     // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
     var Metadata = new _WeakMap();
@@ -972,15 +972,15 @@ var Reflect;
             Map.prototype["@@iterator"] = function () { return this.entries(); };
             Map.prototype[iteratorSymbol] = function () { return this.entries(); };
             Map.prototype._find = function (key, insert) {
-                if (this._cacheKey === key && (!insert || this._cacheIndex >= 0))
-                    return this._cacheIndex;
-                var index = this._keys.indexOf(key);
-                if (index < 0 && insert) {
-                    index = this._keys.length;
+                if (this._cacheKey !== key) {
+                    this._cacheIndex = this._keys.indexOf(this._cacheKey = key);
+                }
+                if (this._cacheIndex < 0 && insert) {
+                    this._cacheIndex = this._keys.length;
                     this._keys.push(key);
                     this._values.push(undefined);
                 }
-                return this._cacheKey = key, this._cacheIndex = index;
+                return this._cacheIndex;
             };
             return Map;
         }());
@@ -1020,7 +1020,7 @@ var Reflect;
     // naive WeakMap shim
     function CreateWeakMapPolyfill() {
         var UUID_SIZE = 16;
-        var keys = createDictionary();
+        var keys = HashMap.create();
         var rootKey = CreateUniqueKey();
         return (function () {
             function WeakMap() {
@@ -1061,7 +1061,7 @@ var Reflect;
             if (!hasOwn.call(target, rootKey)) {
                 if (!create)
                     return undefined;
-                Object.defineProperty(target, rootKey, { value: createDictionary() });
+                Object.defineProperty(target, rootKey, { value: HashMap.create() });
             }
             return target[rootKey];
         }
