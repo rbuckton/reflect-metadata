@@ -28,12 +28,6 @@
     "email": "ron.buckton@microsoft.com",
     "url": "http://github.com/rbuckton"
   },
-  "licenses": [
-    {
-      "license": "Apache-2.0",
-      "url": "http://github.com/rbuckton/reflect-metadata/raw/master/LICENSE"
-    }
-  ],
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/rbuckton/reflect-metadata/issues"
