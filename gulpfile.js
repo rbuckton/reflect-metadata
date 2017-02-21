@@ -35,7 +35,15 @@ gulp.task("build:spec", () => gulp
 
 gulp.task("build", ["build:tests", "build:spec"]);
 
+gulp.task("use-polyfill", () => {
+    process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] = "true";
+});
+
 gulp.task("test", ["build:tests"], () => gulp
+    .src(["test/**/*.js"], { read: false })
+    .pipe(mocha({ reporter: "dot" })));
+
+gulp.task("test:use-polyfill", ["build:tests", "use-polyfill"], () => gulp
     .src(["test/**/*.js"], { read: false })
     .pipe(mocha({ reporter: "dot" })));
 
@@ -48,7 +56,7 @@ gulp.task("watch", ["watch:reflect", "watch:spec"], () => {
     return promise;
 });
 
-gulp.task("prepublish", sequence("clean", "test"));
+gulp.task("prepublish", sequence("clean", "test", "test:use-polyfill"));
 gulp.task("reflect", ["build:reflect"]);
 gulp.task("tests", ["build:tests"]);
 gulp.task("spec", ["build:spec"]);
