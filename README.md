@@ -1,5 +1,3 @@
-Proposal to add Decorators to ES7, along with a prototype for an ES7 Reflection API for Decorator Metadata
-
 # Metadata Reflection API
 
 * [Detailed proposal][Metadata-Spec]
