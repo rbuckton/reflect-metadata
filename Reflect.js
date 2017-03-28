@@ -1074,7 +1074,7 @@ var Reflect;
         function GenRandomBytes(size) {
             if (typeof Uint8Array === "function") {
                 if (typeof crypto !== "undefined")
-                    return crypto.getRandomValues(new Uint8Array(size));
+                    return crypto.getRandomValues(new Uint8Array(size)) || FillRandomBytes(new Array(size), size);
                 if (typeof msCrypto !== "undefined")
                     return msCrypto.getRandomValues(new Uint8Array(size));
                 return FillRandomBytes(new Uint8Array(size), size);
