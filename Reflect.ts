@@ -1664,7 +1664,7 @@ namespace Reflect {
 
         function GenRandomBytes(size: number): BufferLike {
             if (typeof Uint8Array === "function") {
-                if (typeof crypto !== "undefined") return crypto.getRandomValues(new Uint8Array(size)) as Uint8Array;
+                if (typeof crypto !== "undefined") return crypto.getRandomValues(new Uint8Array(size)) as Uint8Array || FillRandomBytes(new Array(size), size) as Uint8Array;
                 if (typeof msCrypto !== "undefined") return msCrypto.getRandomValues(new Uint8Array(size)) as Uint8Array;
                 return FillRandomBytes(new Uint8Array(size), size);
             }
