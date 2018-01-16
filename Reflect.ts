@@ -639,7 +639,7 @@ namespace Reflect {
         function makeExporter(target: typeof Reflect, previous?: <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => void) {
             return <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => {
                 if (typeof target[key] !== "function") {
-                    Object.defineProperty(Reflect, key, { configurable: true, writable: true, value });
+                    Object.defineProperty(target, key, { configurable: true, writable: true, value });
                 }
                 if (previous) previous(key, value);
             };

@@ -32,7 +32,7 @@ var Reflect;
         function makeExporter(target, previous) {
             return function (key, value) {
                 if (typeof target[key] !== "function") {
-                    Object.defineProperty(Reflect, key, { configurable: true, writable: true, value: value });
+                    Object.defineProperty(target, key, { configurable: true, writable: true, value: value });
                 }
                 if (previous)
                     previous(key, value);
