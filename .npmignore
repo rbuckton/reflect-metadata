@@ -7,6 +7,5 @@ test
 typings
 bower.json
 gulpfile.js
-Reflect.ts
 spec.html
 tsconfig.json
