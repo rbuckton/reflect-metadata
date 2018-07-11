@@ -17,10 +17,15 @@ var Reflect;
     // Metadata Proposal
     // https://rbuckton.github.io/reflect-metadata/
     (function (factory) {
-        var root = typeof global === "object" ? global :
-            typeof self === "object" ? self :
-                typeof this === "object" ? this :
-                    Function("return this;")();
+        var root = 
+        // Detect if this is a Sandboxed window object
+        this !== window
+            && this['wrappedJSObject'] === window['wrappedJSObject']
+            ? this :
+            typeof global === "object" ? global :
+                typeof self === "object" ? self :
+                    typeof this === "object" ? this :
+                        Function("return this;")();
         var exporter = makeExporter(Reflect);
         if (typeof root.Reflect === "undefined") {
             root.Reflect = Reflect;
@@ -901,7 +906,7 @@ var Reflect;
         function CreateMapPolyfill() {
             var cacheSentinel = {};
             var arraySentinel = [];
-            var MapIterator = (function () {
+            var MapIterator = /** @class */ (function () {
                 function MapIterator(keys, values, selector) {
                     this._index = 0;
                     this._keys = keys;
@@ -944,7 +949,7 @@ var Reflect;
                 };
                 return MapIterator;
             }());
-            return (function () {
+            return /** @class */ (function () {
                 function Map() {
                     this._keys = [];
                     this._values = [];
@@ -1020,7 +1025,7 @@ var Reflect;
         }
         // naive Set shim
         function CreateSetPolyfill() {
-            return (function () {
+            return /** @class */ (function () {
                 function Set() {
                     this._map = new _Map();
                 }
@@ -1046,7 +1051,7 @@ var Reflect;
             var UUID_SIZE = 16;
             var keys = HashMap.create();
             var rootKey = CreateUniqueKey();
-            return (function () {
+            return /** @class */ (function () {
                 function WeakMap() {
                     this._key = CreateUniqueKey();
                 }
