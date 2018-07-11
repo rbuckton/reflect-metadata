@@ -621,7 +621,12 @@ namespace Reflect {
     export declare function deleteMetadata(metadataKey: any, target: any, propertyKey: string | symbol): boolean;
 
     (function (this: any, factory: (exporter: <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => void) => void) {
-        const root = typeof global === "object" ? global :
+        const root =
+            // Detect if this is a Sandboxed window object
+            this !== window
+                && this['wrappedJSObject'] === window['wrappedJSObject']
+                ? this :
+            typeof global === "object" ? global :
             typeof self === "object" ? self :
             typeof this === "object" ? this :
             Function("return this;")();
