@@ -4,6 +4,7 @@
     "module": "commonjs",
     "newLine": "LF",
     "sourceMap": true,
+    "inlineSources": true,
     "strictNullChecks": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
