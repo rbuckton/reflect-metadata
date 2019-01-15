@@ -9,7 +9,7 @@ body {
 }
 
 #spec-container {
-  padding-left: 20px;
+  padding: 0 20px;
   flex-grow: 1;
   flex-basis: 66%;
   box-sizing: border-box;
@@ -130,12 +130,16 @@ emu-note > div.note-contents {
   flex-shrink: 1;
 }
 
-emu-note > div.note-contents > p:first-child {
+emu-note > div.note-contents > p:first-of-type {
   margin-top: 0;
 }
 
-emu-note > div.note-contents > p:last-child {
+emu-note > div.note-contents > p:last-of-type {
   margin-bottom: 0;
+}
+
+emu-figure {
+  display: block;
 }
 
 emu-example {
@@ -148,6 +152,14 @@ emu-example figure figcaption {
   text-align: left;
 }
 
+emu-figure figure,
+emu-example figure,
+emu-table figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 emu-production {
     display: block;
     margin-top: 1em;
@@ -155,19 +167,16 @@ emu-production {
     margin-left: 5ex;
 }
 
-
 emu-grammar.inline, emu-production.inline,
-emu-grammar.inline emu-production emu-rhs, emu-production.inline emu-rhs {
-  display: inline;
+emu-grammar.inline emu-production emu-rhs, emu-production.inline emu-rhs,
+emu-grammar[collapsed] emu-production emu-rhs, emu-production[collapsed] emu-rhs {
+    display: inline;
+    padding-left: 1ex;
+    margin-left: 0;
 }
 
 emu-grammar[collapsed] emu-production, emu-production[collapsed] {
     margin: 0;
-}
-
-emu-grammar[collapsed] emu-production emu-rhs, emu-production[collapsed] emu-rhs {
-    display: inline;
-    padding-left: 1ex;
 }
 
 emu-constraints {
@@ -291,7 +300,7 @@ h1 span.title {
 }
 
 
-h1 { font-size: 2.67em; margin-top: 2em; margin-bottom: 1em; line-height: 1em;}
+h1 { font-size: 2.67em; margin-top: 2em; margin-bottom: 0; line-height: 1em;}
 h2 { font-size: 2em; }
 h3 { font-size: 1.56em; }
 h4 { font-size: 1.25em; }
@@ -365,7 +374,7 @@ emu-intro emu-intro emu-intro emu-intro emu-intro h1, emu-clause emu-clause emu-
 emu-intro emu-intro emu-intro emu-intro emu-intro h2, emu-clause emu-clause emu-clause emu-clause emu-clause h2, emu-annex emu-annex emu-annex emu-annex emu-annex h2 { font-size: 0.9em; }
 emu-intro emu-intro emu-intro emu-intro emu-intro emu-intro h1, emu-clause emu-clause emu-clause emu-clause emu-clause emu-clause h1, emu-annex emu-annex emu-annex emu-annex emu-annex emu-annex h1 { font-size: 0.9em }
 
-emu-clause {
+emu-clause, emu-intro, emu-annex {
     display: block;
 }
 
@@ -425,6 +434,21 @@ emu-production > ins, emu-production > del,
 emu-grammar > ins, emu-grammar > del {
   display: block;
 }
+emu-rhs > ins, emu-rhs > del { 
+  display: inline;
+}
+
+tr.ins > td > ins {
+  border-bottom: none;
+}
+
+tr.ins > td {
+  background-color: #e0f8e0;
+}
+
+tr.del > td {
+  background-color: #fee;
+}
 
 /* Menu Styles */
 #menu-toggle {
@@ -464,6 +488,7 @@ emu-grammar > ins, emu-grammar > del {
   padding: 0 5px;
   position: fixed;
   left: 0; top: 0;
+  border-right: 2px solid #bbb;
 
   z-index: 2;
 }
@@ -769,6 +794,10 @@ li.menu-search-result-term:before {
   #spec-container {
     padding: 0 5px;
   }
+
+  #references-pane-spacer {
+    display: none;
+  }
 }
 
 @media only screen and (max-width: 800px) {
@@ -778,5 +807,103 @@ li.menu-search-result-term:before {
 
   h1 .secnum:empty {
     margin: 0; padding: 0;
+  }
+}
+
+
+/* Toolbox */
+.toolbox {
+	position: absolute;
+	background: #ddd;
+	border: 1px solid #aaa;
+  display: none;
+  color: #eee;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+.toolbox.active {
+  display: inline-block;
+}
+
+.toolbox a {
+  text-decoration: none;
+  padding: 0 5px;
+}
+
+.toolbox a:hover {
+  text-decoration: underline;
+}
+
+.toolbox:after, .toolbox:before {
+	top: 100%;
+	left: 15px;
+	border: solid transparent;
+	content: " ";
+	height: 0;
+	width: 0;
+	position: absolute;
+	pointer-events: none;
+}
+
+.toolbox:after {
+	border-color: rgba(0, 0, 0, 0);
+	border-top-color: #ddd;
+	border-width: 10px;
+	margin-left: -10px;
+}
+.toolbox:before {
+	border-color: rgba(204, 204, 204, 0);
+	border-top-color: #aaa;
+	border-width: 12px;
+	margin-left: -12px;
+}
+
+#references-pane-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 250px;
+  display: none;
+  background-color: #ddd;
+  z-index: 1;
+}
+
+#references-pane-table-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#references-pane-spacer {
+  flex-basis: 33%;
+  max-width: 500px;
+}
+
+#references-pane {
+  flex-grow: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#references-pane-container.active {
+  display: flex;
+}
+
+#references-pane-close:after {
+  content: '✖';
+  float: right;
+  cursor: pointer;
+}
+
+#references-pane table tr td:first-child {
+  text-align: right;
+  padding-right: 5px;
+}
+
+@media print {
+  #menu-toggle {
+    display: none; 
   }
 }

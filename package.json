@@ -8,7 +8,7 @@
     "definition": "Reflect.d.ts"
   },
   "scripts": {
-    "prepublish": "gulp prepublish",
+    "prepublishOnly": "gulp prepublish",
     "build": "gulp build",
     "test": "gulp test",
     "start": "gulp start"
