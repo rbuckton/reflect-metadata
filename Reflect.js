@@ -813,7 +813,7 @@ var Reflect;
         // https://tc39.github.io/ecma262/#sec-isconstructor
         function IsConstructor(argument) {
             // NOTE: This is an approximation as we cannot check for [[Construct]] internal method.
-            return typeof argument === "function";
+            return typeof argument === "function" || argument.constructor;
         }
         // 7.2.7 IsPropertyKey(argument)
         // https://tc39.github.io/ecma262/#sec-ispropertykey
