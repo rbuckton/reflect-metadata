@@ -683,6 +683,7 @@ namespace Reflect {
         // [[Metadata]] internal slot
         // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
         const Metadata = new _WeakMap<any, Map<string | symbol | undefined, Map<any, any>>>();
+        exporter('metadata', Metadata as any);
 
         function decorate(decorators: ClassDecorator[], target: Function): Function;
         function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: any, propertyKey: string | symbol, attributes?: PropertyDescriptor | null): PropertyDescriptor | undefined;

@@ -70,6 +70,7 @@ var Reflect;
         // [[Metadata]] internal slot
         // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
         var Metadata = new _WeakMap();
+        exporter('metadata', Metadata);
         /**
          * Applies a set of decorators to a property of a target object.
          * @param decorators An array of decorators.
