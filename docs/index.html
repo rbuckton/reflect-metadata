@@ -1875,7 +1875,7 @@ li.menu-search-result-term:before {
   }
 
   @Type(<span class="hljs-built_in">String</span>)
-  get name() { <span class="hljs-keyword">return</span> <span class="hljs-string">"text"</span>; }
+  <span class="hljs-keyword">get</span> name() { <span class="hljs-keyword">return</span> <span class="hljs-string">"text"</span>; }
 
   @Type(<span class="hljs-built_in">Function</span>)
   @ParamTypes(<span class="hljs-built_in">Number</span>, <span class="hljs-built_in">Number</span>)
@@ -1887,7 +1887,7 @@ li.menu-search-result-term:before {
 
 <span class="hljs-comment">// Metadata introspection</span>
 <span class="hljs-keyword">let</span> obj = <span class="hljs-keyword">new</span> C(<span class="hljs-string">"a"</span>, <span class="hljs-number">1</span>);
-<span class="hljs-keyword">let</span> paramTypes = <span class="hljs-built_in">Reflect</span>.getMetadata(<span class="hljs-string">"design:paramtypes"</span>, inst, <span class="hljs-string">"add"</span>); <span class="hljs-comment">// [Number, Number]</span></code></pre>
+<span class="hljs-keyword">let</span> paramTypes = <span class="hljs-built_in">Reflect</span>.getMetadata(<span class="hljs-string">"design:paramtypes"</span>, obj, <span class="hljs-string">"add"</span>); <span class="hljs-comment">// [Number, Number]</span></code></pre>
 </emu-clause>
 
 <emu-clause id="abstract-operations">
@@ -2085,4 +2085,5 @@ li.menu-search-result-term:before {
       </li></ol></emu-alg>
     </emu-clause>
   </emu-clause>
-</emu-clause></div></body>
+</emu-clause>
+</div></body>

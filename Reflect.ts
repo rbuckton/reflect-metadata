@@ -699,7 +699,7 @@ namespace Reflect {
         function getMetadataMap(target: any): Map<any, any> | undefined {
             return Metadata.get(target);
         }
-        exporter('getMetadataMap', GetMetadataMap);
+        exporter('getMetadataMap', getMetadataMap);
 
         function decorate(decorators: ClassDecorator[], target: Function): Function;
         function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: any, propertyKey: string | symbol, attributes?: PropertyDescriptor | null): PropertyDescriptor | undefined;
