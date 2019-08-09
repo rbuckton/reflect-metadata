@@ -99,6 +99,13 @@ namespace Reflect {
     declare const process: any;
 
     /**
+    * Returns the whole metadata map of the given target object.
+    *
+    * @param target The target object.
+    */
+    export declare function getMetadataMap(target: any): Map<any, any> | undefined;
+
+    /**
       * Applies a set of decorators to a target object.
       * @param decorators An array of decorators.
       * @param target The target object.
@@ -683,7 +690,16 @@ namespace Reflect {
         // [[Metadata]] internal slot
         // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
         const Metadata = new _WeakMap<any, Map<string | symbol | undefined, Map<any, any>>>();
-        exporter('metadata', Metadata as any);
+
+        /**
+         * Returns the whole metadata map of the given target object.
+         *
+         * @param target The target object.
+         */
+        function getMetadataMap(target: any): Map<any, any> | undefined {
+            return Metadata.get(target);
+        }
+        exporter('getMetadataMap', GetMetadataMap);
 
         function decorate(decorators: ClassDecorator[], target: Function): Function;
         function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: any, propertyKey: string | symbol, attributes?: PropertyDescriptor | null): PropertyDescriptor | undefined;
