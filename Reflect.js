@@ -562,10 +562,15 @@ var Reflect;
         function GetOrCreateMetadataMap(O, P, Create) {
             var targetMetadata = Metadata.get(O);
             if (IsUndefined(targetMetadata)) {
-                if (!Create)
-                    return undefined;
-                targetMetadata = new _Map();
-                Metadata.set(O, targetMetadata);
+                if (typeof O === 'function' && O.prototype && O.prototype.constructor && O.prototype.constructor !== Object.constructor) {
+                    targetMetadata = Metadata.get(O.prototype.constructor);
+                }
+                if (IsUndefined(targetMetadata)) {
+                    if (!Create)
+                        return undefined;
+                    targetMetadata = new _Map();
+                    Metadata.set(O, targetMetadata);
+                }
             }
             var metadataMap = targetMetadata.get(P);
             if (IsUndefined(metadataMap)) {

@@ -1227,9 +1227,14 @@ namespace Reflect {
         function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: boolean): Map<any, any> | undefined {
             let targetMetadata = Metadata.get(O);
             if (IsUndefined(targetMetadata)) {
-                if (!Create) return undefined;
-                targetMetadata = new _Map<string | symbol | undefined, Map<any, any>>();
-                Metadata.set(O, targetMetadata);
+                if (typeof O === 'function' && O.prototype && O.prototype.constructor && O.prototype.constructor !== Object.constructor) {
+                    targetMetadata = Metadata.get(O.prototype.constructor);
+                }
+                if (IsUndefined(targetMetadata)) {
+                    if (!Create) return undefined;
+                    targetMetadata = new _Map<string | symbol | undefined, Map<any, any>>();
+                    Metadata.set(O, targetMetadata);
+                }
             }
             let metadataMap = targetMetadata.get(P);
             if (IsUndefined(metadataMap)) {
