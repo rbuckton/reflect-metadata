@@ -9,6 +9,8 @@ bower.json
 gulpfile.js
 Reflect.ts
 Reflect.js.map
+no-conflict.ts
+no-conflict.js.map
 spec.html
 tsconfig.json
 tsconfig-release.json

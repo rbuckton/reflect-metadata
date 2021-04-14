@@ -1,31 +1,28 @@
 const gulp = require("gulp");
-const sequence = require("gulp-sequence");
 const del = require("del");
-const tsb = require("gulp-tsb");
 const mocha = require("gulp-mocha");
 const emu = require("gulp-emu");
 const rename = require("gulp-rename");
 const gls = require("gulp-live-server");
+const { spawn } = require("child_process");
+const path = require("path");
 
-const debugProject = tsb.create("tsconfig.json");
-const releaseProject = tsb.create("tsconfig-release.json");
-const tests = tsb.create("test/tsconfig.json");
+let configuration = "debug";
 
-let project = debugProject;
+gulp.task("release", async () => { configuration = "release"; });
+gulp.task("clean", () => del([
+    "Reflect.js",
+    "Reflect.js.map",
+    "no-conflict.js",
+    "no-conflict.js.map",
+    "test/**/*.js",
+    "test/**/*.js.map",
+    "!test/no-conflict.js",
+    "!test/reflect.js",
+]));
 
-gulp.task("release", () => { project = releaseProject; });
-gulp.task("clean", () => del(["Reflect.js", "Reflect.js.map", "test/**/*.js", "test/**/*.js.map"]));
-
-gulp.task("build:reflect", () => gulp
-    .src(["Reflect.ts"])
-    .pipe(project())
-    .pipe(gulp.dest(".")));
-
-gulp.task("build:tests", ["build:reflect"], () => gulp
-    .src(["test/**/*.ts"])
-    .pipe(tests())
-    .pipe(gulp.dest("test")));
-
+gulp.task("build:reflect", () => exec(process.execPath, [require.resolve("typescript/lib/tsc.js"), "-b", configuration === "debug" ? "./tsconfig.json" : "./tsconfig-release.json"]));
+gulp.task("build:tests", () => exec(process.execPath, [require.resolve("typescript/lib/tsc.js"), "-b", "test/tsconfig.json"]));
 gulp.task("build:spec", () => gulp
     .src(["spec.html"])
     .pipe(emu({ js: "ecmarkup.js", css: "ecmarkup.css", biblio: true }))
@@ -36,38 +33,51 @@ gulp.task("build:spec", () => gulp
     }))
     .pipe(gulp.dest("docs")));
 
-gulp.task("build", ["build:tests", "build:spec"]);
+gulp.task("build", gulp.series("build:reflect", "build:tests", "build:spec"));
 
-gulp.task("use-polyfill", () => {
-    process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] = "true";
-});
+gulp.task("test", gulp.series("build:reflect", "build:tests",
+    Object.assign(() => {
+        return gulp
+            .src(["test/import.js", "test/global.js"], { read: false })
+            .pipe(mocha({ reporter: "dot", parallel: true }));
+    }, { displayName: "run:tests" })));
 
-gulp.task("test", ["build:tests"], () => {
-    console.log("Running tests w/o polyfill...");
-    return gulp
-        .src(["test/**/*.js"], { read: false })
-        .pipe(mocha({ reporter: "dot" }));
-});
-
-gulp.task("test:use-polyfill", ["build:tests", "use-polyfill"], () => {
-    console.log("Running tests w/ polyfill...");
-    return gulp
-        .src(["test/**/*.js"], { read: false })
-        .pipe(mocha({ reporter: "dot" }));
-});
-
-gulp.task("watch:reflect", () => gulp.watch(["Reflect.ts", "tsconfig.json", "test/**/*.ts", "test/**/tsconfig.json"], ["test"]));
-gulp.task("watch:spec", () => gulp.watch(["spec.html"], ["build:spec"]));
-gulp.task("watch", ["watch:reflect", "watch:spec"], () => {
+gulp.task("watch:reflect", () => gulp.watch(["Reflect.ts", "no-conflict.ts", "tsconfig.json", "test/**/*.ts", "test/**/tsconfig.json"], gulp.task("test")));
+gulp.task("watch:spec", () => gulp.watch(["spec.html"], gulp.task("build:spec")));
+gulp.task("watch", gulp.series("watch:reflect", "watch:spec", () => {
     const server = gls.static("docs", 8080);
     const promise = server.start();
-    gulp.watch(["docs/**/*"], file => server.notify(file));
+    gulp.watch(["docs/**/*"]).on("change", file => {
+        server.notify({ path: path.resolve(file) });
+    });
     return promise;
-});
+}));
 
-gulp.task("prepublish", sequence("release", "clean", "test", "test:use-polyfill"));
-gulp.task("reflect", ["build:reflect"]);
-gulp.task("tests", ["build:tests"]);
-gulp.task("spec", ["build:spec"]);
-gulp.task("start", ["watch"]);
-gulp.task("default", ["build", "test"]);
+gulp.task("prepublish", gulp.series("release", "clean", "test"));
+gulp.task("reflect", gulp.task("build:reflect"));
+gulp.task("tests", gulp.task("build:tests"));
+gulp.task("spec", gulp.task("build:spec"));
+gulp.task("start", gulp.task("watch"));
+gulp.task("default", gulp.series("build", "test"));
+
+function exec(cmd, args = [], { ignoreExitCode = false, cwd } = {}) {
+    return new Promise((resolve, reject) => {
+        const isWindows = /^win/.test(process.platform);
+        const shell = isWindows ? "cmd" : "/bin/sh";
+        const shellArgs = isWindows ? ["/c", cmd.includes(" ") >= 0 ? `"${cmd}"` : cmd, ...args] : ["-c", `${cmd} ${args.join(" ")}`];
+        const child = spawn(shell, shellArgs, { stdio: "inherit", cwd, windowsVerbatimArguments: true });
+        child.on("exit", exitCode => {
+            child.removeAllListeners();
+            if (exitCode === 0 || ignoreExitCode) {
+                resolve({ exitCode });
+            }
+            else {
+                reject(new Error(`Process exited with code: ${exitCode}`));
+            }
+        });
+        child.on("error", error => {
+            child.removeAllListeners();
+            reject(error);
+        });
+    });
+}

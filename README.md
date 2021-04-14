@@ -169,6 +169,37 @@ function ParamTypes(...types) {
 * To enable experimental support for auto-generated type metadata in your TypeScript project, you must add `"emitDecoratorMetadata": true` to your tsconfig.json file.
   * Please note that auto-generated type metadata may have issues with circular or forward references for types.
 
+### Using `emitDecoratorMetadata` with SES (Secure ECMAScript)
+
+SES does not permit mutation of globals. To use `reflect-metadata` in an SES host, you must import it using `reflect-metadata/no-conflict`:
+
+```ts
+// --module es2015
+// --module es2020
+// --module esnext
+import { Reflect } from "reflect-metadata/no-conflict";
+...
+```
+
+If your `--module` target is not an ES module target, you must create a local alias for the imported binding as TypeScript will rewrite the import for CommonJS/AMD/System/etc.:
+
+```ts
+// --module commonjs
+// --module amd
+// --module umd
+// --module system
+import { Reflect as _Reflect } from "reflect-metadata/no-conflict";
+const Reflect = _Reflect;
+
+// which, for 'commonjs', is transformed to:
+const no_conflict_1 = require("reflect-metadata/no-conflict");
+const Reflect = no_conflict_1.Reflect;
+```
+
+The manual local alias for `Reflect` is necessary as the TypeScript `__metadata` helper specifically looks for `Reflect` as if it were a global.
+
+**NOTE:** This will *not* work with `--importHelpers` unless you redirect `tslib` to a custom copy that loads `"reflect-metadata/no-conflict"`. More information on how to support this scenario is forthcoming.
+
 ## Issues
 
 * A poorly written mutating decorator for a class constructor could cause metadata to become lost if the prototype chain is not maintained. Though, not maintaining the prototype chain in a mutating decorator for a class constructor would have other negative side effects as well. @rbuckton

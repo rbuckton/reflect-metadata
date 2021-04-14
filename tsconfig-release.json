@@ -1,17 +1,18 @@
 {
-    "compilerOptions": {
-      "target": "es5",
-      "module": "commonjs",
-      "newLine": "LF",
-      "sourceMap": false,
-      "strictNullChecks": true,
-      "noImplicitAny": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "noImplicitReturns": true,
-      "noImplicitThis": true
-    },
-    "files": [
-      "Reflect.ts"
-    ]
-  }
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "newLine": "LF",
+    "sourceMap": false,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true
+  },
+  "files": [
+    "Reflect.ts",
+    "no-conflict.ts"
+  ]
+}
