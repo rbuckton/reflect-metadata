@@ -1,7 +1,8 @@
 import { expect } from "chai";
 import Reflect_default, { Reflect as Reflect_binding } from "./no-conflict";
 import * as Reflect_namespace from "./no-conflict";
-import reflect_tests, { API_KEYS } from "./reflect-tests";
+import reflect_tests from "./reflect-tests";
+import { API_KEYS } from "./api";
 
 it("Native Reflect is undisturbed", () => {
     for (const key of API_KEYS) {

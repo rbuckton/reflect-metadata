@@ -624,7 +624,7 @@ namespace Reflect {
 
     type Exporter = <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => void;
 
-    (function (this: any, factory: (exporter: Exporter) => void) {
+    (function (this: any, factory: (exporter: Exporter, nativeReflect: typeof Reflect | undefined) => void) {
         const root = (() => {
             try {
                 return typeof globalThis === "object" ? globalThis :
@@ -652,19 +652,19 @@ namespace Reflect {
         let exporter = makeExporter(reflectObj);
         if (typeof module === "object" && typeof module.exports === "object") {
             // CommonJS module
-            factory(makeExporter(module.exports, exporter));
+            factory(makeExporter(module.exports, exporter), nativeReflect);
             finishModule(module.exports);
         }
         else if (typeof define === "function" && define.amd) {
             // AMD module
             define(["exports"], (exports: any) => {
-                factory(makeExporter(exports, exporter));
+                factory(makeExporter(exports, exporter), nativeReflect);
                 finishModule(exports);
             });
         }
         else {
             // Global script
-            factory(exporter);
+            throw new Error("Module format not supported.");
         }
 
         function finishModule(exports: any) {
@@ -682,7 +682,32 @@ namespace Reflect {
             };
         }
     })
-    (function (exporter) {
+    (function (exporter, nativeReflect) {
+        if (typeof nativeReflect === "object") {
+            const API_KEYS = [
+                "decorate",
+                "metadata",
+                "defineMetadata",
+                "hasMetadata",
+                "hasOwnMetadata",
+                "getMetadata",
+                "getOwnMetadata",
+                "getMetadataKeys",
+                "getOwnMetadataKeys",
+                "deleteMetadata"
+            ] as const;
+            if (API_KEYS.every(key => typeof nativeReflect[key] === "function")) {
+                // Defer to the existing global shim so that metadata state is shared.
+                // NOTE: This assumes both the global shim and this "no-conflict" version have the
+                //       same implementation. This is highly likely as the proposed API has remained
+                //       stable for some time.
+                for (const key of API_KEYS) {
+                    exporter(key, nativeReflect[key]);
+                }
+                return;
+            }
+        }
+
         const uncurryThis: <T, A extends any[], R>(f: (this: T, ...args: A) => R) => (this_: T, ...args: A) => R = Function.prototype.bind.bind(Function.prototype.call);
 
         // feature test for Symbol support

@@ -620,11 +620,21 @@ namespace Reflect {
       */
     export declare function deleteMetadata(metadataKey: any, target: any, propertyKey: string | symbol): boolean;
 
-    (function (this: any, factory: (exporter: <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => void) => void) {
-        const root = typeof global === "object" ? global :
-            typeof self === "object" ? self :
-            typeof this === "object" ? this :
-            Function("return this;")();
+    type Exporter = <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => void;
+
+    (function (this: any, factory: (exporter: Exporter) => void) {
+        const root = (() => {
+            try {
+                return typeof globalThis === "object" ? globalThis :
+                    typeof global === "object" ? global :
+                    typeof self === "object" ? self :
+                    typeof this === "object" ? this :
+                    Function("return this;")();
+            }
+            catch {
+                return undefined;
+            }
+        })();
 
         let exporter = makeExporter(Reflect);
         if (typeof root.Reflect === "undefined") {
@@ -636,8 +646,8 @@ namespace Reflect {
 
         factory(exporter);
 
-        function makeExporter(target: typeof Reflect, previous?: <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => void) {
-            return <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => {
+        function makeExporter(target: typeof Reflect, previous?: Exporter): Exporter {
+            return (key, value) => {
                 if (typeof target[key] !== "function") {
                     Object.defineProperty(target, key, { configurable: true, writable: true, value });
                 }
@@ -646,39 +656,57 @@ namespace Reflect {
         }
     })
     (function (exporter) {
-        const hasOwn = Object.prototype.hasOwnProperty;
+        const uncurryThis: <T, A extends any[], R>(f: (this: T, ...args: A) => R) => (this_: T, ...args: A) => R = Function.prototype.bind.bind(Function.prototype.call);
 
         // feature test for Symbol support
         const supportsSymbol = typeof Symbol === "function";
-        const toPrimitiveSymbol = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
-        const iteratorSymbol = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
-        const supportsCreate = typeof Object.create === "function"; // feature test for Object.create support
         const supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
-        const downLevel = !supportsCreate && !supportsProto;
+        const downLevel = !supportsProto;
+
+        // Save intrinsics we'll need later
+        const Symbol_toPrimitive = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
+        const Symbol_iterator = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
+        const Array_isArray = typeof Array.isArray === "function" ? Array.isArray : undefined;
+        const Array__push: <T>(this_: T[], ...values: T[]) => number = uncurryThis(Array.prototype.push);
+        const Array__indexOf: <T>(this_: T[], value: T, fromIndex?: number) => number = uncurryThis(Array.prototype.indexOf);
+        const Object_prototype = Object.prototype;
+        const Object_getPrototypeOf = Object.getPrototypeOf;
+        const Object__toString = uncurryThis(Object.prototype.toString);
+        const Object__hasOwnProperty = uncurryThis(Object.prototype.hasOwnProperty);
+        const Function___proto__ = Object.getPrototypeOf(Function);
+        const Function__call: <T, A extends any[], R>(this_: (this: T, ...args: A) => R, thisArg: T, ...argArray: A) => R = uncurryThis(Function.prototype.call);
 
         const HashMap = {
             // create an object in dictionary mode (a.k.a. "slow" mode in v8)
-            create: supportsCreate
-                ? <V>() => MakeDictionary(Object.create(null) as HashMap<V>)
-                : supportsProto
-                    ? <V>() => MakeDictionary({ __proto__: null as any } as HashMap<V>)
-                    : <V>() => MakeDictionary({} as HashMap<V>),
+            create: <V>() => MakeDictionary(Object.create(null) as HashMap<V>),
 
             has: downLevel
-                ? <V>(map: HashMap<V>, key: string | number | symbol) => hasOwn.call(map, key)
+                ? <V>(map: HashMap<V>, key: string | number | symbol) => Object__hasOwnProperty(map, key)
                 : <V>(map: HashMap<V>, key: string | number | symbol) => key in map,
 
             get: downLevel
-                ? <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => hasOwn.call(map, key) ? map[key as string | number] : undefined
+                ? <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => Object__hasOwnProperty(map, key) ? map[key as string | number] : undefined
                 : <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => map[key as string | number],
         };
 
         // Load global or shim versions of Map, Set, and WeakMap
-        const functionPrototype = Object.getPrototypeOf(Function);
         const usePolyfill = typeof process === "object" && process.env && process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] === "true";
         const _Map: typeof Map = !usePolyfill && typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
         const _Set: typeof Set = !usePolyfill && typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
         const _WeakMap: typeof WeakMap = !usePolyfill && typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
+
+        // Save intrinsics we'll need later from polyfills
+        const Map__has: <K, V>(this_: Map<K, V>, key: K) => boolean = uncurryThis(_Map.prototype.has);
+        const Map__get: <K, V>(this_: Map<K, V>, key: K) => V | undefined = uncurryThis(_Map.prototype.get);
+        const Map__set: <K, V>(this_: Map<K, V>, key: K, value: V) => Map<K, V> = uncurryThis(_Map.prototype.set);
+        const Map__size: <K, V>(this_: Map<K, V>) => number = uncurryThis(Object.getOwnPropertyDescriptor(_Map.prototype, "size")!.get!);
+        const Map__delete: <K, V>(this_: Map<K, V>, key: K) => boolean = uncurryThis(_Map.prototype.delete);
+        const Map__keys: <K, V>(this_: Map<K, V>) => IterableIterator<K> = uncurryThis(_Map.prototype.keys);
+        const Set__has: <T>(this_: Set<T>, value: T) => boolean = uncurryThis(_Set.prototype.has);
+        const Set__add: <T>(this_: Set<T>, value: T) => Set<T> = uncurryThis(_Set.prototype.add);
+        const WeakMap__get: <K extends object, V>(this_: WeakMap<K, V>, key: K) => V | undefined = uncurryThis(_WeakMap.prototype.get);
+        const WeakMap__set: <K extends object, V>(this_: WeakMap<K, V>, key: K, value: V) => WeakMap<K, V> = uncurryThis(_WeakMap.prototype.set);
+        const WeakMap__delete: <K extends object, V>(this_: WeakMap<K, V>, key: K) => boolean = uncurryThis(_WeakMap.prototype.delete);
 
         // [[Metadata]] internal slot
         // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
@@ -1185,12 +1213,14 @@ namespace Reflect {
             if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
             const metadataMap = GetOrCreateMetadataMap(target, propertyKey, /*Create*/ false);
             if (IsUndefined(metadataMap)) return false;
-            if (!metadataMap.delete(metadataKey)) return false;
-            if (metadataMap.size > 0) return true;
-            const targetMetadata = Metadata.get(target);
-            targetMetadata.delete(propertyKey);
-            if (targetMetadata.size > 0) return true;
-            Metadata.delete(target);
+            if (!Map__delete(metadataMap, metadataKey)) return false;
+            if (Map__size(metadataMap) > 0) return true;
+            const targetMetadata = WeakMap__get(Metadata, target);
+            if (targetMetadata) {
+                Map__delete(targetMetadata, propertyKey);
+                if (Map__size(targetMetadata) > 0) return true;
+                WeakMap__delete(Metadata, target);
+            }
             return true;
         }
 
@@ -1225,17 +1255,17 @@ namespace Reflect {
         function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: true): Map<any, any>;
         function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: false): Map<any, any> | undefined;
         function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: boolean): Map<any, any> | undefined {
-            let targetMetadata = Metadata.get(O);
+            let targetMetadata = WeakMap__get(Metadata, O);
             if (IsUndefined(targetMetadata)) {
                 if (!Create) return undefined;
                 targetMetadata = new _Map<string | symbol | undefined, Map<any, any>>();
-                Metadata.set(O, targetMetadata);
+                WeakMap__set(Metadata, O, targetMetadata);
             }
-            let metadataMap = targetMetadata.get(P);
+            let metadataMap = Map__get(targetMetadata, P);
             if (IsUndefined(metadataMap)) {
                 if (!Create) return undefined;
                 metadataMap = new _Map<any, any>();
-                targetMetadata.set(P, metadataMap);
+                Map__set(targetMetadata, P, metadataMap);
             }
             return metadataMap;
         }
@@ -1255,7 +1285,7 @@ namespace Reflect {
         function OrdinaryHasOwnMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): boolean {
             const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
             if (IsUndefined(metadataMap)) return false;
-            return ToBoolean(metadataMap.has(MetadataKey));
+            return ToBoolean(Map__has(metadataMap, MetadataKey));
         }
 
         // 3.1.3.1 OrdinaryGetMetadata(MetadataKey, O, P)
@@ -1273,14 +1303,14 @@ namespace Reflect {
         function OrdinaryGetOwnMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): any {
             const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
             if (IsUndefined(metadataMap)) return undefined;
-            return metadataMap.get(MetadataKey);
+            return Map__get(metadataMap, MetadataKey);
         }
 
         // 3.1.5.1 OrdinaryDefineOwnMetadata(MetadataKey, MetadataValue, O, P)
         // https://rbuckton.github.io/reflect-metadata/#ordinarydefineownmetadata
         function OrdinaryDefineOwnMetadata(MetadataKey: any, MetadataValue: any, O: any, P: string | symbol | undefined): void {
             const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ true);
-            metadataMap.set(MetadataKey, MetadataValue);
+            Map__set(metadataMap, MetadataKey, MetadataValue);
         }
 
         // 3.1.6.1 OrdinaryMetadataKeys(O, P)
@@ -1295,17 +1325,17 @@ namespace Reflect {
             const set = new _Set<any>();
             const keys: any[] = [];
             for (const key of ownKeys) {
-                const hasKey = set.has(key);
+                const hasKey = Set__has(set, key);
                 if (!hasKey) {
-                    set.add(key);
-                    keys.push(key);
+                    Set__add(set, key);
+                    Array__push(keys, key);
                 }
             }
             for (const key of parentKeys) {
-                const hasKey = set.has(key);
+                const hasKey = Set__has(set, key);
                 if (!hasKey) {
-                    set.add(key);
-                    keys.push(key);
+                    Set__add(set, key);
+                    Array__push(keys, key);
                 }
             }
             return keys;
@@ -1317,7 +1347,7 @@ namespace Reflect {
             const keys: any[] = [];
             const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
             if (IsUndefined(metadataMap)) return keys;
-            const keysObj = metadataMap.keys();
+            const keysObj = Map__keys(metadataMap);
             const iterator = GetIterator(keysObj);
             let k = 0;
             while (true) {
@@ -1408,9 +1438,9 @@ namespace Reflect {
                 case Tag.Number: return input;
             }
             const hint: "string" | "number" | "default" = PreferredType === Tag.String ? "string" : PreferredType === Tag.Number ? "number" : "default";
-            const exoticToPrim = GetMethod(input, toPrimitiveSymbol);
+            const exoticToPrim = GetMethod(input, Symbol_toPrimitive);
             if (exoticToPrim !== undefined) {
-                const result = exoticToPrim.call(input, hint);
+                const result = Function__call(exoticToPrim, input, hint);
                 if (IsObject(result)) throw new TypeError();
                 return result;
             }
@@ -1423,24 +1453,24 @@ namespace Reflect {
             if (hint === "string") {
                 const toString = O.toString;
                 if (IsCallable(toString)) {
-                    const result = toString.call(O);
+                    const result = Function__call(toString, O);
                     if (!IsObject(result)) return result;
                 }
                 const valueOf = O.valueOf;
                 if (IsCallable(valueOf)) {
-                    const result = valueOf.call(O);
+                    const result = Function__call(valueOf, O);
                     if (!IsObject(result)) return result;
                 }
             }
             else {
                 const valueOf = O.valueOf;
                 if (IsCallable(valueOf)) {
-                    const result = valueOf.call(O);
+                    const result = Function__call(valueOf, O);
                     if (!IsObject(result)) return result;
                 }
                 const toString = O.toString;
                 if (IsCallable(toString)) {
-                    const result = toString.call(O);
+                    const result = Function__call(toString, O);
                     if (!IsObject(result)) return result;
                 }
             }
@@ -1473,11 +1503,11 @@ namespace Reflect {
         // 7.2.2 IsArray(argument)
         // https://tc39.github.io/ecma262/#sec-isarray
         function IsArray(argument: any): argument is any[] {
-            return Array.isArray
-                ? Array.isArray(argument)
+            return Array_isArray
+                ? Array_isArray(argument)
                 : argument instanceof Object
                     ? argument instanceof Array
-                    : Object.prototype.toString.call(argument) === "[object Array]";
+                    : Object__toString(argument) === "[object Array]";
         }
 
         // 7.2.3 IsCallable(argument)
@@ -1509,8 +1539,8 @@ namespace Reflect {
 
         // 7.3.9 GetMethod(V, P)
         // https://tc39.github.io/ecma262/#sec-getmethod
-        function GetMethod(V: any, P: any): Function | undefined {
-            const func = V[P];
+        function GetMethod<T>(V: T, P: any): ((this: T, ...args: any[]) => any) | undefined {
+            const func = (V as any)[P];
             if (func === undefined || func === null) return undefined;
             if (!IsCallable(func)) throw new TypeError();
             return func;
@@ -1520,9 +1550,9 @@ namespace Reflect {
         // https://tc39.github.io/ecma262/#sec-operations-on-iterator-objects
 
         function GetIterator<T>(obj: Iterable<T>): Iterator<T> {
-            const method = GetMethod(obj, iteratorSymbol);
+            const method = GetMethod(obj, Symbol_iterator);
             if (!IsCallable(method)) throw new TypeError(); // from Call
-            const iterator = method.call(obj);
+            const iterator = Function__call(method, obj);
             if (!IsObject(iterator)) throw new TypeError();
             return iterator;
         }
@@ -1544,7 +1574,7 @@ namespace Reflect {
         // https://tc39.github.io/ecma262/#sec-iteratorclose
         function IteratorClose<T>(iterator: Iterator<T>) {
             const f = iterator["return"];
-            if (f) f.call(iterator);
+            if (f) Function__call(f, iterator);
         }
 
         // 9.1 Ordinary Object Internal Methods and Internal Slots
@@ -1553,8 +1583,8 @@ namespace Reflect {
         // 9.1.1.1 OrdinaryGetPrototypeOf(O)
         // https://tc39.github.io/ecma262/#sec-ordinarygetprototypeof
         function OrdinaryGetPrototypeOf(O: any): any {
-            const proto = Object.getPrototypeOf(O);
-            if (typeof O !== "function" || O === functionPrototype) return proto;
+            const proto = Object_getPrototypeOf(O);
+            if (typeof O !== "function" || O === Function___proto__) return proto;
 
             // TypeScript doesn't set __proto__ in ES5, as it's non-standard.
             // Try to determine the superclass constructor. Compatible implementations
@@ -1564,12 +1594,12 @@ namespace Reflect {
 
             // If this is not the same as Function.[[Prototype]], then this is definately inherited.
             // This is the case when in ES6 or when using __proto__ in a compatible browser.
-            if (proto !== functionPrototype) return proto;
+            if (proto !== Function___proto__) return proto;
 
             // If the super prototype is Object.prototype, null, or undefined, then we cannot determine the heritage.
             const prototype = O.prototype;
-            const prototypeProto = prototype && Object.getPrototypeOf(prototype);
-            if (prototypeProto == null || prototypeProto === Object.prototype) return proto;
+            const prototypeProto = prototype && Object_getPrototypeOf(prototype);
+            if (prototypeProto == null || prototypeProto === Object_prototype) return proto;
 
             // If the constructor was not a function, then we cannot determine the heritage.
             const constructor = prototypeProto.constructor;
@@ -1598,7 +1628,7 @@ namespace Reflect {
                     this._selector = selector;
                 }
                 "@@iterator"() { return this; }
-                [iteratorSymbol]() { return this; }
+                [Symbol_iterator]() { return this; }
                 next(): IteratorResult<R> {
                     const index = this._index;
                     if (index >= 0 && index < this._keys.length) {
@@ -1677,15 +1707,15 @@ namespace Reflect {
                 values() { return new MapIterator(this._keys, this._values, getValue); }
                 entries() { return new MapIterator(this._keys, this._values, getEntry); }
                 "@@iterator"() { return this.entries(); }
-                [iteratorSymbol]() { return this.entries(); }
+                [Symbol_iterator]() { return this.entries(); }
                 private _find(key: K, insert?: boolean): number {
                     if (this._cacheKey !== key) {
-                        this._cacheIndex = this._keys.indexOf(this._cacheKey = key);
+                        this._cacheIndex = Array__indexOf(this._keys, this._cacheKey = key);
                     }
                     if (this._cacheIndex < 0 && insert) {
                         this._cacheIndex = this._keys.length;
-                        this._keys.push(key);
-                        this._values.push(undefined);
+                        Array__push(this._keys, key);
+                        Array__push(this._values, undefined);
                     }
                     return this._cacheIndex;
                 }
@@ -1706,23 +1736,35 @@ namespace Reflect {
 
         // naive Set shim
         function CreateSetPolyfill(): SetConstructor {
+            // Save intrinsics we'll need later
+            const Map_entries: <K, V>(this_: Map<K, V>) => IterableIterator<[K, V]> = uncurryThis(_Map.prototype.entries);
+            const Map_clear: <K, V>(this_: Map<K, V>) => void = uncurryThis(_Map.prototype.clear);
+            const Map_values: <K, V>(this_: Map<K, V>) => IterableIterator<V> = uncurryThis(_Map.prototype.values);
             return class Set<T> {
                 private _map = new _Map<any, any>();
-                get size() { return this._map.size; }
-                has(value: T): boolean { return this._map.has(value); }
-                add(value: T): Set<T> { return this._map.set(value, value), this; }
-                delete(value: T): boolean { return this._map.delete(value); }
-                clear(): void { this._map.clear(); }
-                keys() { return this._map.keys(); }
-                values() { return this._map.values(); }
-                entries() { return this._map.entries(); }
+                get size() { return Map__size(this._map); }
+                has(value: T): boolean { return Map__has(this._map, value); }
+                add(value: T): Set<T> { return Map__set(this._map, value, value), this; }
+                delete(value: T): boolean { return Map__delete(this._map, value); }
+                clear(): void { Map_clear(this._map); }
+                keys() { return Map__keys(this._map); }
+                values() { return Map_values(this._map); }
+                entries() { return Map_entries(this._map); }
                 "@@iterator"() { return this.keys(); }
-                [iteratorSymbol]() { return this.keys(); }
+                [Symbol_iterator]() { return this.keys(); }
             };
         }
 
         // naive WeakMap shim
         function CreateWeakMapPolyfill(): WeakMapConstructor {
+            // Save intrinsics we'll need later
+            const Object_defineProperty = Object.defineProperty;
+            const Number_toString = uncurryThis(Number.prototype.toString);
+            const String_toLowerCase = uncurryThis(String.prototype.toLowerCase);
+            const Math_random = Math.random;
+            const crypto_getRandomValues = typeof crypto !== "undefined" ? crypto.getRandomValues.bind(crypto) : undefined;
+            const msCrypto_getRandomValues = typeof msCrypto !== "undefined" ? msCrypto.getRandomValues.bind(msCrypto) : undefined;
+
             const UUID_SIZE = 16;
             const keys = HashMap.create<boolean>();
             const rootKey = CreateUniqueKey();
@@ -1762,22 +1804,22 @@ namespace Reflect {
             function GetOrCreateWeakMapTable<K>(target: K, create: true): HashMap<any>;
             function GetOrCreateWeakMapTable<K>(target: K, create: false): HashMap<any> | undefined;
             function GetOrCreateWeakMapTable<K>(target: K, create: boolean): HashMap<any> | undefined {
-                if (!hasOwn.call(target, rootKey)) {
+                if (!Object__hasOwnProperty(target, rootKey)) {
                     if (!create) return undefined;
-                    Object.defineProperty(target, rootKey, { value: HashMap.create<any>() });
+                    Object_defineProperty(target, rootKey, { value: HashMap.create<any>() });
                 }
                 return (<any>target)[rootKey];
             }
 
             function FillRandomBytes(buffer: BufferLike, size: number): BufferLike {
-                for (let i = 0; i < size; ++i) buffer[i] = Math.random() * 0xff | 0;
+                for (let i = 0; i < size; ++i) buffer[i] = Math_random() * 0xff | 0;
                 return buffer;
             }
 
             function GenRandomBytes(size: number): BufferLike {
                 if (typeof Uint8Array === "function") {
-                    if (typeof crypto !== "undefined") return crypto.getRandomValues(new Uint8Array(size)) as Uint8Array;
-                    if (typeof msCrypto !== "undefined") return msCrypto.getRandomValues(new Uint8Array(size)) as Uint8Array;
+                    if (crypto_getRandomValues) return crypto_getRandomValues(new Uint8Array(size)) as Uint8Array;
+                    if (msCrypto_getRandomValues) return msCrypto_getRandomValues(new Uint8Array(size)) as Uint8Array;
                     return FillRandomBytes(new Uint8Array(size), size);
                 }
                 return FillRandomBytes(new Array(size), size);
@@ -1793,7 +1835,7 @@ namespace Reflect {
                     const byte = data[offset];
                     if (offset === 4 || offset === 6 || offset === 8) result += "-";
                     if (byte < 16) result += "0";
-                    result += byte.toString(16).toLowerCase();
+                    result += String_toLowerCase(Number_toString(byte, 16));
                 }
                 return result;
             }

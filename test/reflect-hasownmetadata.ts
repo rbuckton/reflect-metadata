@@ -2,7 +2,7 @@
 // https://rbuckton.github.io/reflect-metadata/#reflect.hasownmetadata
 
 import { assert } from "chai";
-import type { ReflectApiType } from "./reflect-tests";
+import type { ReflectApiType } from "./api";
 
 export default function (Reflect: ReflectApiType) {
     describe("Reflect.hasOwnMetadata", () => {

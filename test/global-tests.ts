@@ -1,4 +1,5 @@
 import "./reflect";
-
-const _Reflect = Reflect;
-export { _Reflect as Reflect };
+import reflect_other from "./reflect-other";
+import reflect_tests from "./reflect-tests";
+reflect_tests(Reflect);
+reflect_other(Reflect);

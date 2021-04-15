@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import { assert } from "chai";
-
-import type { ReflectApiType } from "./reflect-tests";
+import type { ReflectApiType } from "./api";
 
 export default function (Reflect: ReflectApiType) {
     describe("Reflect", () => {

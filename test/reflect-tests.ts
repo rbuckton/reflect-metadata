@@ -1,3 +1,4 @@
+import { ReflectApiType } from "./api";
 import reflect_decorate from "./reflect-decorate";
 import reflect_definemetadata from "./reflect-definemetadata";
 import reflect_deletemetadata from "./reflect-deletemetadata";
@@ -8,21 +9,6 @@ import reflect_getownmetadatakeys from "./reflect-getownmetadatakeys";
 import reflect_hasmetadata from "./reflect-hasmetadata";
 import reflect_hasownmetadata from "./reflect-hasownmetadata";
 import reflect_metadata from "./reflect-metadata";
-
-export const API_KEYS = [
-    "decorate",
-    "metadata",
-    "defineMetadata",
-    "hasMetadata",
-    "hasOwnMetadata",
-    "getMetadata",
-    "getOwnMetadata",
-    "getMetadataKeys",
-    "getOwnMetadataKeys",
-    "deleteMetadata"
-] as const;
-
-export type ReflectApiType = Pick<typeof globalThis.Reflect, typeof API_KEYS[number]>;
 
 export default function (Reflect: ReflectApiType) {
     reflect_decorate(Reflect);

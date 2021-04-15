@@ -42,19 +42,19 @@ var Reflect;
         var exporter = makeExporter(reflectObj);
         if (typeof module === "object" && typeof module.exports === "object") {
             // CommonJS module
-            factory(makeExporter(module.exports, exporter));
+            factory(makeExporter(module.exports, exporter), nativeReflect);
             finishModule(module.exports);
         }
         else if (typeof define === "function" && define.amd) {
             // AMD module
             define(["exports"], function (exports) {
-                factory(makeExporter(exports, exporter));
+                factory(makeExporter(exports, exporter), nativeReflect);
                 finishModule(exports);
             });
         }
         else {
             // Global script
-            factory(exporter);
+            throw new Error("Module format not supported.");
         }
         function finishModule(exports) {
             exports.Reflect = reflectObj;
@@ -70,7 +70,32 @@ var Reflect;
                     previous(key, value);
             };
         }
-    })(function (exporter) {
+    })(function (exporter, nativeReflect) {
+        if (typeof nativeReflect === "object") {
+            var API_KEYS = [
+                "decorate",
+                "metadata",
+                "defineMetadata",
+                "hasMetadata",
+                "hasOwnMetadata",
+                "getMetadata",
+                "getOwnMetadata",
+                "getMetadataKeys",
+                "getOwnMetadataKeys",
+                "deleteMetadata"
+            ];
+            if (API_KEYS.every(function (key) { return typeof nativeReflect[key] === "function"; })) {
+                // Defer to the existing global shim so that metadata state is shared.
+                // NOTE: This assumes both the global shim and this "no-conflict" version have the
+                //       same implementation. This is highly likely as the proposed API has remained
+                //       stable for some time.
+                for (var _i = 0, API_KEYS_1 = API_KEYS; _i < API_KEYS_1.length; _i++) {
+                    var key = API_KEYS_1[_i];
+                    exporter(key, nativeReflect[key]);
+                }
+                return;
+            }
+        }
         var uncurryThis = Function.prototype.bind.bind(Function.prototype.call);
         // feature test for Symbol support
         var supportsSymbol = typeof Symbol === "function";
