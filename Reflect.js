@@ -51,8 +51,6 @@ var Reflect;
         var uncurryThis = Function.prototype.bind.bind(Function.prototype.call);
         // feature test for Symbol support
         var supportsSymbol = typeof Symbol === "function";
-        var supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
-        var downLevel = !supportsProto;
         // Save intrinsics we'll need later
         var Symbol_toPrimitive = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
         var Symbol_iterator = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
@@ -66,14 +64,15 @@ var Reflect;
         var Function___proto__ = Object.getPrototypeOf(Function);
         var Function__call = uncurryThis(Function.prototype.call);
         var HashMap = {
-            // create an object in dictionary mode (a.k.a. "slow" mode in v8)
-            create: function () { return MakeDictionary(Object.create(null)); },
-            has: downLevel
-                ? function (map, key) { return Object__hasOwnProperty(map, key); }
-                : function (map, key) { return key in map; },
-            get: downLevel
-                ? function (map, key) { return Object__hasOwnProperty(map, key) ? map[key] : undefined; }
-                : function (map, key) { return map[key]; },
+            create: function () {
+                // create an object and force it into "dictionary" mode by deleting a property.
+                var obj = Object.create(null);
+                obj.__ = undefined;
+                delete obj.__;
+                return obj;
+            },
+            has: function (map, key) { return key in map; },
+            get: function (map, key) { return map[key]; }
         };
         // Load global or shim versions of Map, Set, and WeakMap
         var usePolyfill = typeof process === "object" && process.env && process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] === "true";
@@ -1158,12 +1157,6 @@ var Reflect;
                 }
                 return result;
             }
-        }
-        // uses a heuristic used by v8 and chakra to force an object into dictionary mode.
-        function MakeDictionary(obj) {
-            obj.__ = undefined;
-            delete obj.__;
-            return obj;
         }
     });
 })(Reflect || (Reflect = {}));

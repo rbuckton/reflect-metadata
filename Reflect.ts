@@ -660,8 +660,6 @@ namespace Reflect {
 
         // feature test for Symbol support
         const supportsSymbol = typeof Symbol === "function";
-        const supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
-        const downLevel = !supportsProto;
 
         // Save intrinsics we'll need later
         const Symbol_toPrimitive = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
@@ -677,16 +675,15 @@ namespace Reflect {
         const Function__call: <T, A extends any[], R>(this_: (this: T, ...args: A) => R, thisArg: T, ...argArray: A) => R = uncurryThis(Function.prototype.call);
 
         const HashMap = {
-            // create an object in dictionary mode (a.k.a. "slow" mode in v8)
-            create: <V>() => MakeDictionary(Object.create(null) as HashMap<V>),
-
-            has: downLevel
-                ? <V>(map: HashMap<V>, key: string | number | symbol) => Object__hasOwnProperty(map, key)
-                : <V>(map: HashMap<V>, key: string | number | symbol) => key in map,
-
-            get: downLevel
-                ? <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => Object__hasOwnProperty(map, key) ? map[key as string | number] : undefined
-                : <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => map[key as string | number],
+            create<V>() {
+                // create an object and force it into "dictionary" mode by deleting a property.
+                const obj: HashMap<V> = Object.create(null);
+                obj.__ = undefined!;
+                delete obj.__;
+                return obj;
+            },
+            has<V>(map: HashMap<V>, key: string | number | symbol) { return key in map; },
+            get<V>(map: HashMap<V>, key: string | number | symbol): V | undefined { return map[key as string | number]; }
         };
 
         // Load global or shim versions of Map, Set, and WeakMap
@@ -1839,13 +1836,6 @@ namespace Reflect {
                 }
                 return result;
             }
-        }
-
-        // uses a heuristic used by v8 and chakra to force an object into dictionary mode.
-        function MakeDictionary<T>(obj: T): T {
-            (<any>obj).__ = undefined;
-            delete (<any>obj).__;
-            return obj;
         }
     });
 }
