@@ -431,6 +431,9 @@ namespace Reflect {
       *
       */
     export declare function getMetadata(metadataKey: any, target: any, propertyKey: string | symbol): any;
+    export declare function getMetadata(metadataKey: "design:type", target: any, propertyKey: string | symbol): Function;
+    export declare function getMetadata(metadataKey: "design:paramtypes", target: any, propertyKey: string | symbol): Function[];
+    export declare function getMetadata(metadataKey: "design:returntype", target: any, propertyKey: string | symbol): Function;
 
     /**
       * Gets the metadata value for the provided metadata key on the target object.
