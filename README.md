@@ -1,6 +1,6 @@
 # Metadata Reflection API
 
-* [Detailed proposal][Metadata-Spec]
+- [Detailed proposal][metadata-spec]
 
 ## Installation
 
@@ -10,22 +10,23 @@ npm install reflect-metadata
 
 ## Background
 
-* Decorators add the ability to augment a class and its members as the class is defined, through a declarative syntax.
-* Traceur attaches annotations to a static property on the class.
-* Languages like C# (.NET), and Java support attributes or annotations that add metadata to types, along with a reflective API for reading metadata.
+- Decorators add the ability to augment a class and its members as the class is defined, through a declarative syntax.
+- [Traceur][traceur] attaches annotations to a static property on the class.
+- Languages like C# (.NET), and Java support attributes or annotations that add metadata to types, along with a reflective API for reading metadata.
 
 ## Goals
 
-* A number of use cases (Composition/Dependency Injection, Runtime Type Assertions, Reflection/Mirroring, Testing) want the ability to add additional metadata to a class in a consistent manner.
-* A consistent approach is needed for various tools and libraries to be able to reason over metadata.
-* Metadata-producing decorators (nee. "Annotations") need to be generally composable with mutating decorators.
-* Metadata should be available not only on an object but also through a Proxy, with related traps.
-* Defining new metadata-producing decorators should not be arduous or over-complex for a developer.
-* Metadata should be consistent with other language and runtime features of ECMAScript.
+- A number of use cases (Composition/Dependency Injection, Runtime Type Assertions, Reflection/Mirroring, Testing) want the ability to add additional metadata to a class in a consistent manner.
+- A consistent approach is needed for various tools and libraries to be able to reason over metadata.
+- Metadata-producing decorators (nee. "Annotations") need to be generally composable with mutating decorators.
+- Metadata should be available not only on an object but also through a Proxy, with related traps.
+- Defining new metadata-producing decorators should not be arduous or over-complex for a developer.
+- Metadata should be consistent with other language and runtime features of ECMAScript.
 
 ## Syntax
 
-* Declarative definition of metadata:
+- Declarative definition of metadata:
+
 ```JavaScript
 class C {
   @Reflect.metadata(metadataKey, metadataValue)
@@ -34,12 +35,14 @@ class C {
 }
 ```
 
-* Imperative definition of metadata:
+- Imperative definition of metadata:
+
 ```JavaScript
 Reflect.defineMetadata(metadataKey, metadataValue, C.prototype, "method");
 ```
 
-* Imperative introspection of metadata:
+- Imperative introspection of metadata:
+
 ```JavaScript
 let obj = new C();
 let metadataValue = Reflect.getMetadata(metadataKey, obj, "method");
@@ -47,14 +50,14 @@ let metadataValue = Reflect.getMetadata(metadataKey, obj, "method");
 
 ## Semantics
 
-* Object has a new \[\[Metadata\]\] internal property that will contain a Map whose keys are property keys (or **undefined**) and whose values are Maps of metadata keys to metadata values.
-* Object will have a number of new internal methods for \[\[DefineOwnMetadata\]\], \[\[GetOwnMetadata\]\], \[\[HasOwnMetadata\]\], etc.
-  * These internal methods can be overridden by a Proxy to support additional traps.
-  * These internal methods will by default call a set of abstract operations to define and read metadata.
-* The Reflect object will expose the MOP operations to allow imperative access to metadata.
-* Metadata defined on class declaration *C* is stored in *C*.\[\[Metadata\]\], with **undefined** as the key.
-* Metadata defined on static members of class declaration *C* are stored in *C*.\[\[Metadata\]\], with the property key as the key.
-* Metadata defined on instance members of class declaration *C* are stored in *C*.prototype.\[\[Metadata\]\], with the property key as the key.
+- Object has a new \[\[Metadata\]\] internal property that will contain a Map whose keys are property keys (or **undefined**) and whose values are Maps of metadata keys to metadata values.
+- Object will have a number of new internal methods for \[\[DefineOwnMetadata\]\], \[\[GetOwnMetadata\]\], \[\[HasOwnMetadata\]\], etc.
+  - These internal methods can be overridden by a Proxy to support additional traps.
+  - These internal methods will by default call a set of abstract operations to define and read metadata.
+- The Reflect object will expose the MOP operations to allow imperative access to metadata.
+- Metadata defined on class declaration _C_ is stored in _C_.\[\[Metadata\]\], with **undefined** as the key.
+- Metadata defined on static members of class declaration _C_ are stored in _C_.\[\[Metadata\]\], with the property key as the key.
+- Metadata defined on instance members of class declaration _C_ are stored in _C_.prototype.\[\[Metadata\]\], with the property key as the key.
 
 ## API
 
@@ -103,8 +106,9 @@ class C {
 
 ## Alternatives
 
-* Use properties rather than a separate API.
-  * Obvious downside is that this can be a lot of code:
+- Use properties rather than a separate API.
+  - Obvious downside is that this can be a lot of code:
+
 ```JavaScript
 function ParamTypes(...types) {
   return (target, propertyKey) => {
@@ -134,7 +138,8 @@ function ParamTypes(...types) {
 ```
 
 ## Notes
-* Though it may seem counterintuitive, the methods on Reflect place the parameters for the metadata key and metadata value before the target or property key. This is due to the fact that the property key is the only optional parameter in the argument list. This also makes the methods easier to curry with Function#bind. This also helps reduce the overall footprint and complexity of a metadata-producing decorator that could target both a class or a property:
+
+- Though it may seem counterintuitive, the methods on Reflect place the parameters for the metadata key and metadata value before the target or property key. This is due to the fact that the property key is the only optional parameter in the argument list. This also makes the methods easier to curry with Function#bind. This also helps reduce the overall footprint and complexity of a metadata-producing decorator that could target both a class or a property:
 
 ```JavaScript
 function ParamTypes(...types) {
@@ -165,14 +170,15 @@ function ParamTypes(...types) {
 }
 ```
 
-* To enable experimental support for metadata decorators in your TypeScript project, you must add `"experimentalDecorators": true` to your tsconfig.json file.
-* To enable experimental support for auto-generated type metadata in your TypeScript project, you must add `"emitDecoratorMetadata": true` to your tsconfig.json file.
-  * Please note that auto-generated type metadata may have issues with circular or forward references for types.
+- To enable experimental support for metadata decorators in your TypeScript project, you must add `"experimentalDecorators": true` to your tsconfig.json file.
+- To enable experimental support for auto-generated type metadata in your TypeScript project, you must add `"emitDecoratorMetadata": true` to your tsconfig.json file.
+  - Please note that auto-generated type metadata may have issues with circular or forward references for types.
 
 ## Issues
 
-* A poorly written mutating decorator for a class constructor could cause metadata to become lost if the prototype chain is not maintained. Though, not maintaining the prototype chain in a mutating decorator for a class constructor would have other negative side effects as well. @rbuckton
-  * This is mitigated if the mutating decorator returns a class expression that extends from the target, or returns a proxy for the decorator. @rbuckton
-* Metadata for a method is attached to the class (or prototype) via the property key. It would not then be available if trying to read metadata on the function of the method (e.g. "tearing-off" the method from the class). @rbuckton
+- A poorly written mutating decorator for a class constructor could cause metadata to become lost if the prototype chain is not maintained. Though, not maintaining the prototype chain in a mutating decorator for a class constructor would have other negative side effects as well. @rbuckton
+  - This is mitigated if the mutating decorator returns a class expression that extends from the target, or returns a proxy for the decorator. @rbuckton
+- Metadata for a method is attached to the class (or prototype) via the property key. It would not then be available if trying to read metadata on the function of the method (e.g. "tearing-off" the method from the class). @rbuckton
 
-[Metadata-Spec]: https://rbuckton.github.io/reflect-metadata
+[metadata-spec]: https://rbuckton.github.io/reflect-metadata
+[traceur]: https://github.com/google/traceur-compiler
