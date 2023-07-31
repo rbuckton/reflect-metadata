@@ -624,7 +624,7 @@ namespace Reflect {
         const root = typeof global === "object" ? global :
             typeof self === "object" ? self :
             typeof this === "object" ? this :
-            Function("return this;")();
+            (() => { return this; })();
 
         let exporter = makeExporter(Reflect);
         if (typeof root.Reflect === "undefined") {

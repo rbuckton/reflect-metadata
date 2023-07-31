@@ -17,10 +17,11 @@ var Reflect;
     // Metadata Proposal
     // https://rbuckton.github.io/reflect-metadata/
     (function (factory) {
+        var _this = this;
         var root = typeof global === "object" ? global :
             typeof self === "object" ? self :
                 typeof this === "object" ? this :
-                    Function("return this;")();
+                    (function () { return _this; })();
         var exporter = makeExporter(Reflect);
         if (typeof root.Reflect === "undefined") {
             root.Reflect = Reflect;
