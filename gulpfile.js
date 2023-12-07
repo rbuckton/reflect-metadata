@@ -17,15 +17,10 @@ gulp.task("release", () => { project = releaseProject; });
 gulp.task("clean", () => del([
     "Reflect.js",
     "Reflect.js.map",
-    "Reflect.mjs",
     "ReflectLite.js",
     "ReflectLite.js.map",
-    "ReflectLite.mjs",
     "ReflectNoConflict.js",
     "ReflectNoConflict.js.map",
-    "ReflectNoConflict.mjs",
-    "index.d.mts",
-    "no-conflict.d.mts",
     "test/**/*.js",
     "test/**/*.js.map"
 ]));
@@ -35,12 +30,7 @@ gulp.task("build:reflect", () => gulp
     .pipe(project())
     .pipe(gulp.dest(".")));
 
-gulp.task("build:mjs", ["build:reflect"], () => gulp
-    .src(["Reflect.js", "ReflectLite.js", "ReflectNoConflict.js", "index.d.ts", "no-conflict.d.ts"])
-    .pipe(rename(path => path.extname = path.extname === ".ts" ? ".mts" : ".mjs"))
-    .pipe(gulp.dest(".")));
-
-gulp.task("build:tests", ["build:mjs"], () => gulp
+gulp.task("build:tests", ["build:reflect"], () => gulp
     .src(["test/**/*.ts"])
     .pipe(tests())
     .pipe(gulp.dest("test")));
@@ -55,7 +45,7 @@ gulp.task("build:spec", () => gulp
     }))
     .pipe(gulp.dest("docs")));
 
-gulp.task("build", ["build:reflect", "build:mjs", "build:tests", "build:spec"]);
+gulp.task("build", ["build:reflect", "build:tests", "build:spec"]);
 
 gulp.task("no-polyfill", () => {
     process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] = "";

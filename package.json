@@ -7,34 +7,16 @@
   "types": "index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./index.d.mts",
-        "default": "./Reflect.mjs"
-      },
-      "default": {
-        "types": "./index.d.ts",
-        "default": "./Reflect.js"
-      }
+      "types": "./index.d.ts",
+      "default": "./Reflect.js"
     },
     "./lite": {
-      "import": {
-        "types": "./index.d.mts",
-        "default": "./ReflectLite.mjs"
-      },
-      "default": {
-        "types": "./index.d.ts",
-        "default": "./ReflectLite.js"
-      }
+      "types": "./index.d.ts",
+      "default": "./ReflectLite.js"
     },
     "./no-conflict": {
-      "import": {
-        "types": "./no-conflict.d.mts",
-        "default": "./ReflectNoConflict.mjs"
-      },
-      "default": {
-        "types": "./no-conflict.d.ts",
-        "default": "./ReflectNoConflict.js"
-      }
+      "types": "./no-conflict.d.ts",
+      "default": "./ReflectNoConflict.js"
     }
   },
   "scripts": {
