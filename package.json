@@ -5,9 +5,6 @@
   "type": "commonjs",
   "main": "Reflect.js",
   "types": "index.d.ts",
-  "typescript": {
-    "definition": "Reflect.d.ts"
-  },
   "exports": {
     ".": {
       "import": {
