@@ -32,6 +32,7 @@ const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : fail(
 // [[Metadata]] internal slot
 // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
 const Metadata = new _WeakMap<any, Map<string | symbol | undefined, Map<any, any>>>();
+let hasSetMetadata = false;
 
 /**
  * Applies a set of decorators to a target object.
@@ -336,7 +337,7 @@ export function defineMetadata(metadataKey: any, metadataValue: any, target: any
  *
  */
 export function defineMetadata(metadataKey: any, metadataValue: any, target: any, propertyKey?: string | symbol): void {
-    if (typeof Reflect !== "undefined" && typeof Reflect.defineMetadata === "function" && Reflect.defineMetadata !== defineMetadata) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.defineMetadata === "function" && Reflect.defineMetadata !== defineMetadata) {
         return Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -430,7 +431,7 @@ export function hasMetadata(metadataKey: any, target: any, propertyKey: string |
  *
  */
 export function hasMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
-    if (typeof Reflect !== "undefined" && typeof Reflect.hasMetadata === "function" && Reflect.hasMetadata !== hasMetadata) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.hasMetadata === "function" && Reflect.hasMetadata !== hasMetadata) {
         return Reflect.hasMetadata(metadataKey, target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -524,7 +525,7 @@ export function hasOwnMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function hasOwnMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
-    if (typeof Reflect !== "undefined" && typeof Reflect.hasOwnMetadata === "function" && Reflect.hasOwnMetadata !== hasOwnMetadata) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.hasOwnMetadata === "function" && Reflect.hasOwnMetadata !== hasOwnMetadata) {
         return Reflect.hasOwnMetadata(metadataKey, target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -618,7 +619,7 @@ export function getMetadata(metadataKey: any, target: any, propertyKey: string |
  *
  */
 export function getMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): any {
-    if (typeof Reflect !== "undefined" && typeof Reflect.getMetadata === "function" && Reflect.getMetadata !== getMetadata) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getMetadata === "function" && Reflect.getMetadata !== getMetadata) {
         return Reflect.getMetadata(metadataKey, target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -712,7 +713,7 @@ export function getOwnMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function getOwnMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): any {
-    if (typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadata === "function" && Reflect.getOwnMetadata !== getOwnMetadata) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadata === "function" && Reflect.getOwnMetadata !== getOwnMetadata) {
         return Reflect.getOwnMetadata(metadataKey, target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -803,7 +804,7 @@ export function getMetadataKeys(target: any, propertyKey: string | symbol): any[
  *
  */
 export function getMetadataKeys(target: any, propertyKey?: string | symbol): any[] {
-    if (typeof Reflect !== "undefined" && typeof Reflect.getMetadataKeys === "function" && Reflect.getMetadataKeys !== getMetadataKeys) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getMetadataKeys === "function" && Reflect.getMetadataKeys !== getMetadataKeys) {
         return Reflect.getMetadataKeys(target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -894,7 +895,7 @@ export function getOwnMetadataKeys(target: any, propertyKey: string | symbol): a
  *
  */
 export function getOwnMetadataKeys(target: any, propertyKey?: string | symbol): any[] {
-    if (typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadataKeys === "function" && Reflect.getOwnMetadataKeys !== getOwnMetadataKeys) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadataKeys === "function" && Reflect.getOwnMetadataKeys !== getOwnMetadataKeys) {
         return Reflect.getOwnMetadataKeys(target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -988,7 +989,7 @@ export function deleteMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function deleteMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
-    if (typeof Reflect !== "undefined" && typeof Reflect.deleteMetadata === "function" && Reflect.deleteMetadata !== deleteMetadata) {
+    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.deleteMetadata === "function" && Reflect.deleteMetadata !== deleteMetadata) {
         return Reflect.deleteMetadata(metadataKey, target, propertyKey!);
     }
     if (!IsObject(target)) throw new TypeError();
@@ -1038,6 +1039,7 @@ function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: 
         if (!Create) return undefined;
         targetMetadata = new _Map<string | symbol | undefined, Map<any, any>>();
         Metadata.set(O, targetMetadata);
+        hasSetMetadata = true;
     }
     let metadataMap = targetMetadata.get(P);
     if (IsUndefined(metadataMap)) {
