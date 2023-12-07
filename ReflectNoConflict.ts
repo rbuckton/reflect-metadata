@@ -222,6 +222,9 @@ export function decorate(decorators: (ClassDecorator | MemberDecorator)[], targe
  *
  */
 export function metadata(metadataKey: any, metadataValue: any): { (target: Function): void; (target: any, propertyKey: string | symbol): void; } {
+    if (typeof Reflect !== "undefined" && typeof Reflect.metadata === "function" && Reflect.metadata !== metadata) {
+        return Reflect.metadata(metadataKey, metadataValue);
+    }
     function decorator(target: Function): void;
     function decorator(target: any, propertyKey: string | symbol): void;
     function decorator(target: any, propertyKey?: string | symbol): void {
@@ -333,6 +336,9 @@ export function defineMetadata(metadataKey: any, metadataValue: any, target: any
  *
  */
 export function defineMetadata(metadataKey: any, metadataValue: any, target: any, propertyKey?: string | symbol): void {
+    if (typeof Reflect !== "undefined" && typeof Reflect.defineMetadata === "function" && Reflect.defineMetadata !== defineMetadata) {
+        return Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, propertyKey);
@@ -424,6 +430,9 @@ export function hasMetadata(metadataKey: any, target: any, propertyKey: string |
  *
  */
 export function hasMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
+    if (typeof Reflect !== "undefined" && typeof Reflect.hasMetadata === "function" && Reflect.hasMetadata !== hasMetadata) {
+        return Reflect.hasMetadata(metadataKey, target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryHasMetadata(metadataKey, target, propertyKey);
@@ -515,6 +524,9 @@ export function hasOwnMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function hasOwnMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
+    if (typeof Reflect !== "undefined" && typeof Reflect.hasOwnMetadata === "function" && Reflect.hasOwnMetadata !== hasOwnMetadata) {
+        return Reflect.hasOwnMetadata(metadataKey, target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryHasOwnMetadata(metadataKey, target, propertyKey);
@@ -606,6 +618,9 @@ export function getMetadata(metadataKey: any, target: any, propertyKey: string |
  *
  */
 export function getMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): any {
+    if (typeof Reflect !== "undefined" && typeof Reflect.getMetadata === "function" && Reflect.getMetadata !== getMetadata) {
+        return Reflect.getMetadata(metadataKey, target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryGetMetadata(metadataKey, target, propertyKey);
@@ -697,6 +712,9 @@ export function getOwnMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function getOwnMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): any {
+    if (typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadata === "function" && Reflect.getOwnMetadata !== getOwnMetadata) {
+        return Reflect.getOwnMetadata(metadataKey, target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryGetOwnMetadata(metadataKey, target, propertyKey);
@@ -785,6 +803,9 @@ export function getMetadataKeys(target: any, propertyKey: string | symbol): any[
  *
  */
 export function getMetadataKeys(target: any, propertyKey?: string | symbol): any[] {
+    if (typeof Reflect !== "undefined" && typeof Reflect.getMetadataKeys === "function" && Reflect.getMetadataKeys !== getMetadataKeys) {
+        return Reflect.getMetadataKeys(target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryMetadataKeys(target, propertyKey);
@@ -873,6 +894,9 @@ export function getOwnMetadataKeys(target: any, propertyKey: string | symbol): a
  *
  */
 export function getOwnMetadataKeys(target: any, propertyKey?: string | symbol): any[] {
+    if (typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadataKeys === "function" && Reflect.getOwnMetadataKeys !== getOwnMetadataKeys) {
+        return Reflect.getOwnMetadataKeys(target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryOwnMetadataKeys(target, propertyKey);
@@ -964,6 +988,9 @@ export function deleteMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function deleteMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
+    if (typeof Reflect !== "undefined" && typeof Reflect.deleteMetadata === "function" && Reflect.deleteMetadata !== deleteMetadata) {
+        return Reflect.deleteMetadata(metadataKey, target, propertyKey!);
+    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     const metadataMap = GetOrCreateMetadataMap(target, propertyKey, /*Create*/ false);

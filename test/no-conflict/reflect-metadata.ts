@@ -13,7 +13,7 @@ describe("Reflect.metadata", () => {
 
     it("DecoratorThrowsWithInvalidTargetWithTargetKey", () => {
         let decorator = Reflect_.metadata("key", "value");
-        assert.throws(() => decorator(undefined, "name"), TypeError);
+        assert.throws(() => decorator(undefined!, "name"), TypeError);
     });
 
     it("DecoratorThrowsWithInvalidTargetKey", () => {
