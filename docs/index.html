@@ -16,13 +16,18 @@ function Search(menu) {
   this.$search = document.getElementById('menu-search');
   this.$searchBox = document.getElementById('menu-search-box');
   this.$searchResults = document.getElementById('menu-search-results');
-  
+
   this.loadBiblio();
-  
+
   document.addEventListener('keydown', this.documentKeydown.bind(this));
-  
+
   this.$searchBox.addEventListener('keydown', debounce(this.searchBoxKeydown.bind(this), { stopPropagation: true }));
   this.$searchBox.addEventListener('keyup', debounce(this.searchBoxKeyup.bind(this), { stopPropagation: true }));
+
+  // Perform an initial search if the box is not empty.
+  if (this.$searchBox.value) {
+    this.search(this.$searchBox.value);
+  }
 }
 
 Search.prototype.loadBiblio = function () {
@@ -62,7 +67,7 @@ Search.prototype.searchBoxKeyup = function (e) {
   if (e.keyCode === 13 || e.keyCode === 9) {
     return;
   }
-  
+
   this.search(e.target.value);
 }
 
@@ -85,25 +90,23 @@ Search.prototype.triggerSearch = function (e) {
 // prefer shorter matches.
 function relevance(result, searchString) {
   var relevance = 0;
-  
+
   relevance = Math.max(0, 8 - result.match.chunks) << 7;
-  
+
   if (result.match.caseMatch) {
     relevance *= 2;
   }
-  
+
   if (result.match.prefix) {
     relevance += 2048
   }
-  
+
   relevance += Math.max(0, 255 - result.entry.key.length);
-  
+
   return relevance;
 }
 
 Search.prototype.search = function (searchString) {
-  var s = Date.now();
-
   if (searchString === '') {
     this.displayResults([]);
     this.hideSearch();
@@ -111,12 +114,12 @@ Search.prototype.search = function (searchString) {
   } else {
     this.showSearch();
   }
-  
+
   if (searchString.length === 1) {
     this.displayResults([]);
     return;
   }
-    
+
   var results;
 
   if (/^[\d\.]*$/.test(searchString)) {
@@ -127,7 +130,7 @@ Search.prototype.search = function (searchString) {
     });
   } else {
     results = [];
-    
+
     for (var i = 0; i < this.biblio.length; i++) {
       var entry = this.biblio[i];
       if (!entry.key) {
@@ -140,11 +143,11 @@ Search.prototype.search = function (searchString) {
         results.push({ entry: entry, match: match });
       }
     }
-  
+
     results.forEach(function (result) {
       result.relevance = relevance(result, searchString);
     });
-    
+
     results = results.sort(function (a, b) { return b.relevance - a.relevance });
 
   }
@@ -152,7 +155,7 @@ Search.prototype.search = function (searchString) {
   if (results.length > 50) {
     results = results.slice(0, 50);
   }
-  
+
   this.displayResults(results);
 }
 Search.prototype.hideSearch = function () {
@@ -169,7 +172,7 @@ Search.prototype.selectResult = function () {
   if ($first) {
     document.location = $first.getAttribute('href');
   }
-  
+
   this.$searchBox.value = '';
   this.$searchBox.blur();
   this.displayResults([]);
@@ -183,7 +186,7 @@ Search.prototype.selectResult = function () {
 Search.prototype.displayResults = function (results) {
   if (results.length > 0) {
     this.$searchResults.classList.remove('no-results');
-    
+
     var html = '<ul>';
 
     results.forEach(function (result) {
@@ -200,7 +203,7 @@ Search.prototype.displayResults = function (results) {
       } else if (entry.type === 'production') {
         text = entry.key;
         cssClass = 'prod';
-        id = entry.id;  
+        id = entry.id;
       } else if (entry.type === 'op') {
         text = entry.key;
         cssClass = 'op';
@@ -212,7 +215,7 @@ Search.prototype.displayResults = function (results) {
       }
 
       if (text) {
-        html += '<li class=menu-search-result-' + cssClass + '><a href="#' + id + '">' + text + '</a></li>'
+        html += '<li class=menu-search-result-' + cssClass + '><a href="#' + id + '">' + text + '</a></li>';
       }
     });
 
@@ -235,7 +238,7 @@ function Menu() {
   this.$toc = document.querySelector('#menu-toc > ol');
   this.$specContainer = document.getElementById('spec-container');
   this.search = new Search(this);
-  
+
   this._pinnedIds = {}; 
   this.loadPinEntries();
 
@@ -280,9 +283,9 @@ function Menu() {
                     && target.offsetHeight + target.scrollTop >= target.scrollHeight;
 
     if (offBottom) {
-		  e.preventDefault();
-	  }
-  })
+      e.preventDefault();
+    }
+  });
 }
 
 Menu.prototype.documentKeydown = function (e) {
@@ -309,7 +312,7 @@ Menu.prototype.revealInToc = function (path) {
     current[i].classList.remove('revealed');
     current[i].classList.remove('revealed-leaf');
   }
-  
+
   var current = this.$toc;
   var index = 0;
   while (index < path.length) {
@@ -320,7 +323,7 @@ Menu.prototype.revealInToc = function (path) {
         if (index === path.length - 1) {
           children[i].classList.add('revealed-leaf');
           var rect = children[i].getBoundingClientRect();
-          this.$toc.getBoundingClientRect().top
+          // this.$toc.getBoundingClientRect().top;
           var tocRect = this.$toc.getBoundingClientRect();
           if (rect.top + 10 > tocRect.bottom) {
             this.$toc.scrollTop = this.$toc.scrollTop + (rect.top - tocRect.bottom) + (rect.bottom - rect.top);
@@ -331,29 +334,27 @@ Menu.prototype.revealInToc = function (path) {
         current = children[i].querySelector('ol');
         index++;
         break;
-      }      
+      }
     }
-    
+
   }
 }
 
 function findActiveClause(root, path) {
   var clauses = new ClauseWalker(root);
   var $clause;
-  var found = false;
   var path = path || [];
-  
+
   while ($clause = clauses.nextNode()) {
     var rect = $clause.getBoundingClientRect();
-    var $header = $clause.children[0];
+    var $header = $clause.querySelector("h1");
     var marginTop = parseInt(getComputedStyle($header)["margin-top"]);
-    
+
     if ((rect.top - marginTop) <= 0 && rect.bottom > 0) {
-      found = true;
       return findActiveClause($clause, path.concat($clause)) || path;
     }
   }
-  
+
   return path;
 }
 
@@ -378,7 +379,7 @@ function ClauseWalker(root) {
     },
     false
     );
-  
+
   return treeWalker;
 }
 
@@ -461,7 +462,7 @@ Menu.prototype.loadPinEntries = function () {
   } catch (e) {
     return;
   }
-  
+
   var pinsString = window.localStorage.pinEntries;
   if (!pinsString) return;
   var pins = JSON.parse(pinsString);
@@ -492,6 +493,11 @@ function init() {
   var $container = document.getElementById('spec-container');
   $container.addEventListener('mouseover', debounce(function (e) {
     Toolbox.activateIfMouseOver(e);
+  }));
+  document.addEventListener('keydown', debounce(function (e) {
+    if (e.code === "Escape" && Toolbox.active) {
+      Toolbox.deactivate();
+    }
   }));
 }
 
@@ -591,12 +597,11 @@ function fuzzysearch (searchString, haystack, caseInsensitive) {
   var qlen = searchString.length;
   var chunks = 1;
   var finding = false;
-  var prefix = true;
-  
+
   if (qlen > tlen) {
     return false;
   }
-  
+
   if (qlen === tlen) {
     if (searchString === haystack) {
       return { caseMatch: true, chunks: 1, prefix: true };
@@ -606,7 +611,7 @@ function fuzzysearch (searchString, haystack, caseInsensitive) {
       return false;
     }
   }
-  
+
   outer: for (var i = 0, j = 0; i < qlen; i++) {
     var nch = searchString[i];
     while (j < tlen) {
@@ -620,12 +625,12 @@ function fuzzysearch (searchString, haystack, caseInsensitive) {
         finding = false;
       }
     }
-    
-    if (caseInsensitive) { return false }
-    
+
+    if (caseInsensitive) { return false; }
+
     return fuzzysearch(searchString.toLowerCase(), haystack.toLowerCase(), true);
   }
-  
+
   return { caseMatch: !caseInsensitive, chunks: chunks, prefix: j <= qlen };
 }
 
@@ -782,7 +787,6 @@ var referencePane = {
       var target = document.getElementById(id);
       var cid = findParentClauseId(target);
       var clause = menu.search.biblio.byId[cid];
-      var dupCount = 0;
       return { id: id, clause: clause }
     }).sort(function (a, b) {
       return sortByClauseNumber(a.clause, b.clause);
@@ -822,7 +826,7 @@ function sortByClauseNumber(c1, c2) {
     if (i >= c2c.length) {
       return 1;
     }
-    
+
     var c1 = c1c[i];
     var c2 = c2c[i];
     var c1cn = Number(c1);
@@ -982,16 +986,43 @@ emu-const {
 emu-val {
   font-weight: bold;
 }
-emu-alg ol, emu-alg ol ol ol ol {
-    list-style-type: decimal;
+
+/* depth 1 */
+emu-alg ol,
+/* depth 4 */
+emu-alg ol ol ol ol,
+emu-alg ol.nested-thrice,
+emu-alg ol.nested-twice ol,
+emu-alg ol.nested-once ol ol {
+  list-style-type: decimal;
 }
 
-emu-alg ol ol, emu-alg ol ol ol ol ol {
-    list-style-type: lower-alpha;
+/* depth 2 */
+emu-alg ol ol,
+emu-alg ol.nested-once,
+/* depth 5 */
+emu-alg ol ol ol ol ol,
+emu-alg ol.nested-four-times,
+emu-alg ol.nested-thrice ol,
+emu-alg ol.nested-twice ol ol,
+emu-alg ol.nested-once ol ol ol {
+  list-style-type: lower-alpha;
 }
 
-emu-alg ol ol ol, ol ol ol ol ol ol {
-    list-style-type: lower-roman;
+/* depth 3 */
+emu-alg ol ol ol,
+emu-alg ol.nested-twice,
+emu-alg ol.nested-once ol,
+/* depth 6 */
+emu-alg ol ol ol ol ol ol,
+emu-alg ol.nested-lots,
+emu-alg ol.nested-four-times ol,
+emu-alg ol.nested-thrice ol ol,
+emu-alg ol.nested-twice ol ol ol,
+emu-alg ol.nested-once ol ol ol ol,
+/* depth 7+ */
+emu-alg ol.nested-lots ol {
+  list-style-type: lower-roman;
 }
 
 emu-eqn {
@@ -1042,6 +1073,10 @@ emu-note > div.note-contents > p:last-of-type {
   margin-bottom: 0;
 }
 
+emu-table td code {
+  white-space: normal;
+} 
+
 emu-figure {
   display: block;
 }
@@ -1066,6 +1101,10 @@ emu-table figure {
 
 emu-production {
     display: block;
+}
+
+emu-grammar[type="example"] emu-production,
+emu-grammar[type="definition"] emu-production {
     margin-top: 1em;
     margin-bottom: 1em;
     margin-left: 5ex;
@@ -1093,6 +1132,7 @@ emu-gann {
 }
 
 emu-gann emu-t:last-child,
+emu-gann emu-gprose:last-child,
 emu-gann emu-nt:last-child {
     margin-right: 0;
 }
@@ -1147,10 +1187,6 @@ emu-mods {
     font-weight: normal;
 }
 
-emu-production[collapsed] emu-mods {
-  display: none;
-}
-
 emu-params, emu-opt {
   margin-right: 1ex;
   font-family: monospace;
@@ -1167,6 +1203,10 @@ emu-opt {
 emu-gprose {
     font-size: 0.9em;
     font-family: Helvetica, Arial, sans-serif;
+}
+
+emu-production emu-gprose {
+    margin-right: 1ex;
 }
 
 h1.shortname {
@@ -1196,7 +1236,7 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 .secnum {
   text-decoration: none;
-  margin-right: 10px;
+  margin-right: 5px;
 }
 
 h1 span.title {
@@ -1815,12 +1855,12 @@ li.menu-search-result-term:before {
 
 <emu-intro id="introduction">
   <h1 class="first">Metadata Proposal - ECMAScript</h1>
-  <emu-note><span class="note">Note</span><div class="note-contents">A shim for this API can be found here:  <a href="https://github.com/rbuckton/ReflectDecorators">https://github.com/rbuckton/ReflectDecorators</a></div></emu-note>
+  <emu-note><span class="note">Note</span><div class="note-contents">A shim for this API can be found here: <a href="https://github.com/rbuckton/ReflectDecorators">https://github.com/rbuckton/ReflectDecorators</a></div></emu-note>
   <p>Proposal to add Metadata to ECMAScript.</p>
 </emu-intro>
 
 <emu-clause id="syntax">
-  <h1><span class="secnum">1</span>Syntax</h1>
+  <h1><span class="secnum">1</span> Syntax</h1>
   <emu-note><span class="note">Note</span><div class="note-contents">This section is non-normative.</div></emu-note>
   <pre><code class="javascript hljs"><span class="hljs-comment">// define metadata on an object or property</span>
 <span class="hljs-built_in">Reflect</span>.defineMetadata(metadataKey, metadataValue, target);
@@ -1875,7 +1915,7 @@ li.menu-search-result-term:before {
   }
 
   @Type(<span class="hljs-built_in">String</span>)
-  get name() { <span class="hljs-keyword">return</span> <span class="hljs-string">"text"</span>; }
+  <span class="hljs-keyword">get</span> name() { <span class="hljs-keyword">return</span> <span class="hljs-string">"text"</span>; }
 
   @Type(<span class="hljs-built_in">Function</span>)
   @ParamTypes(<span class="hljs-built_in">Number</span>, <span class="hljs-built_in">Number</span>)
@@ -1887,202 +1927,177 @@ li.menu-search-result-term:before {
 
 <span class="hljs-comment">// Metadata introspection</span>
 <span class="hljs-keyword">let</span> obj = <span class="hljs-keyword">new</span> C(<span class="hljs-string">"a"</span>, <span class="hljs-number">1</span>);
-<span class="hljs-keyword">let</span> paramTypes = <span class="hljs-built_in">Reflect</span>.getMetadata(<span class="hljs-string">"design:paramtypes"</span>, inst, <span class="hljs-string">"add"</span>); <span class="hljs-comment">// [Number, Number]</span></code></pre>
+<span class="hljs-keyword">let</span> paramTypes = <span class="hljs-built_in">Reflect</span>.getMetadata(<span class="hljs-string">"design:paramtypes"</span>, obj, <span class="hljs-string">"add"</span>); <span class="hljs-comment">// [Number, Number]</span></code></pre>
 </emu-clause>
 
 <emu-clause id="abstract-operations">
-  <h1><span class="secnum">2</span>Abstract Operations</h1>
+  <h1><span class="secnum">2</span> Abstract Operations</h1>
   <emu-clause id="operations-on-objects">
-    <h1><span class="secnum">2.1</span>Operations on Objects</h1>
+    <h1><span class="secnum">2.1</span> Operations on Objects</h1>
     <emu-clause id="getorcreatemetadatamap" aoid="GetOrCreateMetadataMap">
-      <h1><span class="secnum">2.1.1</span>GetOrCreateMetadataMap ( O, P, Create )</h1>
+      <h1><span class="secnum">2.1.1</span> GetOrCreateMetadataMap ( O, P, Create )</h1>
       <p>When the abstract operation GetOrCreateMetadataMap is called with Object <var>O</var>, property key <var>P</var>, and Boolean <var>Create</var> the following steps are taken:</p>
-      <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_0"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>targetMetadata</var> be the value of <var>O</var>'s [[Metadata]] internal slot.</li><li>If <var>targetMetadata</var> is <emu-val>undefined</emu-val>, then<ol><li>If <var>Create</var> is <emu-val>false</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Set <var>targetMetadata</var> to be a newly created <emu-val>Map</emu-val> object.</li><li>Set the [[Metadata]] internal slot of <var>O</var> to <var>targetMetadata</var>.</li></ol></li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_1"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>targetMetadata</var>, <code>"get"</code>, <var>P</var>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, then<ol><li>If <var>Create</var> is <emu-val>false</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Set <var>metadataMap</var> to be a newly created <emu-val>Map</emu-val> object.</li><li>Perform ?&nbsp;<emu-xref aoid="Invoke" id="_ref_2"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>targetMetadata</var>, <code>"set"</code>, <var>P</var>, <var>metadataMap</var>).</li></ol></li><li>Return <var>metadataMap</var>.
-      </li></ol></emu-alg>
+      <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_0"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>targetMetadata</var> be the value of <var>O</var>'s [[Metadata]] internal slot.</li><li>If <var>targetMetadata</var> is <emu-val>undefined</emu-val>, then<ol><li>If <var>Create</var> is <emu-val>false</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Set <var>targetMetadata</var> to be a newly created <emu-val>Map</emu-val> object.</li><li>Set the [[Metadata]] internal slot of <var>O</var> to <var>targetMetadata</var>.</li></ol></li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_1"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>targetMetadata</var>, <code>"get"</code>, <var>P</var>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, then<ol><li>If <var>Create</var> is <emu-val>false</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Set <var>metadataMap</var> to be a newly created <emu-val>Map</emu-val> object.</li><li>Perform ?&nbsp;<emu-xref aoid="Invoke" id="_ref_2"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>targetMetadata</var>, <code>"set"</code>, <var>P</var>, <var>metadataMap</var>).</li></ol></li><li>Return <var>metadataMap</var>.</li></ol></emu-alg>
     </emu-clause>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="ordinary-and-exotic-objects-behaviors">
-  <h1><span class="secnum">3</span>Ordinary and Exotic Objects Behaviors</h1>
+  <h1><span class="secnum">3</span> Ordinary and Exotic Objects Behaviors</h1>
 
   <emu-clause id="ordinary-object-internal-methods-and-internal-slots">
-    <h1><span class="secnum">3.1</span>Ordinary Object Internal Methods and Internal Slots</h1>
+    <h1><span class="secnum">3.1</span> Ordinary Object Internal Methods and Internal Slots</h1>
     <p>All ordinary objects have an internal slot called [[Metadata]]. The value of this internal slot is either <emu-val>null</emu-val> or a <emu-val>Map</emu-val> object and is used for storing metadata for an object.</p>
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-hasmetadata">
-      <h1><span class="secnum">3.1.1</span>[[HasMetadata]] ( MetadataKey, P )</h1>
-      <p>When the [[HasMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryHasMetadata" id="_ref_3"><a href="#ordinaryhasmetadata">OrdinaryHasMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).
-      </li></ol></emu-alg>
+      <h1><span class="secnum">3.1.1</span> [[HasMetadata]] ( MetadataKey, P )</h1>
+      <p>When the [[HasMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
+      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryHasMetadata" id="_ref_3"><a href="#ordinaryhasmetadata">OrdinaryHasMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li></ol></emu-alg>
       <emu-clause id="ordinaryhasmetadata" aoid="OrdinaryHasMetadata">
-        <h1><span class="secnum">3.1.1.1</span>OrdinaryHasMetadata ( MetadataKey, O, P )</h1>
-        <p>When the abstract operation OrdinaryHasMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
-        <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_4"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>hasOwn</var> be ?&nbsp;<emu-xref aoid="OrdinaryHasOwnMetadata" id="_ref_5"><a href="#ordinaryhasownmetadata">OrdinaryHasOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li><li>If <var>hasOwn</var> is <emu-val>true</emu-val>, return <emu-val>true</emu-val>.</li><li>Let <var>parent</var> be ? <var>O</var>.[[GetPrototypeOf]]().</li><li>If <var>parent</var> is not <emu-val>null</emu-val>, Return ? <var>parent</var>.[[HasMetadata]](<var>MetadataKey</var>, <var>P</var>).</li><li>Return <emu-val>false</emu-val>.
-        </li></ol></emu-alg>
+        <h1><span class="secnum">3.1.1.1</span> OrdinaryHasMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryHasMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
+        <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_4"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>hasOwn</var> be ?&nbsp;<emu-xref aoid="OrdinaryHasOwnMetadata" id="_ref_5"><a href="#ordinaryhasownmetadata">OrdinaryHasOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li><li>If <var>hasOwn</var> is <emu-val>true</emu-val>, return <emu-val>true</emu-val>.</li><li>Let <var>parent</var> be ? <var>O</var>.[[GetPrototypeOf]]().</li><li>If <var>parent</var> is not <emu-val>null</emu-val>, Return ? <var>parent</var>.[[HasMetadata]](<var>MetadataKey</var>, <var>P</var>).</li><li>Return <emu-val>false</emu-val>.</li></ol></emu-alg>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-hasownmetadata">
-      <h1><span class="secnum">3.1.2</span>[[HasOwnMetadata]] ( MetadataKey, P )</h1>
-      <p>When the [[HasOwnMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryHasOwnMetadata" id="_ref_6"><a href="#ordinaryhasownmetadata">OrdinaryHasOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).
-      </li></ol></emu-alg>
+      <h1><span class="secnum">3.1.2</span> [[HasOwnMetadata]] ( MetadataKey, P )</h1>
+      <p>When the [[HasOwnMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
+      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryHasOwnMetadata" id="_ref_6"><a href="#ordinaryhasownmetadata">OrdinaryHasOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li></ol></emu-alg>
       <emu-clause id="ordinaryhasownmetadata" aoid="OrdinaryHasOwnMetadata">
-        <h1><span class="secnum">3.1.2.1</span>OrdinaryHasOwnMetadata ( MetadataKey, O, P )</h1>
-        <p>When the abstract operation OrdinaryHasOwnMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
-        <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_7"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_8"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <emu-val>false</emu-val>.</li><li>Return ?&nbsp;<emu-xref aoid="ToBoolean" id="_ref_9"><a href="https://tc39.github.io/ecma262/#sec-toboolean">ToBoolean</a></emu-xref>(? <emu-xref aoid="Invoke" id="_ref_10"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"has"</code>, <var>MetadataKey</var>)).
-        </li></ol></emu-alg>
+        <h1><span class="secnum">3.1.2.1</span> OrdinaryHasOwnMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryHasOwnMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
+        <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_7"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_8"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <emu-val>false</emu-val>.</li><li>Return ?&nbsp;<emu-xref aoid="ToBoolean" id="_ref_9"><a href="https://tc39.es/ecma262/#sec-toboolean">ToBoolean</a></emu-xref>(? <emu-xref aoid="Invoke" id="_ref_10"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"has"</code>, <var>MetadataKey</var>)).</li></ol></emu-alg>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-getmetadata">
-      <h1><span class="secnum">3.1.3</span>[[GetMetadata]] ( MetadataKey, P )</h1>
-      <p>When the [[GetMatadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryGetMetadata" id="_ref_11"><a href="#ordinarygetmetadata">OrdinaryGetMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).
-      </li></ol></emu-alg>
+      <h1><span class="secnum">3.1.3</span> [[GetMetadata]] ( MetadataKey, P )</h1>
+      <p>When the [[GetMatadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
+      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryGetMetadata" id="_ref_11"><a href="#ordinarygetmetadata">OrdinaryGetMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li></ol></emu-alg>
       <emu-clause id="ordinarygetmetadata" aoid="OrdinaryGetMetadata">
-        <h1><span class="secnum">3.1.3.1</span>OrdinaryGetMetadata ( MetadataKey, O, P )</h1>
-        <p>When the abstract operation OrdinaryGetMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
-        <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_12"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>hasOwn</var> be ?&nbsp;<emu-xref aoid="OrdinaryHasOwnMetadata" id="_ref_13"><a href="#ordinaryhasownmetadata">OrdinaryHasOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li><li>If <var>hasOwn</var> is <emu-val>true</emu-val>, return ?&nbsp;<emu-xref aoid="OrdinaryGetOwnMetadata" id="_ref_14"><a href="#ordinarygetownmetadata">OrdinaryGetOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li><li>Let <var>parent</var> be ? <var>O</var>.[[GetPrototypeOf]]().</li><li>If <var>parent</var> is not <emu-val>null</emu-val>, return ? <var>parent</var>.[[GetMetadata]](<var>MetadataKey</var>, <var>P</var>).</li><li>Return <emu-val>undefined</emu-val>.
-        </li></ol></emu-alg>
+        <h1><span class="secnum">3.1.3.1</span> OrdinaryGetMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryGetMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
+        <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_12"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>hasOwn</var> be ?&nbsp;<emu-xref aoid="OrdinaryHasOwnMetadata" id="_ref_13"><a href="#ordinaryhasownmetadata">OrdinaryHasOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li><li>If <var>hasOwn</var> is <emu-val>true</emu-val>, return ?&nbsp;<emu-xref aoid="OrdinaryGetOwnMetadata" id="_ref_14"><a href="#ordinarygetownmetadata">OrdinaryGetOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li><li>Let <var>parent</var> be ? <var>O</var>.[[GetPrototypeOf]]().</li><li>If <var>parent</var> is not <emu-val>null</emu-val>, return ? <var>parent</var>.[[GetMetadata]](<var>MetadataKey</var>, <var>P</var>).</li><li>Return <emu-val>undefined</emu-val>.</li></ol></emu-alg>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-getownmetadata">
-      <h1><span class="secnum">3.1.4</span>[[GetOwnMetadata]] ( MetadataKey, P, ParamIndex )</h1>
-      <p>When the [[GetOwnMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryGetOwnMetadata" id="_ref_15"><a href="#ordinarygetownmetadata">OrdinaryGetOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).
-      </li></ol></emu-alg>
+      <h1><span class="secnum">3.1.4</span> [[GetOwnMetadata]] ( MetadataKey, P, ParamIndex )</h1>
+      <p>When the [[GetOwnMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var>, the following steps are taken:</p>
+      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryGetOwnMetadata" id="_ref_15"><a href="#ordinarygetownmetadata">OrdinaryGetOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>O</var>, <var>P</var>).</li></ol></emu-alg>
       <emu-clause id="ordinarygetownmetadata" aoid="OrdinaryGetOwnMetadata">
-        <h1><span class="secnum">3.1.4.1</span>OrdinaryGetOwnMetadata ( MetadataKey, O, P )</h1>
-        <p>When the abstract operation OrdinaryGetOwnMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
-        <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_16"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_17"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Return ?&nbsp;<emu-xref aoid="Invoke" id="_ref_18"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"get"</code>, <var>MetadataKey</var>).
-        </li></ol></emu-alg>
+        <h1><span class="secnum">3.1.4.1</span> OrdinaryGetOwnMetadata ( MetadataKey, O, P )</h1>
+        <p>When the abstract operation OrdinaryGetOwnMetadata is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
+        <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_16"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_17"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <emu-val>undefined</emu-val>.</li><li>Return ?&nbsp;<emu-xref aoid="Invoke" id="_ref_18"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"get"</code>, <var>MetadataKey</var>).</li></ol></emu-alg>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-defineownmetadata">
-      <h1><span class="secnum">3.1.5</span>[[DefineOwnMetadata]] ( MetadataKey, MetadataValue, P )</h1>
-      <p>When the [[DefineOwnMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataValue</var>, and property key <var>P</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryDefineOwnMetadata" id="_ref_19"><a href="#ordinarydefineownmetadata">OrdinaryDefineOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>MetadataValue</var>, <var>O</var>, <var>P</var>)
-      </li></ol></emu-alg>
+      <h1><span class="secnum">3.1.5</span> [[DefineOwnMetadata]] ( MetadataKey, MetadataValue, P )</h1>
+      <p>When the [[DefineOwnMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataValue</var>, and property key <var>P</var>, the following steps are taken:</p>
+      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryDefineOwnMetadata" id="_ref_19"><a href="#ordinarydefineownmetadata">OrdinaryDefineOwnMetadata</a></emu-xref>(<var>MetadataKey</var>, <var>MetadataValue</var>, <var>O</var>, <var>P</var>)</li></ol></emu-alg>
       <emu-clause id="ordinarydefineownmetadata" aoid="OrdinaryDefineOwnMetadata">
-        <h1><span class="secnum">3.1.5.1</span>OrdinaryDefineOwnMetadata ( MetadataKey, MetadataValue, O, P )</h1>
-        <p>When the abstract operation <emu-xref aoid="OrdinaryDefineOwnProperty" id="_ref_20"><a href="https://tc39.github.io/ecma262/#sec-ordinarydefineownproperty">OrdinaryDefineOwnProperty</a></emu-xref> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataValue</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
-        <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_21"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_22"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>true</emu-val>).</li><li>Return ?&nbsp;<emu-xref aoid="Invoke" id="_ref_23"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"set"</code>, <var>MetadataKey</var>, <var>MetadataValue</var>).
-        </li></ol></emu-alg>
+        <h1><span class="secnum">3.1.5.1</span> OrdinaryDefineOwnMetadata ( MetadataKey, MetadataValue, O, P )</h1>
+        <p>When the abstract operation <emu-xref aoid="OrdinaryDefineOwnProperty" id="_ref_20"><a href="https://tc39.es/ecma262/#sec-ordinarydefineownproperty">OrdinaryDefineOwnProperty</a></emu-xref> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var>, <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataValue</var>, Object <var>O</var>, and property key <var>P</var>, the following steps are taken:</p>
+        <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_21"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_22"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>true</emu-val>).</li><li>Return ?&nbsp;<emu-xref aoid="Invoke" id="_ref_23"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"set"</code>, <var>MetadataKey</var>, <var>MetadataValue</var>).</li></ol></emu-alg>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-metadatakeys">
-      <h1><span class="secnum">3.1.6</span>[[MetadataKeys]] ( P )</h1>
+      <h1><span class="secnum">3.1.6</span> [[MetadataKeys]] ( P )</h1>
       <p>When the [[MetadataKeys]] internal method of <var>O</var> is called with property key <var>P</var> the following steps are taken:</p>
-      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryMetadataKeys" id="_ref_24"><a href="#ordinarymetadatakeys">OrdinaryMetadataKeys</a></emu-xref>(<var>O</var>, <var>P</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>Return ?&nbsp;<emu-xref aoid="OrdinaryMetadataKeys" id="_ref_24"><a href="#ordinarymetadatakeys">OrdinaryMetadataKeys</a></emu-xref>(<var>O</var>, <var>P</var>).</li></ol></emu-alg>
       <emu-clause id="ordinarymetadatakeys" aoid="OrdinaryMetadataKeys">
-        <h1><span class="secnum">3.1.6.1</span>OrdinaryMetadataKeys ( O, P )</h1>
+        <h1><span class="secnum">3.1.6.1</span> OrdinaryMetadataKeys ( O, P )</h1>
         <p>When the abstract operation OrdinaryMetadataKeys is called with Object <var>O</var> and property key <var>P</var> the following steps are taken:</p>
-        <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_25"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>ownKeys</var> be ?&nbsp;<emu-xref aoid="OrdinaryOwnMetadataKeys" id="_ref_26"><a href="#ordinaryownmetadatakeys">OrdinaryOwnMetadataKeys</a></emu-xref>(<var>O</var>, <var>P</var>).</li><li>Let <var>parent</var> be ? <var>O</var>.[[GetPrototypeOf]]().</li><li>If <var>parent</var> is <emu-val>null</emu-val>, then return <var>ownKeys</var>.</li><li>Let <var>parentKeys</var> be ? <var>O</var>.[[OrdinaryMetadataKeys]](<var>P</var>).</li><li>Let <var>ownKeysLen</var> = ?&nbsp;<emu-xref aoid="Get" id="_ref_27"><a href="https://tc39.github.io/ecma262/#sec-get-o-p">Get</a></emu-xref>(<var>ownKeys</var>, "length").</li><li>If <var>ownKeysLen</var> is <emu-val>0</emu-val>, return <var>parentKeys</var>.</li><li>Let <var>parentKeysLen</var> = ?&nbsp;<emu-xref aoid="Get" id="_ref_28"><a href="https://tc39.github.io/ecma262/#sec-get-o-p">Get</a></emu-xref>(<var>parentKeys</var>, "length").</li><li>If <var>parentKeysLen</var> is <emu-val>0</emu-val>, return <var>ownKeys</var>.</li><li>Let <var>set</var> be a newly created <emu-val>Set</emu-val> object.</li><li>Let <var>keys</var> be ?&nbsp;<emu-xref aoid="ArrayCreate" id="_ref_29"><a href="https://tc39.github.io/ecma262/#sec-arraycreate">ArrayCreate</a></emu-xref>(0).</li><li>Let <var>k</var> be <emu-val>0</emu-val>.</li><li>For each element <var>key</var> of <var>ownKeys</var><ol><li>Let <var>hasKey</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_30"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, <code>"has"</code>, <var>key</var>).</li><li>If <var>hasKey</var> is <emu-val>false</emu-val>, then<ol><li>Let <var>Pk</var> be !&nbsp;<emu-xref aoid="ToString" id="_ref_31"><a href="https://tc39.github.io/ecma262/#sec-tostring">ToString</a></emu-xref>(<var>k</var>).</li><li>Perform ?&nbsp;<emu-xref aoid="Invoke" id="_ref_32"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, "add", <var>key</var>).</li><li>Let <var>defineStatus</var> be <emu-xref aoid="CreateDataProperty" id="_ref_33"><a href="https://tc39.github.io/ecma262/#sec-createdataproperty">CreateDataProperty</a></emu-xref>(<var>keys</var>, <var>Pk</var>, <var>key</var>).</li><li>Assert: <var>defineStatus</var> is <emu-val>true</emu-val>.</li><li>Increase <var>k</var> by <emu-val>1</emu-val>.</li></ol></li></ol></li><li>For each element <var>key</var> of <var>parentKeys</var><ol><li>Let <var>hasKey</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_34"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, <code>"has"</code>, <var>key</var>).</li><li>If <var>hasKey</var> is <emu-val>false</emu-val>, then<ol><li>Let <var>Pk</var> be !&nbsp;<emu-xref aoid="ToString" id="_ref_35"><a href="https://tc39.github.io/ecma262/#sec-tostring">ToString</a></emu-xref>(<var>k</var>).</li><li>Perform ?&nbsp;<emu-xref aoid="Invoke" id="_ref_36"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, <code>"add"</code>, <var>key</var>).</li><li>Let <var>defineStatus</var> be <emu-xref aoid="CreateDataProperty" id="_ref_37"><a href="https://tc39.github.io/ecma262/#sec-createdataproperty">CreateDataProperty</a></emu-xref>(<var>keys</var>, <var>Pk</var>, <var>key</var>).</li><li>Assert: <var>defineStatus</var> is <emu-val>true</emu-val>.</li><li>Increase <var>k</var> by <emu-val>1</emu-val>.</li></ol></li></ol></li><li>Perform ?&nbsp;<emu-xref aoid="Set" id="_ref_38"><a href="https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a></emu-xref>(<var>keys</var>, <code>"length"</code>, <var>k</var>).</li><li>return <var>keys</var>.
-        </li></ol></emu-alg>
+        <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_25"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>ownKeys</var> be ?&nbsp;<emu-xref aoid="OrdinaryOwnMetadataKeys" id="_ref_26"><a href="#ordinaryownmetadatakeys">OrdinaryOwnMetadataKeys</a></emu-xref>(<var>O</var>, <var>P</var>).</li><li>Let <var>parent</var> be ? <var>O</var>.[[GetPrototypeOf]]().</li><li>If <var>parent</var> is <emu-val>null</emu-val>, then return <var>ownKeys</var>.</li><li>Let <var>parentKeys</var> be ? <var>O</var>.[[OrdinaryMetadataKeys]](<var>P</var>).</li><li>Let <var>ownKeysLen</var> = ?&nbsp;<emu-xref aoid="Get" id="_ref_27"><a href="https://tc39.es/ecma262/#sec-get-o-p">Get</a></emu-xref>(<var>ownKeys</var>, "length").</li><li>If <var>ownKeysLen</var> is <emu-val>0</emu-val>, return <var>parentKeys</var>.</li><li>Let <var>parentKeysLen</var> = ?&nbsp;<emu-xref aoid="Get" id="_ref_28"><a href="https://tc39.es/ecma262/#sec-get-o-p">Get</a></emu-xref>(<var>parentKeys</var>, "length").</li><li>If <var>parentKeysLen</var> is <emu-val>0</emu-val>, return <var>ownKeys</var>.</li><li>Let <var>set</var> be a newly created <emu-val>Set</emu-val> object.</li><li>Let <var>keys</var> be ?&nbsp;<emu-xref aoid="ArrayCreate" id="_ref_29"><a href="https://tc39.es/ecma262/#sec-arraycreate">ArrayCreate</a></emu-xref>(0).</li><li>Let <var>k</var> be <emu-val>0</emu-val>.</li><li>For each element <var>key</var> of <var>ownKeys</var><ol><li>Let <var>hasKey</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_30"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, <code>"has"</code>, <var>key</var>).</li><li>If <var>hasKey</var> is <emu-val>false</emu-val>, then<ol><li>Let <var>Pk</var> be !&nbsp;<emu-xref aoid="ToString" id="_ref_31"><a href="https://tc39.es/ecma262/#sec-tostring">ToString</a></emu-xref>(<var>k</var>).</li><li>Perform ?&nbsp;<emu-xref aoid="Invoke" id="_ref_32"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, "add", <var>key</var>).</li><li>Let <var>defineStatus</var> be <emu-xref aoid="CreateDataProperty" id="_ref_33"><a href="https://tc39.es/ecma262/#sec-createdataproperty">CreateDataProperty</a></emu-xref>(<var>keys</var>, <var>Pk</var>, <var>key</var>).</li><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>defineStatus</var> is <emu-val>true</emu-val>.</li><li>Increase <var>k</var> by <emu-val>1</emu-val>.</li></ol></li></ol></li><li>For each element <var>key</var> of <var>parentKeys</var><ol><li>Let <var>hasKey</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_34"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, <code>"has"</code>, <var>key</var>).</li><li>If <var>hasKey</var> is <emu-val>false</emu-val>, then<ol><li>Let <var>Pk</var> be !&nbsp;<emu-xref aoid="ToString" id="_ref_35"><a href="https://tc39.es/ecma262/#sec-tostring">ToString</a></emu-xref>(<var>k</var>).</li><li>Perform ?&nbsp;<emu-xref aoid="Invoke" id="_ref_36"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>set</var>, <code>"add"</code>, <var>key</var>).</li><li>Let <var>defineStatus</var> be <emu-xref aoid="CreateDataProperty" id="_ref_37"><a href="https://tc39.es/ecma262/#sec-createdataproperty">CreateDataProperty</a></emu-xref>(<var>keys</var>, <var>Pk</var>, <var>key</var>).</li><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>defineStatus</var> is <emu-val>true</emu-val>.</li><li>Increase <var>k</var> by <emu-val>1</emu-val>.</li></ol></li></ol></li><li>Perform ?&nbsp;<emu-xref aoid="Set" id="_ref_38"><a href="https://tc39.es/ecma262/#sec-set-o-p-v-throw">Set</a></emu-xref>(<var>keys</var>, <code>"length"</code>, <var>k</var>).</li><li>return <var>keys</var>.</li></ol></emu-alg>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-ownmetadatakeys">
-      <h1><span class="secnum">3.1.7</span>[[OwnMetadataKeys]] ( P )</h1>
+      <h1><span class="secnum">3.1.7</span> [[OwnMetadataKeys]] ( P )</h1>
       <p>When the [[OwnMetadataKeys]] internal method of <var>O</var> is called with property key <var>P</var> the following steps are taken:</p>
-      <emu-alg><ol><li>Return <emu-xref aoid="OrdinaryOwnMetadataKeys" id="_ref_39"><a href="#ordinaryownmetadatakeys">OrdinaryOwnMetadataKeys</a></emu-xref>(<var>O</var>, <var>P</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>Return <emu-xref aoid="OrdinaryOwnMetadataKeys" id="_ref_39"><a href="#ordinaryownmetadatakeys">OrdinaryOwnMetadataKeys</a></emu-xref>(<var>O</var>, <var>P</var>).</li></ol></emu-alg>
       <emu-clause id="ordinaryownmetadatakeys" aoid="OrdinaryOwnMetadataKeys">
-        <h1><span class="secnum">3.1.7.1</span>OrdinaryOwnMetadataKeys ( O, P )</h1>
+        <h1><span class="secnum">3.1.7.1</span> OrdinaryOwnMetadataKeys ( O, P )</h1>
         <p>When the abstract operation OrdinaryOwnMetadataKeys is called with Object <var>O</var> and property key <var>P</var> the following steps are taken:</p>
-        <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_40"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>keys</var> be ?&nbsp;<emu-xref aoid="ArrayCreate" id="_ref_41"><a href="https://tc39.github.io/ecma262/#sec-arraycreate">ArrayCreate</a></emu-xref>(0).</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_42"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <var>keys</var>.</li><li>Let <var>keysObj</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_43"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"keys"</code>).</li><li>Let <var>iterator</var> be ?&nbsp;<emu-xref aoid="GetIterator" id="_ref_44"><a href="https://tc39.github.io/ecma262/#sec-getiterator">GetIterator</a></emu-xref>(<var>keysObj</var>).</li><li>Let <var>k</var> be <emu-val>0</emu-val>.</li><li>Repeat<ol><li>Let <var>Pk</var> be !&nbsp;<emu-xref aoid="ToString" id="_ref_45"><a href="https://tc39.github.io/ecma262/#sec-tostring">ToString</a></emu-xref>(<var>k</var>).</li><li>Let <var>next</var> be ?&nbsp;<emu-xref aoid="IteratorStep" id="_ref_46"><a href="https://tc39.github.io/ecma262/#sec-iteratorstep">IteratorStep</a></emu-xref>(<var>iterator</var>).</li><li>If <var>next</var> is <emu-val>false</emu-val>, then<ol><li>Let <var>setStatus</var> be ?&nbsp;<emu-xref aoid="Set" id="_ref_47"><a href="https://tc39.github.io/ecma262/#sec-set-o-p-v-throw">Set</a></emu-xref>(<var>keys</var>, <code>"length"</code>, <var>k</var>, <var>true</var>).</li><li>Assert: <var>setStatus</var> is <emu-val>true</emu-val>.</li><li>Return <var>keys</var>.</li></ol></li><li>Let <var>nextValue</var> be ?&nbsp;<emu-xref aoid="IteratorValue" id="_ref_48"><a href="https://tc39.github.io/ecma262/#sec-iteratorvalue">IteratorValue</a></emu-xref>(<var>next</var>).</li><li>Let <var>defineStatus</var> be <emu-xref aoid="CreateDataPropertyOrThrow" id="_ref_49"><a href="https://tc39.github.io/ecma262/#sec-createdatapropertyorthrow">CreateDataPropertyOrThrow</a></emu-xref>(<var>keys</var>, <var>Pk</var>, <var>nextValue</var>).</li><li>If <var>defineStatus</var> is an <emu-xref href="#sec-completion-record-specification-type"><a href="https://tc39.github.io/ecma262/#sec-completion-record-specification-type">abrupt completion</a></emu-xref>, return ?&nbsp;<emu-xref aoid="IteratorClose" id="_ref_50"><a href="https://tc39.github.io/ecma262/#sec-iteratorclose">IteratorClose</a></emu-xref>(<var>iterator</var>, <var>defineStatus</var>).</li><li>Increase <var>k</var> by <emu-val>1</emu-val>.
-        </li></ol></li></ol></emu-alg>
+        <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_40"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>keys</var> be ?&nbsp;<emu-xref aoid="ArrayCreate" id="_ref_41"><a href="https://tc39.es/ecma262/#sec-arraycreate">ArrayCreate</a></emu-xref>(0).</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_42"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <var>keys</var>.</li><li>Let <var>keysObj</var> be ?&nbsp;<emu-xref aoid="Invoke" id="_ref_43"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"keys"</code>).</li><li>Let <var>iterator</var> be ?&nbsp;<emu-xref aoid="GetIterator" id="_ref_44"><a href="https://tc39.es/ecma262/#sec-getiterator">GetIterator</a></emu-xref>(<var>keysObj</var>).</li><li>Let <var>k</var> be <emu-val>0</emu-val>.</li><li>Repeat<ol><li>Let <var>Pk</var> be !&nbsp;<emu-xref aoid="ToString" id="_ref_45"><a href="https://tc39.es/ecma262/#sec-tostring">ToString</a></emu-xref>(<var>k</var>).</li><li>Let <var>next</var> be ?&nbsp;<emu-xref aoid="IteratorStep" id="_ref_46"><a href="https://tc39.es/ecma262/#sec-iteratorstep">IteratorStep</a></emu-xref>(<var>iterator</var>).</li><li>If <var>next</var> is <emu-val>false</emu-val>, then<ol><li>Let <var>setStatus</var> be ?&nbsp;<emu-xref aoid="Set" id="_ref_47"><a href="https://tc39.es/ecma262/#sec-set-o-p-v-throw">Set</a></emu-xref>(<var>keys</var>, <code>"length"</code>, <var>k</var>, <var>true</var>).</li><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>setStatus</var> is <emu-val>true</emu-val>.</li><li>Return <var>keys</var>.</li></ol></li><li>Let <var>nextValue</var> be ?&nbsp;<emu-xref aoid="IteratorValue" id="_ref_48"><a href="https://tc39.es/ecma262/#sec-iteratorvalue">IteratorValue</a></emu-xref>(<var>next</var>).</li><li>Let <var>defineStatus</var> be <emu-xref aoid="CreateDataPropertyOrThrow" id="_ref_49"><a href="https://tc39.es/ecma262/#sec-createdatapropertyorthrow">CreateDataPropertyOrThrow</a></emu-xref>(<var>keys</var>, <var>Pk</var>, <var>nextValue</var>).</li><li>If <var>defineStatus</var> is an <emu-xref href="#sec-completion-record-specification-type"><a href="https://tc39.es/ecma262/#sec-completion-record-specification-type">abrupt completion</a></emu-xref>, return ?&nbsp;<emu-xref aoid="IteratorClose" id="_ref_50"><a href="https://tc39.es/ecma262/#sec-iteratorclose">IteratorClose</a></emu-xref>(<var>iterator</var>, <var>defineStatus</var>).</li><li>Increase <var>k</var> by <emu-val>1</emu-val>.</li></ol></li></ol></emu-alg>
       </emu-clause>
     </emu-clause>
 
     <emu-clause id="ordinary-object-internal-methods-and-internal-slots-deletemetadata">
-      <h1><span class="secnum">3.1.8</span>[[DeleteMetadata]]( MetadataKey, P )</h1>
-      <p>When the [[DeleteMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var> the following steps are taken:</p>
-      <emu-alg><ol><li>Assert: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_51"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_52"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <emu-val>false</emu-val>.</li><li>Return ?&nbsp;<emu-xref aoid="Invoke" id="_ref_53"><a href="https://tc39.github.io/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"delete"</code>, <var>MetadataKey</var>).
-      </li></ol></emu-alg>
+      <h1><span class="secnum">3.1.8</span> [[DeleteMetadata]]( MetadataKey, P )</h1>
+      <p>When the [[DeleteMetadata]] internal method of <var>O</var> is called with <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref> <var>MetadataKey</var> and property key <var>P</var> the following steps are taken:</p>
+      <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>P</var> is <emu-val>undefined</emu-val> or <emu-xref aoid="IsPropertyKey" id="_ref_51"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>P</var>) is <emu-val>true</emu-val>.</li><li>Let <var>metadataMap</var> be ?&nbsp;<emu-xref aoid="GetOrCreateMetadataMap" id="_ref_52"><a href="#getorcreatemetadatamap">GetOrCreateMetadataMap</a></emu-xref>(<var>O</var>, <var>P</var>, <emu-val>false</emu-val>).</li><li>If <var>metadataMap</var> is <emu-val>undefined</emu-val>, return <emu-val>false</emu-val>.</li><li>Return ?&nbsp;<emu-xref aoid="Invoke" id="_ref_53"><a href="https://tc39.es/ecma262/#sec-invoke">Invoke</a></emu-xref>(<var>metadataMap</var>, <code>"delete"</code>, <var>MetadataKey</var>).</li></ol></emu-alg>
     </emu-clause>
   </emu-clause>
 </emu-clause>
 
 <emu-clause id="reflection">
-  <h1><span class="secnum">4</span>Reflection</h1>
+  <h1><span class="secnum">4</span> Reflection</h1>
   <emu-clause id="reflect">
-    <h1><span class="secnum">4.1</span>The Reflect Object</h1>
+    <h1><span class="secnum">4.1</span> The Reflect Object</h1>
     <p>This section contains amendments to the Reflect object.</p>
     <emu-clause id="reflect-metadatadecoratorfunctions">
-      <h1><span class="secnum">4.1.1</span>Metadata Decorator Functions</h1>
+      <h1><span class="secnum">4.1.1</span> Metadata Decorator Functions</h1>
       <p>A metadata decorator function is an anonymous built-in function that has [[MetadataKey]] and [[MetadataValue]] internal slots.</p>
       <p>When a metadata decorator function <var>F</var> is called with arguments <var>target</var> and <var>key</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>Assert: <var>F</var> has a [[MetadataKey]] internal slot whose value is an <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref>, or <emu-val>undefined</emu-val>.</li><li>Assert: <var>F</var> has a [[MetadataValue]] internal slot whose value is an <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref>, or <emu-val>undefined</emu-val>.</li><li>If <emu-xref aoid="Type" id="_ref_54"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>If <var>key</var> is not <emu-val>undefined</emu-val> and <emu-xref aoid="IsPropertyKey" id="_ref_55"><a href="https://tc39.github.io/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>key</var>) is <emu-val>false</emu-val>, throw a <emu-val>TypeError</emu-val> exception.</li><li>Let <var>metadataKey</var> be the value of <var>F</var>'s [[MetadataKey]] internal slot.</li><li>Let <var>metadataValue</var> be the value of <var>F</var>'s [[MetadataValue]] internal slot.</li><li>Perform ? <var>target</var>.[[DefineMetadata]](<var>metadataKey</var>, <var>metadataValue</var>, <var>target</var>, <var>key</var>).</li><li>Return <emu-val>undefined</emu-val>.
-      </li></ol></emu-alg>
+      <emu-alg><ol><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>F</var> has a [[MetadataKey]] internal slot whose value is an <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref>, or <emu-val>undefined</emu-val>.</li><li><emu-xref href="#assert"><a href="https://tc39.es/ecma262/#assert">Assert</a></emu-xref>: <var>F</var> has a [[MetadataValue]] internal slot whose value is an <emu-xref href="#sec-ecmascript-language-types"><a href="https://tc39.es/ecma262/#sec-ecmascript-language-types">ECMAScript language value</a></emu-xref>, or <emu-val>undefined</emu-val>.</li><li>If <emu-xref aoid="Type" id="_ref_54"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>If <var>key</var> is not <emu-val>undefined</emu-val> and <emu-xref aoid="IsPropertyKey" id="_ref_55"><a href="https://tc39.es/ecma262/#sec-ispropertykey">IsPropertyKey</a></emu-xref>(<var>key</var>) is <emu-val>false</emu-val>, throw a <emu-val>TypeError</emu-val> exception.</li><li>Let <var>metadataKey</var> be the value of <var>F</var>'s [[MetadataKey]] internal slot.</li><li>Let <var>metadataValue</var> be the value of <var>F</var>'s [[MetadataValue]] internal slot.</li><li>Perform ? <var>target</var>.[[DefineMetadata]](<var>metadataKey</var>, <var>metadataValue</var>, <var>target</var>, <var>key</var>).</li><li>Return <emu-val>undefined</emu-val>.</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.metadata">
-      <h1><span class="secnum">4.1.2</span>Reflect.metadata ( metadataKey, metadataValue )</h1>
+      <h1><span class="secnum">4.1.2</span> Reflect.metadata ( metadataKey, metadataValue )</h1>
       <p>When the <code>metadata</code> function is called with arguments <var>metadataKey</var> and <var>metadataValue</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>Let <var>decorator</var> be a new built-in function object as defined in Metadata Decorator Functions.</li><li>Set the [[MetadataKey]] internal slot of <var>decorator</var> to <var>metadataKey</var>.</li><li>Set the [[MetadataValue]] internal slot of <var>decorator</var> to <var>metadataValue</var>.</li><li>Return <var>decorator</var>.
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>Let <var>decorator</var> be a new built-in <emu-xref href="#function-object"><a href="https://tc39.es/ecma262/#function-object">function object</a></emu-xref> as defined in Metadata Decorator Functions.</li><li>Set the [[MetadataKey]] internal slot of <var>decorator</var> to <var>metadataKey</var>.</li><li>Set the [[MetadataValue]] internal slot of <var>decorator</var> to <var>metadataValue</var>.</li><li>Return <var>decorator</var>.</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.definemetadata">
-      <h1><span class="secnum">4.1.3</span>Reflect.defineMetadata ( metadataKey, metadataValue, target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.3</span> Reflect.defineMetadata ( metadataKey, metadataValue, target [, propertyKey] )</h1>
       <p>When the <code>defineMetadata</code> function is called with arguments <var>metadataKey</var>, <var>metadataValue</var>, <var>target</var>, and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_56"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[DefineMetadata]](<var>metadataKey</var>, <var>metadataValue</var>, <var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_56"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[DefineMetadata]](<var>metadataKey</var>, <var>metadataValue</var>, <var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.hasmetadata">
-      <h1><span class="secnum">4.1.4</span>Reflect.hasMetadata ( metadataKey, target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.4</span> Reflect.hasMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the <code>hasMetadata</code> function is called with arguments <var>metadataKey</var>, <var>target</var>, and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_57"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[HasMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_57"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[HasMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.hasownmetadata">
-      <h1><span class="secnum">4.1.5</span>Reflect.hasOwnMetadata ( metadataKey, target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.5</span> Reflect.hasOwnMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the <code>hasOwnMetadata</code> function is called with arguments <var>metadataKey</var>, <var>target</var>, and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_58"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[HasOwn]](<var>metadataKey</var>, <var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_58"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[HasOwn]](<var>metadataKey</var>, <var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.getmetadata">
-      <h1><span class="secnum">4.1.6</span>Reflect.getMetadata ( metadataKey, target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.6</span> Reflect.getMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the <code>getMetadata</code> function is called with arguments <var>metadataKey</var>, <var>target</var>, and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_59"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_59"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.getownmetadata">
-      <h1><span class="secnum">4.1.7</span>Reflect.getOwnMetadata ( metadataKey, target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.7</span> Reflect.getOwnMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the <code>getOwnMetadata</code> function is called with arguments <var>metadataKey</var>, <var>target</var>, and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_60"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetOwnMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_60"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetOwnMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.getmetadatakeys">
-      <h1><span class="secnum">4.1.8</span>Reflect.getMetadataKeys ( target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.8</span> Reflect.getMetadataKeys ( target [, propertyKey] )</h1>
       <p>When the <code>getMetadataKeys</code> function is called with arguments <var>target</var> and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_61"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetMetadataKeys]](<var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_61"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetMetadataKeys]](<var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.getownmetadatakeys">
-      <h1><span class="secnum">4.1.9</span>Reflect.getOwnMetadataKeys ( target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.9</span> Reflect.getOwnMetadataKeys ( target [, propertyKey] )</h1>
       <p>When the <code>getOwnMetadataKeys</code> function is called with arguments <var>target</var> and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_62"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetOwnMetadataKeys]](<var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_62"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[GetOwnMetadataKeys]](<var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
 
     <emu-clause id="reflect.deletemetadata">
-      <h1><span class="secnum">4.1.10</span>Reflect.deleteMetadata ( metadataKey, target [, propertyKey] )</h1>
+      <h1><span class="secnum">4.1.10</span> Reflect.deleteMetadata ( metadataKey, target [, propertyKey] )</h1>
       <p>When the <code>deleteMetadata</code> function is called with arguments <var>metadataKey</var>, <var>target</var>, and <var>propertyKey</var>, the following steps are taken:</p>
-      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_63"><a href="https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[DeleteMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).
-      </li></ol></emu-alg>
+      <emu-alg><ol><li>If <emu-xref aoid="Type" id="_ref_63"><a href="https://tc39.es/ecma262/#sec-ecmascript-data-types-and-values">Type</a></emu-xref>(<var>target</var>) is not Object, throw a <emu-val>TypeError</emu-val> exception.</li><li>Return ? <var>target</var>.[[DeleteMetadata]](<var>metadataKey</var>, <var>propertyKey</var>).</li></ol></emu-alg>
     </emu-clause>
   </emu-clause>
-</emu-clause></div></body>
+</emu-clause>
+</div></body>
