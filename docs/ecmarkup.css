@@ -78,16 +78,43 @@ emu-const {
 emu-val {
   font-weight: bold;
 }
-emu-alg ol, emu-alg ol ol ol ol {
-    list-style-type: decimal;
+
+/* depth 1 */
+emu-alg ol,
+/* depth 4 */
+emu-alg ol ol ol ol,
+emu-alg ol.nested-thrice,
+emu-alg ol.nested-twice ol,
+emu-alg ol.nested-once ol ol {
+  list-style-type: decimal;
 }
 
-emu-alg ol ol, emu-alg ol ol ol ol ol {
-    list-style-type: lower-alpha;
+/* depth 2 */
+emu-alg ol ol,
+emu-alg ol.nested-once,
+/* depth 5 */
+emu-alg ol ol ol ol ol,
+emu-alg ol.nested-four-times,
+emu-alg ol.nested-thrice ol,
+emu-alg ol.nested-twice ol ol,
+emu-alg ol.nested-once ol ol ol {
+  list-style-type: lower-alpha;
 }
 
-emu-alg ol ol ol, ol ol ol ol ol ol {
-    list-style-type: lower-roman;
+/* depth 3 */
+emu-alg ol ol ol,
+emu-alg ol.nested-twice,
+emu-alg ol.nested-once ol,
+/* depth 6 */
+emu-alg ol ol ol ol ol ol,
+emu-alg ol.nested-lots,
+emu-alg ol.nested-four-times ol,
+emu-alg ol.nested-thrice ol ol,
+emu-alg ol.nested-twice ol ol ol,
+emu-alg ol.nested-once ol ol ol ol,
+/* depth 7+ */
+emu-alg ol.nested-lots ol {
+  list-style-type: lower-roman;
 }
 
 emu-eqn {
@@ -138,6 +165,10 @@ emu-note > div.note-contents > p:last-of-type {
   margin-bottom: 0;
 }
 
+emu-table td code {
+  white-space: normal;
+} 
+
 emu-figure {
   display: block;
 }
@@ -162,6 +193,10 @@ emu-table figure {
 
 emu-production {
     display: block;
+}
+
+emu-grammar[type="example"] emu-production,
+emu-grammar[type="definition"] emu-production {
     margin-top: 1em;
     margin-bottom: 1em;
     margin-left: 5ex;
@@ -189,6 +224,7 @@ emu-gann {
 }
 
 emu-gann emu-t:last-child,
+emu-gann emu-gprose:last-child,
 emu-gann emu-nt:last-child {
     margin-right: 0;
 }
@@ -243,10 +279,6 @@ emu-mods {
     font-weight: normal;
 }
 
-emu-production[collapsed] emu-mods {
-  display: none;
-}
-
 emu-params, emu-opt {
   margin-right: 1ex;
   font-family: monospace;
@@ -263,6 +295,10 @@ emu-opt {
 emu-gprose {
     font-size: 0.9em;
     font-family: Helvetica, Arial, sans-serif;
+}
+
+emu-production emu-gprose {
+    margin-right: 1ex;
 }
 
 h1.shortname {
@@ -292,7 +328,7 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 .secnum {
   text-decoration: none;
-  margin-right: 10px;
+  margin-right: 5px;
 }
 
 h1 span.title {
