@@ -824,6 +824,9 @@ var Reflect;
                 default: return false;
             }
         }
+        function SameValueZero(x, y) {
+            return x === y || x !== x && y !== y;
+        }
         // 7.3 Operations on Objects
         // https://tc39.github.io/ecma262/#sec-operations-on-objects
         // 7.3.9 GetMethod(V, P)
@@ -976,7 +979,7 @@ var Reflect;
                         }
                         this._keys.length--;
                         this._values.length--;
-                        if (key === this._cacheKey) {
+                        if (SameValueZero(key, this._cacheKey)) {
                             this._cacheKey = cacheSentinel;
                             this._cacheIndex = -2;
                         }
@@ -996,8 +999,14 @@ var Reflect;
                 Map.prototype["@@iterator"] = function () { return this.entries(); };
                 Map.prototype[iteratorSymbol] = function () { return this.entries(); };
                 Map.prototype._find = function (key, insert) {
-                    if (this._cacheKey !== key) {
-                        this._cacheIndex = this._keys.indexOf(this._cacheKey = key);
+                    if (!SameValueZero(this._cacheKey, key)) {
+                        this._cacheIndex = -1;
+                        for (var i = 0; i < this._keys.length; i++) {
+                            if (SameValueZero(this._keys[i], key)) {
+                                this._cacheIndex = i;
+                                break;
+                            }
+                        }
                     }
                     if (this._cacheIndex < 0 && insert) {
                         this._cacheIndex = this._keys.length;
@@ -1034,8 +1043,8 @@ var Reflect;
                 Set.prototype.delete = function (value) { return this._map.delete(value); };
                 Set.prototype.clear = function () { this._map.clear(); };
                 Set.prototype.keys = function () { return this._map.keys(); };
-                Set.prototype.values = function () { return this._map.values(); };
-                Set.prototype.entries = function () { return this._map.entries(); };
+                Set.prototype.values = function () { return this._map.keys(); };
+                Set.prototype.entries = function () { return this._map.keys(); };
                 Set.prototype["@@iterator"] = function () { return this.keys(); };
                 Set.prototype[iteratorSymbol] = function () { return this.keys(); };
                 return Set;
@@ -1129,3 +1138,4 @@ var Reflect;
         }
     });
 })(Reflect || (Reflect = {}));
+//# sourceMappingURL=Reflect.js.map
