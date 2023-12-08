@@ -1504,6 +1504,10 @@ namespace Reflect {
             }
         }
 
+        function SameValueZero(x: any, y: any) {
+            return x === y || x !== x && y !== y;
+        }
+
         // 7.3 Operations on Objects
         // https://tc39.github.io/ecma262/#sec-operations-on-objects
 
@@ -1659,7 +1663,7 @@ namespace Reflect {
                         }
                         this._keys.length--;
                         this._values.length--;
-                        if (key === this._cacheKey) {
+                        if (SameValueZero(key, this._cacheKey)) {
                             this._cacheKey = cacheSentinel;
                             this._cacheIndex = -2;
                         }
@@ -1679,8 +1683,14 @@ namespace Reflect {
                 "@@iterator"() { return this.entries(); }
                 [iteratorSymbol]() { return this.entries(); }
                 private _find(key: K, insert?: boolean): number {
-                    if (this._cacheKey !== key) {
-                        this._cacheIndex = this._keys.indexOf(this._cacheKey = key);
+                    if (!SameValueZero(this._cacheKey, key)) {
+                        this._cacheIndex = -1;
+                        for (let i = 0; i < this._keys.length; i++) {
+                            if (SameValueZero(this._keys[i], key)) {
+                                this._cacheIndex = i;
+                                break;
+                            }
+                        }
                     }
                     if (this._cacheIndex < 0 && insert) {
                         this._cacheIndex = this._keys.length;
@@ -1714,8 +1724,8 @@ namespace Reflect {
                 delete(value: T): boolean { return this._map.delete(value); }
                 clear(): void { this._map.clear(); }
                 keys() { return this._map.keys(); }
-                values() { return this._map.values(); }
-                entries() { return this._map.entries(); }
+                values() { return this._map.keys(); }
+                entries() { return this._map.keys(); }
                 "@@iterator"() { return this.keys(); }
                 [iteratorSymbol]() { return this.keys(); }
             };

@@ -43,6 +43,13 @@ describe("Reflect.getMetadata", () => {
         assert.equal(result, "value");
     });
 
+    it("WhenKeyIsNaN", () => {
+        let obj = {};
+        Reflect.defineMetadata(NaN, "value", obj, "name");
+        let result = Reflect.getMetadata(NaN, obj, "name");
+        assert.equal(result, "value");
+    });
+
     it("WithTargetKeyWhenDefinedOnPrototype", () => {
         let prototype = {};
         let obj = Object.create(prototype);
