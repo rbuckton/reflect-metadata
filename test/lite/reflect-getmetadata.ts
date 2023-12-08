@@ -1,32 +1,33 @@
 // 4.1.5 Reflect.getMetadata ( metadataKey, target [, propertyKey] )
 // https://rbuckton.github.io/reflect-metadata/#reflect.getmetadata
 
-import "../Reflect";
+/// <reference path="../../index.d.ts" />
+require("../../ReflectLite");
 import { assert } from "chai";
 
 describe("Reflect.getMetadata", () => {
     it("InvalidTarget", () => {
-        assert.throws(() => Reflect.getMetadata("key", undefined, undefined), TypeError);
+        assert.throws(() => Reflect.getMetadata("key", undefined, undefined!), TypeError);
     });
 
     it("WithoutTargetKeyWhenNotDefined", () => {
         let obj = {};
-        let result = Reflect.getMetadata("key", obj, undefined);
+        let result = Reflect.getMetadata("key", obj, undefined!);
         assert.equal(result, undefined);
     });
 
     it("WithoutTargetKeyWhenDefined", () => {
         let obj = {};
-        Reflect.defineMetadata("key", "value", obj, undefined);
-        let result = Reflect.getMetadata("key", obj, undefined);
+        Reflect.defineMetadata("key", "value", obj, undefined!);
+        let result = Reflect.getMetadata("key", obj, undefined!);
         assert.equal(result, "value");
     });
 
     it("WithoutTargetKeyWhenDefinedOnPrototype", () => {
         let prototype = {};
         let obj = Object.create(prototype);
-        Reflect.defineMetadata("key", "value", prototype, undefined);
-        let result = Reflect.getMetadata("key", obj, undefined);
+        Reflect.defineMetadata("key", "value", prototype, undefined!);
+        let result = Reflect.getMetadata("key", obj, undefined!);
         assert.equal(result, "value");
     });
 
@@ -40,13 +41,6 @@ describe("Reflect.getMetadata", () => {
         let obj = {};
         Reflect.defineMetadata("key", "value", obj, "name");
         let result = Reflect.getMetadata("key", obj, "name");
-        assert.equal(result, "value");
-    });
-
-    it("WhenKeyIsNaN", () => {
-        let obj = {};
-        Reflect.defineMetadata(NaN, "value", obj, "name");
-        let result = Reflect.getMetadata(NaN, obj, "name");
         assert.equal(result, "value");
     });
 

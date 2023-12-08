@@ -1,7 +1,8 @@
 // 4.1.2 Reflect.metadata ( metadataKey, metadataValue )
 // https://rbuckton.github.io/reflect-metadata/#reflect.metadata
 
-import "../Reflect";
+/// <reference path="../../index.d.ts" />
+require("../../Reflect");
 import { assert } from "chai";
 
 describe("Reflect.metadata", () => {
@@ -25,7 +26,7 @@ describe("Reflect.metadata", () => {
         let target = function () {}
         decorator(target);
 
-        let result = Reflect.hasOwnMetadata("key", target, undefined);
+        let result = Reflect.hasOwnMetadata("key", target, undefined!);
         assert.equal(result, true);
     });
 

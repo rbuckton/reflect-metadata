@@ -1,28 +1,28 @@
 // Reflect.decorate ( decorators, target [, propertyKey [, descriptor] ] )
 
-import "../Reflect";
+const Reflect = require("../../ReflectNoConflict");
 import { assert } from "chai";
 
 describe("Reflect.decorate", () => {
     it("ThrowsIfDecoratorsArgumentNotArrayForFunctionOverload", () => {
         let target = function() { };
-        assert.throws(() => Reflect.decorate(undefined, target, undefined, undefined), TypeError);
+        assert.throws(() => Reflect.decorate(undefined!, target, undefined!, undefined), TypeError);
     });
 
     it("ThrowsIfTargetArgumentNotFunctionForFunctionOverload", () => {
-        let decorators: (ClassDecorator | MethodDecorator | PropertyDecorator)[] = [];
+        let decorators: (MethodDecorator | PropertyDecorator)[] = [];
         let target = {};
-        assert.throws(() => Reflect.decorate(decorators, target, undefined, undefined), TypeError);
+        assert.throws(() => Reflect.decorate(decorators, target, undefined!, undefined), TypeError);
     });
 
     it("ThrowsIfDecoratorsArgumentNotArrayForPropertyOverload", () => {
         let target = {};
         let name = "name";
-        assert.throws(() => Reflect.decorate(undefined, target, name, undefined), TypeError);
+        assert.throws(() => Reflect.decorate(undefined!, target, name, undefined), TypeError);
     });
 
     it("ThrowsIfTargetArgumentNotObjectForPropertyOverload", () => {
-        let decorators: (ClassDecorator | MethodDecorator | PropertyDecorator)[] = [];
+        let decorators: (MethodDecorator | PropertyDecorator)[] = [];
         let target = 1;
         let name = "name";
         assert.throws(() => Reflect.decorate(decorators, target, name, undefined), TypeError);
@@ -32,11 +32,11 @@ describe("Reflect.decorate", () => {
         let target = {};
         let name = "name";
         let descriptor = {};
-        assert.throws(() => Reflect.decorate(undefined, target, name, descriptor), TypeError);
+        assert.throws(() => Reflect.decorate(undefined!, target, name, descriptor), TypeError);
     });
 
     it("ThrowsIfTargetArgumentNotObjectForPropertyDescriptorOverload", () => {
-        let decorators: (ClassDecorator | MethodDecorator | PropertyDecorator)[] = [];
+        let decorators: (MethodDecorator | PropertyDecorator)[] = [];
         let target = 1;
         let name = "name";
         let descriptor = {};
@@ -46,8 +46,8 @@ describe("Reflect.decorate", () => {
     it("ExecutesDecoratorsInReverseOrderForFunctionOverload", () => {
         let order: number[] = [];
         let decorators = [
-            (target: Function): void => { order.push(0); },
-            (target: Function): void => { order.push(1); }
+            (_target: Function): void => { order.push(0); },
+            (_target: Function): void => { order.push(1); }
         ];
         let target = function() { };
         Reflect.decorate(decorators, target);
@@ -57,8 +57,8 @@ describe("Reflect.decorate", () => {
     it("ExecutesDecoratorsInReverseOrderForPropertyOverload", () => {
         let order: number[] = [];
         let decorators = [
-            (target: Object, name: string | symbol): void => { order.push(0); },
-            (target: Object, name: string | symbol): void => { order.push(1); }
+            (_target: Object, _name: string | symbol): void => { order.push(0); },
+            (_target: Object, _name: string | symbol): void => { order.push(1); }
         ];
         let target = {};
         let name = "name";
@@ -69,8 +69,8 @@ describe("Reflect.decorate", () => {
     it("ExecutesDecoratorsInReverseOrderForPropertyDescriptorOverload", () => {
         let order: number[] = [];
         let decorators = [
-            (target: Object, name: string | symbol): void => { order.push(0); },
-            (target: Object, name: string | symbol): void => { order.push(1); }
+            (_target: Object, _name: string | symbol): void => { order.push(0); },
+            (_target: Object, _name: string | symbol): void => { order.push(1); }
         ];
         let target = {};
         let name = "name";
@@ -83,9 +83,9 @@ describe("Reflect.decorate", () => {
         let A = function A(): void { };
         let B = function B(): void { };
         let decorators = [
-            (target: Function): any => { return undefined; },
-            (target: Function): any => { return A; },
-            (target: Function): any => { return B; }
+            (_target: Function): any => { return undefined; },
+            (_target: Function): any => { return A; },
+            (_target: Function): any => { return B; }
         ];
         let target = function (): void { };
         let result = Reflect.decorate(decorators, target);
@@ -96,9 +96,9 @@ describe("Reflect.decorate", () => {
         let A = {};
         let B = {};
         let decorators = [
-            (target: Object, name: string | symbol): any => { return undefined; },
-            (target: Object, name: string | symbol): any => { return A; },
-            (target: Object, name: string | symbol): any => { return B; }
+            (_target: Object, _name: string | symbol): any => { return undefined; },
+            (_target: Object, _name: string | symbol): any => { return A; },
+            (_target: Object, _name: string | symbol): any => { return B; }
         ];
         let target = {};
         let result = Reflect.decorate(decorators, target, "name", undefined);
@@ -110,9 +110,9 @@ describe("Reflect.decorate", () => {
         let B = {};
         let C = {};
         let decorators = [
-            (target: Object, name: string | symbol): any => { return undefined; },
-            (target: Object, name: string | symbol): any => { return A; },
-            (target: Object, name: string | symbol): any => { return B; }
+            (_target: Object, _name: string | symbol): any => { return undefined; },
+            (_target: Object, _name: string | symbol): any => { return A; },
+            (_target: Object, _name: string | symbol): any => { return B; }
         ];
         let target = {};
         let result = Reflect.decorate(decorators, target, "name", C);
@@ -137,10 +137,10 @@ describe("Reflect.decorate", () => {
     it("DecoratorCorrectTargetInPipelineForPropertyOverload", () => {
         let sent: Object[] = [];
         let decorators = [
-            (target: Object, name: string | symbol): any => { sent.push(target); },
-            (target: Object, name: string | symbol): any => { sent.push(target); },
-            (target: Object, name: string | symbol): any => { sent.push(target); },
-            (target: Object, name: string | symbol): any => { sent.push(target); }
+            (target: Object, _name: string | symbol): any => { sent.push(target); },
+            (target: Object, _name: string | symbol): any => { sent.push(target); },
+            (target: Object, _name: string | symbol): any => { sent.push(target); },
+            (target: Object, _name: string | symbol): any => { sent.push(target); }
         ];
         let target = { };
         Reflect.decorate(decorators, target, "name");
@@ -150,10 +150,10 @@ describe("Reflect.decorate", () => {
     it("DecoratorCorrectNameInPipelineForPropertyOverload", () => {
         let sent: (symbol | string)[] = [];
         let decorators = [
-            (target: Object, name: string | symbol): any => { sent.push(name); },
-            (target: Object, name: string | symbol): any => { sent.push(name); },
-            (target: Object, name: string | symbol): any => { sent.push(name); },
-            (target: Object, name: string | symbol): any => { sent.push(name); }
+            (_target: Object, name: string | symbol): any => { sent.push(name); },
+            (_target: Object, name: string | symbol): any => { sent.push(name); },
+            (_target: Object, name: string | symbol): any => { sent.push(name); },
+            (_target: Object, name: string | symbol): any => { sent.push(name); }
         ];
         let target = { };
         Reflect.decorate(decorators, target, "name");
@@ -166,10 +166,10 @@ describe("Reflect.decorate", () => {
         let B = { };
         let C = { };
         let decorators = [
-            (target: Object, name: string | symbol): any => { sent.push(target); return undefined; },
-            (target: Object, name: string | symbol): any => { sent.push(target); return undefined; },
-            (target: Object, name: string | symbol): any => { sent.push(target); return A; },
-            (target: Object, name: string | symbol): any => { sent.push(target); return B; }
+            (target: Object, _name: string | symbol): any => { sent.push(target); return undefined; },
+            (target: Object, _name: string | symbol): any => { sent.push(target); return undefined; },
+            (target: Object, _name: string | symbol): any => { sent.push(target); return A; },
+            (target: Object, _name: string | symbol): any => { sent.push(target); return B; }
         ];
         let target = { };
         Reflect.decorate(decorators, target, "name", C);
@@ -182,10 +182,10 @@ describe("Reflect.decorate", () => {
         let B = { };
         let C = { };
         let decorators = [
-            (target: Object, name: string | symbol): any => { sent.push(name); return undefined; },
-            (target: Object, name: string | symbol): any => { sent.push(name); return undefined; },
-            (target: Object, name: string | symbol): any => { sent.push(name); return A; },
-            (target: Object, name: string | symbol): any => { sent.push(name); return B; }
+            (_target: Object, name: string | symbol): any => { sent.push(name); return undefined; },
+            (_target: Object, name: string | symbol): any => { sent.push(name); return undefined; },
+            (_target: Object, name: string | symbol): any => { sent.push(name); return A; },
+            (_target: Object, name: string | symbol): any => { sent.push(name); return B; }
         ];
         let target = { };
         Reflect.decorate(decorators, target, "name", C);
@@ -198,10 +198,10 @@ describe("Reflect.decorate", () => {
         let B = { };
         let C = { };
         let decorators = [
-            (target: Object, name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return undefined; },
-            (target: Object, name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return undefined; },
-            (target: Object, name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return A; },
-            (target: Object, name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return B; }
+            (_target: Object, _name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return undefined; },
+            (_target: Object, _name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return undefined; },
+            (_target: Object, _name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return A; },
+            (_target: Object, _name: string | symbol, descriptor: PropertyDescriptor): any => { sent.push(descriptor); return B; }
         ];
         let target = { };
         Reflect.decorate(decorators, target, "name", C);

@@ -1,16 +1,17 @@
 // 4.1.2 Reflect.defineMetadata ( metadataKey, metadataValue, target, propertyKey )
 // https://rbuckton.github.io/reflect-metadata/#reflect.definemetadata
 
-import "../Reflect";
+/// <reference path="../../index.d.ts" />
+require("../../Reflect");
 import { assert } from "chai";
 
 describe("Reflect.defineMetadata", () => {
     it("InvalidTarget", () => {
-        assert.throws(() => Reflect.defineMetadata("key", "value", undefined, undefined), TypeError);
+        assert.throws(() => Reflect.defineMetadata("key", "value", undefined, undefined!), TypeError);
     });
 
     it("ValidTargetWithoutTargetKey", () => {
-        assert.doesNotThrow(() => Reflect.defineMetadata("key", "value", { }, undefined));
+        assert.doesNotThrow(() => Reflect.defineMetadata("key", "value", { }, undefined!));
     });
 
     it("ValidTargetWithTargetKey", () => {

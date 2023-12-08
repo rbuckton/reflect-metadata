@@ -1,45 +1,46 @@
-// 4.1.5 Reflect.hasOwnMetadata ( metadataKey, target [, propertyKey] )
-// https://rbuckton.github.io/reflect-metadata/#reflect.hasownmetadata
+// 4.1.4 Reflect.hasMetadata ( metadataKey, target [, propertyKey] )
+// https://rbuckton.github.io/reflect-metadata/#reflect.hasmetadata
 
-import "../Reflect";
+/// <reference path="../../index.d.ts" />
+require("../../ReflectLite");
 import { assert } from "chai";
 
-describe("Reflect.hasOwnMetadata", () => {
+describe("Reflect.hasMetadata", () => {
     it("InvalidTarget", () => {
-        assert.throws(() => Reflect.hasOwnMetadata("key", undefined, undefined), TypeError);
+        assert.throws(() => Reflect.hasMetadata("key", undefined, undefined!), TypeError);
     });
 
     it("WithoutTargetKeyWhenNotDefined", () => {
         let obj = {};
-        let result = Reflect.hasOwnMetadata("key", obj, undefined);
+        let result = Reflect.hasMetadata("key", obj, undefined!);
         assert.equal(result, false);
     });
 
     it("WithoutTargetKeyWhenDefined", () => {
         let obj = {};
-        Reflect.defineMetadata("key", "value", obj, undefined);
-        let result = Reflect.hasOwnMetadata("key", obj, undefined);
+        Reflect.defineMetadata("key", "value", obj, undefined!);
+        let result = Reflect.hasMetadata("key", obj, undefined!);
         assert.equal(result, true);
     });
 
     it("WithoutTargetKeyWhenDefinedOnPrototype", () => {
         let prototype = {};
         let obj = Object.create(prototype);
-        Reflect.defineMetadata("key", "value", prototype, undefined);
-        let result = Reflect.hasOwnMetadata("key", obj, undefined);
-        assert.equal(result, false);
+        Reflect.defineMetadata("key", "value", prototype, undefined!);
+        let result = Reflect.hasMetadata("key", obj, undefined!);
+        assert.equal(result, true);
     });
 
     it("WithTargetKeyWhenNotDefined", () => {
         let obj = {};
-        let result = Reflect.hasOwnMetadata("key", obj, "name");
+        let result = Reflect.hasMetadata("key", obj, "name");
         assert.equal(result, false);
     });
 
     it("WithTargetKeyWhenDefined", () => {
         let obj = {};
         Reflect.defineMetadata("key", "value", obj, "name");
-        let result = Reflect.hasOwnMetadata("key", obj, "name");
+        let result = Reflect.hasMetadata("key", obj, "name");
         assert.equal(result, true);
     });
 
@@ -47,7 +48,7 @@ describe("Reflect.hasOwnMetadata", () => {
         let prototype = {};
         let obj = Object.create(prototype);
         Reflect.defineMetadata("key", "value", prototype, "name");
-        let result = Reflect.hasOwnMetadata("key", obj, "name");
-        assert.equal(result, false);
+        let result = Reflect.hasMetadata("key", obj, "name");
+        assert.equal(result, true);
     });
 });

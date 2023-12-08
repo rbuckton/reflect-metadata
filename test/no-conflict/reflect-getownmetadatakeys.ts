@@ -1,50 +1,50 @@
 // 4.1.9 Reflect.getOwnMetadataKeysKeys ( target [, propertyKey] )
 // https://rbuckton.github.io/reflect-metadata/#reflect.getownmetadatakeys
 
-import "../Reflect";
+const Reflect = require("../../ReflectNoConflict");
 import { assert } from "chai";
 
-describe("Reflect.deleteMetadata", () => {
+describe("Reflect.getOwnMetadataKeys", () => {
     it("KeysKeysInvalidTarget", () => {
         // 1. If Type(target) is not Object, throw a TypeError exception.
-        assert.throws(() => Reflect.getOwnMetadataKeys(undefined, undefined), TypeError);
+        assert.throws(() => Reflect.getOwnMetadataKeys(undefined, undefined!), TypeError);
     });
 
     it("KeysWithoutTargetKeyWhenNotDefined", () => {
         let obj = {};
-        let result = Reflect.getOwnMetadataKeys(obj, undefined);
+        let result = Reflect.getOwnMetadataKeys(obj, undefined!);
         assert.deepEqual(result, []);
     });
 
     it("KeysWithoutTargetKeyWhenDefined", () => {
         let obj = {};
-        Reflect.defineMetadata("key", "value", obj, undefined);
-        let result = Reflect.getOwnMetadataKeys(obj, undefined);
+        Reflect.defineMetadata("key", "value", obj, undefined!);
+        let result = Reflect.getOwnMetadataKeys(obj, undefined!);
         assert.deepEqual(result, ["key"]);
     });
 
     it("KeysWithoutTargetKeyWhenDefinedOnPrototype", () => {
         let prototype = {};
         let obj = Object.create(prototype);
-        Reflect.defineMetadata("key", "value", prototype, undefined);
-        let result = Reflect.getOwnMetadataKeys(obj, undefined);
+        Reflect.defineMetadata("key", "value", prototype, undefined!);
+        let result = Reflect.getOwnMetadataKeys(obj, undefined!);
         assert.deepEqual(result, []);
     });
 
     it("KeysOrderWithoutTargetKey", () => {
         let obj = {};
-        Reflect.defineMetadata("key1", "value", obj, undefined);
-        Reflect.defineMetadata("key0", "value", obj, undefined);
-        let result = Reflect.getOwnMetadataKeys(obj, undefined);
+        Reflect.defineMetadata("key1", "value", obj, undefined!);
+        Reflect.defineMetadata("key0", "value", obj, undefined!);
+        let result = Reflect.getOwnMetadataKeys(obj, undefined!);
         assert.deepEqual(result, ["key1", "key0"]);
     });
 
     it("KeysOrderAfterRedefineWithoutTargetKey", () => {
         let obj = {};
-        Reflect.defineMetadata("key1", "value", obj, undefined);
-        Reflect.defineMetadata("key0", "value", obj, undefined);
-        Reflect.defineMetadata("key1", "value", obj, undefined);
-        let result = Reflect.getOwnMetadataKeys(obj, undefined);
+        Reflect.defineMetadata("key1", "value", obj, undefined!);
+        Reflect.defineMetadata("key0", "value", obj, undefined!);
+        Reflect.defineMetadata("key1", "value", obj, undefined!);
+        let result = Reflect.getOwnMetadataKeys(obj, undefined!);
         assert.deepEqual(result, ["key1", "key0"]);
     });
 

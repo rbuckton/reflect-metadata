@@ -1,32 +1,32 @@
 // 4.1.7 Reflect.getOwnMetadata ( metadataKey, target [, propertyKey] )
 // https://rbuckton.github.io/reflect-metadata/#reflect.getownmetadata
 
-import "../Reflect";
+const Reflect = require("../../ReflectNoConflict");
 import { assert } from "chai";
 
 describe("Reflect.getOwnMetadata", () => {
     it("InvalidTarget", () => {
-        assert.throws(() => Reflect.getOwnMetadata("key", undefined, undefined), TypeError);
+        assert.throws(() => Reflect.getOwnMetadata("key", undefined, undefined!), TypeError);
     });
 
     it("WithoutTargetKeyWhenNotDefined", () => {
         let obj = {};
-        let result = Reflect.getOwnMetadata("key", obj, undefined);
+        let result = Reflect.getOwnMetadata("key", obj, undefined!);
         assert.equal(result, undefined);
     });
 
     it("WithoutTargetKeyWhenDefined", () => {
         let obj = {};
-        Reflect.defineMetadata("key", "value", obj, undefined);
-        let result = Reflect.getOwnMetadata("key", obj, undefined);
+        Reflect.defineMetadata("key", "value", obj, undefined!);
+        let result = Reflect.getOwnMetadata("key", obj, undefined!);
         assert.equal(result, "value");
     });
 
     it("WithoutTargetKeyWhenDefinedOnPrototype", () => {
         let prototype = {};
         let obj = Object.create(prototype);
-        Reflect.defineMetadata("key", "value", prototype, undefined);
-        let result = Reflect.getOwnMetadata("key", obj, undefined);
+        Reflect.defineMetadata("key", "value", prototype, undefined!);
+        let result = Reflect.getOwnMetadata("key", obj, undefined!);
         assert.equal(result, undefined);
     });
 
