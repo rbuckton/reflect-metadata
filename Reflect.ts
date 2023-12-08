@@ -1725,7 +1725,7 @@ namespace Reflect {
                 clear(): void { this._map.clear(); }
                 keys() { return this._map.keys(); }
                 values() { return this._map.keys(); }
-                entries() { return this._map.keys(); }
+                entries() { return this._map.entries(); }
                 "@@iterator"() { return this.keys(); }
                 [iteratorSymbol]() { return this.keys(); }
             };
