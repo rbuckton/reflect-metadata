@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "module": "commonjs",
+    "types": ["node", "mocha"],
+    "typeRoots": ["../../node_modules/@types"],
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}

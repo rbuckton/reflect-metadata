@@ -29,11 +29,6 @@ const _Map: typeof Map = typeof Map === "function" && typeof Map.prototype.entri
 const _Set: typeof Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : fail("A valid Set constructor could not be found.");
 const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : fail("A valid WeakMap constructor could not be found.");
 
-// [[Metadata]] internal slot
-// https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
-const Metadata = new _WeakMap<any, Map<string | symbol | undefined, Map<any, any>>>();
-let hasSetMetadata = false;
-
 /**
  * Applies a set of decorators to a target object.
  * @param decorators An array of decorators.
@@ -337,9 +332,6 @@ export function defineMetadata(metadataKey: any, metadataValue: any, target: any
  *
  */
 export function defineMetadata(metadataKey: any, metadataValue: any, target: any, propertyKey?: string | symbol): void {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.defineMetadata === "function" && Reflect.defineMetadata !== defineMetadata) {
-        return Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryDefineOwnMetadata(metadataKey, metadataValue, target, propertyKey);
@@ -431,9 +423,6 @@ export function hasMetadata(metadataKey: any, target: any, propertyKey: string |
  *
  */
 export function hasMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.hasMetadata === "function" && Reflect.hasMetadata !== hasMetadata) {
-        return Reflect.hasMetadata(metadataKey, target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryHasMetadata(metadataKey, target, propertyKey);
@@ -525,9 +514,6 @@ export function hasOwnMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function hasOwnMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.hasOwnMetadata === "function" && Reflect.hasOwnMetadata !== hasOwnMetadata) {
-        return Reflect.hasOwnMetadata(metadataKey, target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryHasOwnMetadata(metadataKey, target, propertyKey);
@@ -619,9 +605,6 @@ export function getMetadata(metadataKey: any, target: any, propertyKey: string |
  *
  */
 export function getMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): any {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getMetadata === "function" && Reflect.getMetadata !== getMetadata) {
-        return Reflect.getMetadata(metadataKey, target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryGetMetadata(metadataKey, target, propertyKey);
@@ -713,9 +696,6 @@ export function getOwnMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function getOwnMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): any {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadata === "function" && Reflect.getOwnMetadata !== getOwnMetadata) {
-        return Reflect.getOwnMetadata(metadataKey, target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryGetOwnMetadata(metadataKey, target, propertyKey);
@@ -804,9 +784,6 @@ export function getMetadataKeys(target: any, propertyKey: string | symbol): any[
  *
  */
 export function getMetadataKeys(target: any, propertyKey?: string | symbol): any[] {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getMetadataKeys === "function" && Reflect.getMetadataKeys !== getMetadataKeys) {
-        return Reflect.getMetadataKeys(target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryMetadataKeys(target, propertyKey);
@@ -895,9 +872,6 @@ export function getOwnMetadataKeys(target: any, propertyKey: string | symbol): a
  *
  */
 export function getOwnMetadataKeys(target: any, propertyKey?: string | symbol): any[] {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.getOwnMetadataKeys === "function" && Reflect.getOwnMetadataKeys !== getOwnMetadataKeys) {
-        return Reflect.getOwnMetadataKeys(target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
     return OrdinaryOwnMetadataKeys(target, propertyKey);
@@ -989,20 +963,11 @@ export function deleteMetadata(metadataKey: any, target: any, propertyKey: strin
  *
  */
 export function deleteMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
-    if (!hasSetMetadata && typeof Reflect !== "undefined" && typeof Reflect.deleteMetadata === "function" && Reflect.deleteMetadata !== deleteMetadata) {
-        return Reflect.deleteMetadata(metadataKey, target, propertyKey!);
-    }
     if (!IsObject(target)) throw new TypeError();
     if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
-    const metadataMap = GetOrCreateMetadataMap(target, propertyKey, /*Create*/ false);
-    if (IsUndefined(metadataMap)) return false;
-    if (!metadataMap.delete(metadataKey)) return false;
-    if (metadataMap.size > 0) return true;
-    const targetMetadata = Metadata.get(target);
-    targetMetadata.delete(propertyKey);
-    if (targetMetadata.size > 0) return true;
-    Metadata.delete(target);
-    return true;
+    const provider = GetMetadataProvider(target, propertyKey, /*Create*/ false);
+    if (IsUndefined(provider)) return false;
+    return provider.OrdinaryDeleteMetadata(metadataKey, target, propertyKey);
 }
 
 function DecorateConstructor(decorators: ClassDecorator[], target: Function): Function {
@@ -1029,27 +994,6 @@ function DecorateProperty(decorators: MemberDecorator[], target: any, propertyKe
     return descriptor;
 }
 
-// 2.1.1 GetOrCreateMetadataMap(O, P, Create)
-// https://rbuckton.github.io/reflect-metadata/#getorcreatemetadatamap
-function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: true): Map<any, any>;
-function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: false): Map<any, any> | undefined;
-function GetOrCreateMetadataMap(O: any, P: string | symbol | undefined, Create: boolean): Map<any, any> | undefined {
-    let targetMetadata = Metadata.get(O);
-    if (IsUndefined(targetMetadata)) {
-        if (!Create) return undefined;
-        targetMetadata = new _Map<string | symbol | undefined, Map<any, any>>();
-        Metadata.set(O, targetMetadata);
-        hasSetMetadata = true;
-    }
-    let metadataMap = targetMetadata.get(P);
-    if (IsUndefined(metadataMap)) {
-        if (!Create) return undefined;
-        metadataMap = new _Map<any, any>();
-        targetMetadata.set(P, metadataMap);
-    }
-    return metadataMap;
-}
-
 // 3.1.1.1 OrdinaryHasMetadata(MetadataKey, O, P)
 // https://rbuckton.github.io/reflect-metadata/#ordinaryhasmetadata
 function OrdinaryHasMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): boolean {
@@ -1063,9 +1007,9 @@ function OrdinaryHasMetadata(MetadataKey: any, O: any, P: string | symbol | unde
 // 3.1.2.1 OrdinaryHasOwnMetadata(MetadataKey, O, P)
 // https://rbuckton.github.io/reflect-metadata/#ordinaryhasownmetadata
 function OrdinaryHasOwnMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): boolean {
-    const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
-    if (IsUndefined(metadataMap)) return false;
-    return ToBoolean(metadataMap.has(MetadataKey));
+    const provider = GetMetadataProvider(O, P, /*Create*/ false);
+    if (IsUndefined(provider)) return false;
+    return ToBoolean(provider.OrdinaryHasOwnMetadata(MetadataKey, O, P));
 }
 
 // 3.1.3.1 OrdinaryGetMetadata(MetadataKey, O, P)
@@ -1081,16 +1025,16 @@ function OrdinaryGetMetadata(MetadataKey: any, O: any, P: string | symbol | unde
 // 3.1.4.1 OrdinaryGetOwnMetadata(MetadataKey, O, P)
 // https://rbuckton.github.io/reflect-metadata/#ordinarygetownmetadata
 function OrdinaryGetOwnMetadata(MetadataKey: any, O: any, P: string | symbol | undefined): any {
-    const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
-    if (IsUndefined(metadataMap)) return undefined;
-    return metadataMap.get(MetadataKey);
+    const provider = GetMetadataProvider(O, P, /*Create*/ false);
+    if (IsUndefined(provider)) return;
+    return provider.OrdinaryGetOwnMetadata(MetadataKey, O, P);
 }
 
 // 3.1.5.1 OrdinaryDefineOwnMetadata(MetadataKey, MetadataValue, O, P)
 // https://rbuckton.github.io/reflect-metadata/#ordinarydefineownmetadata
 function OrdinaryDefineOwnMetadata(MetadataKey: any, MetadataValue: any, O: any, P: string | symbol | undefined): void {
-    const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ true);
-    metadataMap.set(MetadataKey, MetadataValue);
+    const provider = GetMetadataProvider(O, P, /*Create*/ true);
+    provider.OrdinaryDefineOwnMetadata(MetadataKey, MetadataValue, O, P);
 }
 
 // 3.1.6.1 OrdinaryMetadataKeys(O, P)
@@ -1124,32 +1068,11 @@ function OrdinaryMetadataKeys(O: any, P: string | symbol | undefined): any[] {
 // 3.1.7.1 OrdinaryOwnMetadataKeys(O, P)
 // https://rbuckton.github.io/reflect-metadata/#ordinaryownmetadatakeys
 function OrdinaryOwnMetadataKeys(O: any, P: string | symbol | undefined): any[] {
-    const keys: any[] = [];
-    const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
-    if (IsUndefined(metadataMap)) return keys;
-    const keysObj = metadataMap.keys();
-    const iterator = GetIterator(keysObj);
-    let k = 0;
-    while (true) {
-        const next = IteratorStep(iterator);
-        if (!next) {
-            keys.length = k;
-            return keys;
-        }
-        const nextValue = IteratorValue(next);
-        try {
-            keys[k] = nextValue;
-        }
-        catch (e) {
-            try {
-                IteratorClose(iterator);
-            }
-            finally {
-                throw e;
-            }
-        }
-        k++;
+    const provider = GetMetadataProvider(O, P, /*create*/ false);
+    if (!provider) {
+        return [];
     }
+    return provider.OrdinaryOwnMetadataKeys(O, P);
 }
 
 // 6 ECMAScript Data Typ0es and Values
@@ -1394,4 +1317,300 @@ function OrdinaryGetPrototypeOf(O: any): any {
 
 function fail(e: any): never {
     throw e;
+}
+
+// Global metadata registry
+// - Allows `import "reflect-metadata"` and `import "reflect-metadata/no-conflict"` to interoperate.
+// - Uses isolated metadata if `Reflect` is frozen before the registry can be installed.
+
+const registrySymbol = supportsSymbol ? Symbol.for("@reflect-metadata:registry") : undefined;
+const metadataRegistry = GetOrCreateMetadataRegistry();
+const metadataProvider = CreateMetadataProvider(metadataRegistry);
+
+/**
+ * Creates a registry used to allow multiple `reflect-metadata` providers.
+ */
+function CreateMetadataRegistry(): MetadataRegistry {
+    let first: MetadataProvider | undefined;
+    let second: MetadataProvider | undefined;
+    let rest: Set<MetadataProvider> | undefined;
+    const targetProviderMap = new _WeakMap<object, Map<string | symbol | undefined, MetadataProvider>>();
+    const registry: MetadataRegistry = {
+        registerProvider,
+        getProvider,
+        setProvider,
+    };
+    return registry;
+
+    function registerProvider(provider: MetadataProvider) {
+        if (!Object.isExtensible(registry)) {
+            throw new Error("Cannot add provider to a frozen registry.");
+        }
+        switch (true) {
+            case IsUndefined(first): first = provider; break;
+            case first === provider: break;
+            case IsUndefined(second): second = provider; break;
+            case second === provider: break;
+            default:
+                if (rest === undefined) rest = new _Set();
+                rest.add(provider);
+                break;
+        }
+    }
+
+    function getProviderNoCache(O: object, P: string | symbol | undefined) {
+        if (IsUndefined(first)) return undefined;
+        if (first.isProviderFor(O, P)) return first;
+        if (IsUndefined(second)) return undefined;
+        if (second.isProviderFor(O, P)) return first;
+        if (IsUndefined(rest)) return undefined;
+        const iterator = GetIterator(rest);
+        while (true) {
+            const next = IteratorStep(iterator);
+            if (!next) {
+                return undefined;
+            }
+            const provider = IteratorValue(next);
+            if (provider.isProviderFor(O, P)) {
+                IteratorClose(iterator);
+                return provider;
+            }
+        }
+    }
+
+    function getProvider(O: object, P: string | symbol | undefined) {
+        let providerMap = targetProviderMap.get(O);
+        let provider: MetadataProvider | undefined;
+        if (!IsUndefined(providerMap)) {
+            provider = providerMap.get(P);
+        }
+        if (!IsUndefined(provider)) {
+            return provider;
+        }
+
+        provider = getProviderNoCache(O, P);
+        if (!IsUndefined(provider)) {
+            if (IsUndefined(providerMap)) {
+                providerMap = new _Map();
+                targetProviderMap.set(O, providerMap);
+            }
+            providerMap.set(P, provider);
+        }
+        return provider;
+    }
+
+    function hasProvider(provider: MetadataProvider) {
+        return first === provider || second === provider || !IsUndefined(rest) && rest.has(provider);
+    }
+
+    function setProvider(O: object, P: string | symbol | undefined, provider: MetadataProvider) {
+        if (!hasProvider(provider)) {
+            throw new Error("Metadata provider not registered.");
+        }
+        const existingProvider = getProvider(O, P);
+        if (existingProvider !== provider) {
+            if (!IsUndefined(existingProvider)) {
+                return false;
+            }
+            let providerMap = targetProviderMap.get(O);
+            if (IsUndefined(providerMap)) {
+                providerMap = new _Map();
+                targetProviderMap.set(O, providerMap);
+            }
+            providerMap.set(P, provider);
+        }
+        return true;
+    }
+}
+
+/**
+ * Gets or creates the shared registry of metadata providers.
+ */
+function GetOrCreateMetadataRegistry(): MetadataRegistry {
+    let metadataRegistry: MetadataRegistry | undefined;
+    if (!IsUndefined(registrySymbol) && IsObject(Reflect) && Object.isExtensible(Reflect)) {
+        metadataRegistry = (Reflect as any)[registrySymbol] as MetadataRegistry | undefined;
+    }
+    if (IsUndefined(metadataRegistry)) {
+        metadataRegistry = CreateMetadataRegistry();
+    }
+    if (!IsUndefined(registrySymbol) && IsObject(Reflect) && Object.isExtensible(Reflect)) {
+        if (typeof Reflect.defineMetadata === "function") {
+            // `/no-conflict` used in an environment with an older copy of `reflect-metadata`. Add a legacy fallback.
+            metadataRegistry.registerProvider(CreateFallbackProvider(Reflect));
+        }
+        Object.defineProperty(Reflect, registrySymbol, {
+            enumerable: false,
+            configurable: false,
+            writable: false,
+            value: metadataRegistry
+        });
+    }
+    return metadataRegistry;
+}
+
+function CreateMetadataProvider(registry: MetadataRegistry): MetadataProvider {
+    // [[Metadata]] internal slot
+    // https://rbuckton.github.io/reflect-metadata/#ordinary-object-internal-methods-and-internal-slots
+    const metadata = new _WeakMap<any, Map<string | symbol | undefined, Map<any, any>>>();
+    const provider: MetadataProvider = {
+        isProviderFor(O, P) {
+            const targetMetadata = metadata.get(O);
+            if (IsUndefined(targetMetadata)) return false;
+            return targetMetadata.has(P);
+        },
+        OrdinaryDefineOwnMetadata: OrdinaryDefineOwnMetadata,
+        OrdinaryHasOwnMetadata: OrdinaryHasOwnMetadata,
+        OrdinaryGetOwnMetadata: OrdinaryGetOwnMetadata,
+        OrdinaryOwnMetadataKeys: OrdinaryOwnMetadataKeys,
+        OrdinaryDeleteMetadata: OrdinaryDeleteMetadata,
+    };
+    metadataRegistry.registerProvider(provider);
+    return provider;
+
+    // 2.1.1 GetOrCreateMetadataMap(O, P, Create)
+    // https://rbuckton.github.io/reflect-metadata/#getorcreatemetadatamap
+    function GetOrCreateMetadataMap(O: object, P: string | symbol | undefined, Create: true): Map<any, any>;
+    function GetOrCreateMetadataMap(O: object, P: string | symbol | undefined, Create: false): Map<any, any> | undefined;
+    function GetOrCreateMetadataMap(O: object, P: string | symbol | undefined, Create: boolean) {
+        let targetMetadata = metadata.get(O);
+        let createdTargetMetadata = false;
+        if (IsUndefined(targetMetadata)) {
+            if (!Create) return undefined;
+            targetMetadata = new _Map<string | symbol | undefined, Map<any, any>>();
+            metadata.set(O, targetMetadata);
+            createdTargetMetadata = true;
+        }
+        let metadataMap = targetMetadata.get(P);
+        if (IsUndefined(metadataMap)) {
+            if (!Create) return undefined;
+            metadataMap = new _Map<any, any>();
+            targetMetadata.set(P, metadataMap);
+            if (!registry.setProvider(O, P, provider)) {
+                targetMetadata.delete(P);
+                if (createdTargetMetadata) {
+                    metadata.delete(O);
+                }
+                throw new Error("Wrong provider for target.");
+            }
+        }
+        return metadataMap;
+    }
+
+    // 3.1.2.1 OrdinaryHasOwnMetadata(MetadataKey, O, P)
+    // https://rbuckton.github.io/reflect-metadata/#ordinaryhasownmetadata
+    function OrdinaryHasOwnMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): boolean {
+        const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
+        if (IsUndefined(metadataMap)) return false;
+        return ToBoolean(metadataMap.has(MetadataKey));
+    }
+
+    // 3.1.4.1 OrdinaryGetOwnMetadata(MetadataKey, O, P)
+    // https://rbuckton.github.io/reflect-metadata/#ordinarygetownmetadata
+    function OrdinaryGetOwnMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): any {
+        const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
+        if (IsUndefined(metadataMap)) return undefined;
+        return metadataMap.get(MetadataKey);
+    }
+
+    // 3.1.5.1 OrdinaryDefineOwnMetadata(MetadataKey, MetadataValue, O, P)
+    // https://rbuckton.github.io/reflect-metadata/#ordinarydefineownmetadata
+    function OrdinaryDefineOwnMetadata(MetadataKey: any, MetadataValue: any, O: object, P: string | symbol | undefined): void {
+        const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ true);
+        metadataMap.set(MetadataKey, MetadataValue);
+    }
+
+    // 3.1.7.1 OrdinaryOwnMetadataKeys(O, P)
+    // https://rbuckton.github.io/reflect-metadata/#ordinaryownmetadatakeys
+    function OrdinaryOwnMetadataKeys(O: any, P: string | symbol | undefined): any[] {
+        const keys: any[] = [];
+        const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
+        if (IsUndefined(metadataMap)) return keys;
+        const keysObj = metadataMap.keys();
+        const iterator = GetIterator(keysObj);
+        let k = 0;
+        while (true) {
+            const next = IteratorStep(iterator);
+            if (!next) {
+                keys.length = k;
+                return keys;
+            }
+            const nextValue = IteratorValue(next);
+            try {
+                keys[k] = nextValue;
+            }
+            catch (e) {
+                try {
+                    IteratorClose(iterator);
+                }
+                finally {
+                    throw e;
+                }
+            }
+            k++;
+        }
+    }
+
+    function OrdinaryDeleteMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): boolean {
+        const metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
+        if (IsUndefined(metadataMap)) return false;
+        if (!metadataMap.delete(MetadataKey)) return false;
+        if (metadataMap.size === 0) {
+            const targetMetadata = metadata.get(O);
+            if (!IsUndefined(targetMetadata)) {
+                targetMetadata.delete(P);
+                if (targetMetadata.size === 0) {
+                    metadata.delete(targetMetadata);
+                }
+            }
+        }
+        return true;
+    }
+}
+
+function CreateFallbackProvider(reflect: typeof Reflect): MetadataProvider {
+    const metadataOwner = new _WeakMap<object, Set<string | symbol | undefined>>();
+    const provider: MetadataProvider = {
+        isProviderFor(O, P) {
+            let metadataPropertySet = metadataOwner.get(O);
+            if (!IsUndefined(metadataPropertySet)) {
+                return metadataPropertySet.has(P);
+            }
+            if (reflect.getOwnMetadataKeys(O, P!).length) {
+                if (IsUndefined(metadataPropertySet)) {
+                    metadataPropertySet = new _Set();
+                    metadataOwner.set(O, metadataPropertySet);
+                }
+                metadataPropertySet.add(P);
+                return true;
+            }
+            return false;
+        },
+        OrdinaryDefineOwnMetadata: reflect.defineMetadata,
+        OrdinaryHasOwnMetadata: reflect.hasOwnMetadata,
+        OrdinaryGetOwnMetadata: reflect.getOwnMetadata,
+        OrdinaryOwnMetadataKeys: reflect.getOwnMetadataKeys,
+        OrdinaryDeleteMetadata: reflect.deleteMetadata,
+    };
+    return provider;
+}
+
+function GetMetadataProvider(O: object, P: string | symbol | undefined, Create: true): MetadataProvider;
+function GetMetadataProvider(O: object, P: string | symbol | undefined, Create: false): MetadataProvider | undefined;
+/**
+ * Gets the metadata provider for an object. If the object has no metadata provider and this is for a create operation,
+ * then this module's metadata provider is assigned to the object.
+ */
+function GetMetadataProvider(O: object, P: string | symbol | undefined, Create: boolean): MetadataProvider | undefined {
+    const registeredProvider = metadataRegistry.getProvider(O, P);
+    if (!IsUndefined(registeredProvider)) {
+        return registeredProvider;
+    }
+    if (Create) {
+        if (metadataRegistry.setProvider(O, P, metadataProvider)) {
+            return metadataProvider;
+        }
+        throw new Error("Illegal state.");
+    }
+    return undefined;
 }

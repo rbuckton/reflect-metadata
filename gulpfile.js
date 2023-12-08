@@ -9,7 +9,12 @@ const gls = require("gulp-live-server");
 
 const debugProject = tsb.create("tsconfig.json");
 const releaseProject = tsb.create("tsconfig-release.json");
-const tests = tsb.create("test/tsconfig.json");
+const tests = {
+    full: tsb.create("test/full/tsconfig.json"),
+    lite: tsb.create("test/lite/tsconfig.json"),
+    "no-conflict": tsb.create("test/no-conflict/tsconfig.json"),
+    registry: tsb.create("test/registry/tsconfig.json"),
+};
 
 let project = debugProject;
 
@@ -30,10 +35,32 @@ gulp.task("build:reflect", () => gulp
     .pipe(project())
     .pipe(gulp.dest(".")));
 
-gulp.task("build:tests", ["build:reflect"], () => gulp
-    .src(["test/**/*.ts"])
-    .pipe(tests())
-    .pipe(gulp.dest("test")));
+gulp.task("build:tests:full", ["build:reflect"], () => gulp
+    .src(["test/full/**/*.ts"])
+    .pipe(tests.full())
+    .pipe(gulp.dest("test/full")));
+
+gulp.task("build:tests:lite", ["build:reflect"], () => gulp
+    .src(["test/lite/**/*.ts"])
+    .pipe(tests.lite())
+    .pipe(gulp.dest("test/lite")));
+
+gulp.task("build:tests:no-conflict", ["build:reflect"], () => gulp
+    .src(["test/no-conflict/**/*.ts"])
+    .pipe(tests["no-conflict"]())
+    .pipe(gulp.dest("test/no-conflict")));
+
+gulp.task("build:tests:registry", ["build:reflect"], () => gulp
+    .src(["test/registry/**/*.ts"])
+    .pipe(tests.registry())
+    .pipe(gulp.dest("test/registry")));
+
+gulp.task("build:tests", [
+    "build:tests:full",
+    "build:tests:lite",
+    "build:tests:no-conflict",
+    "build:tests:registry"
+]);
 
 gulp.task("build:spec", () => gulp
     .src(["spec.html"])
@@ -55,31 +82,37 @@ gulp.task("use-polyfill", () => {
     process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] = "true";
 });
 
-gulp.task("test:full", ["build:tests", "no-polyfill"], () => {
+gulp.task("test:full", ["build:tests:full", "no-polyfill"], () => {
     console.log("Running tests w/o polyfill...");
     return gulp
         .src(["test/full/**/*.js"], { read: false })
         .pipe(mocha({ reporter: "dot" }));
 });
-gulp.task("test:lite", ["build:tests", "no-polyfill"], () => {
+gulp.task("test:lite", ["build:tests:lite", "no-polyfill"], () => {
     console.log("Running lite-mode tests w/o polyfill...");
     return gulp
         .src(["test/lite/**/*.js"], { read: false })
         .pipe(mocha({ reporter: "dot" }));
 });
-gulp.task("test:no-conflict", ["build:tests", "no-polyfill"], () => {
+gulp.task("test:no-conflict", ["build:tests:no-conflict", "no-polyfill"], () => {
     console.log("Running no-conflict-mode tests w/o polyfill...");
     return gulp
         .src(["test/no-conflict/**/*.js"], { read: false })
         .pipe(mocha({ reporter: "dot" }));
 });
-gulp.task("test:use-polyfill", ["build:tests", "use-polyfill"], () => {
+gulp.task("test:registry", ["build:tests:registry", "no-polyfill"], () => {
+    console.log("Running registry...");
+    return gulp
+        .src(["test/registry/**/*.js"], { read: false })
+        .pipe(mocha({ reporter: "dot" }));
+});
+gulp.task("test:use-polyfill", ["build:tests:full", "use-polyfill"], () => {
     console.log("Running tests w/ polyfill...");
     return gulp
         .src(["test/full/**/*.js"], { read: false })
         .pipe(mocha({ reporter: "dot" }));
 });
-gulp.task("test", sequence("test:full", "test:lite", "test:no-conflict", "test:use-polyfill"));
+gulp.task("test", sequence("test:full", "test:lite", "test:no-conflict", "test:registry", "test:use-polyfill"));
 
 
 gulp.task("watch:reflect", () => gulp.watch([

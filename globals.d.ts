@@ -15,6 +15,7 @@ and limitations under the License.
 
 interface SymbolConstructor {
     (description?: string): symbol;
+    for(key: string): symbol;
     readonly iterator: symbol;
     readonly toPrimitive: symbol;
 }
@@ -89,3 +90,20 @@ interface WeakMapConstructor {
 declare var Map: MapConstructor;
 declare var Set: SetConstructor;
 declare var WeakMap: WeakMapConstructor;
+
+// NOTE: These are not actually global, just shared between the Reflect*.ts variants
+
+interface MetadataRegistry {
+    registerProvider(provider: MetadataProvider): void;
+    getProvider(O: object, P: string | symbol | undefined): MetadataProvider | undefined;
+    setProvider(O: object, P: string | symbol | undefined, provider: MetadataProvider): boolean;
+}
+
+interface MetadataProvider {
+    isProviderFor(O: object, P: string | symbol | undefined): boolean;
+    OrdinaryDefineOwnMetadata(MetadataKey: any, MetadataValue: any, O: object, P: string | symbol | undefined): void;
+    OrdinaryDeleteMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): boolean;
+    OrdinaryHasOwnMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): boolean;
+    OrdinaryGetOwnMetadata(MetadataKey: any, O: object, P: string | symbol | undefined): any;
+    OrdinaryOwnMetadataKeys(O: object, P: string | symbol | undefined): any[];
+}
