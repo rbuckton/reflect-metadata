@@ -49,7 +49,7 @@
   "devDependencies": {
     "@types/chai": "^3.4.34",
     "@types/mocha": "^2.2.34",
-    "@types/node": "6.0.52",
+    "@types/node": "^10.17.60",
     "chai": "^3.5.0",
     "del": "^2.2.2",
     "ecmarkup": "^3.9.3",

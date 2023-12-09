@@ -28,6 +28,9 @@ const functionPrototype = Object.getPrototypeOf(Function);
 const _Map: typeof Map = typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : fail("A valid Map constructor could not be found.");
 const _Set: typeof Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : fail("A valid Set constructor could not be found.");
 const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : fail("A valid WeakMap constructor could not be found.");
+const registrySymbol = supportsSymbol ? Symbol.for("@reflect-metadata:registry") : undefined;
+const metadataRegistry = GetOrCreateMetadataRegistry();
+const metadataProvider = CreateMetadataProvider(metadataRegistry);
 
 /**
  * Applies a set of decorators to a target object.
@@ -1323,14 +1326,19 @@ function fail(e: any): never {
 // - Allows `import "reflect-metadata"` and `import "reflect-metadata/no-conflict"` to interoperate.
 // - Uses isolated metadata if `Reflect` is frozen before the registry can be installed.
 
-const registrySymbol = supportsSymbol ? Symbol.for("@reflect-metadata:registry") : undefined;
-const metadataRegistry = GetOrCreateMetadataRegistry();
-const metadataProvider = CreateMetadataProvider(metadataRegistry);
-
 /**
  * Creates a registry used to allow multiple `reflect-metadata` providers.
  */
 function CreateMetadataRegistry(): MetadataRegistry {
+    let fallback: MetadataProvider | undefined;
+    if (!IsUndefined(registrySymbol) &&
+        typeof Reflect !== "undefined" &&
+        !(registrySymbol in Reflect) &&
+        typeof Reflect.defineMetadata === "function") {
+        // interoperate with older version of `reflect-metadata` that did not support a registry.
+        fallback = CreateFallbackProvider(Reflect);
+    }
+
     let first: MetadataProvider | undefined;
     let second: MetadataProvider | undefined;
     let rest: Set<MetadataProvider> | undefined;
@@ -1347,6 +1355,7 @@ function CreateMetadataRegistry(): MetadataRegistry {
             throw new Error("Cannot add provider to a frozen registry.");
         }
         switch (true) {
+            case fallback === provider: break;
             case IsUndefined(first): first = provider; break;
             case first === provider: break;
             case IsUndefined(second): second = provider; break;
@@ -1359,23 +1368,30 @@ function CreateMetadataRegistry(): MetadataRegistry {
     }
 
     function getProviderNoCache(O: object, P: string | symbol | undefined) {
-        if (IsUndefined(first)) return undefined;
-        if (first.isProviderFor(O, P)) return first;
-        if (IsUndefined(second)) return undefined;
-        if (second.isProviderFor(O, P)) return first;
-        if (IsUndefined(rest)) return undefined;
-        const iterator = GetIterator(rest);
-        while (true) {
-            const next = IteratorStep(iterator);
-            if (!next) {
-                return undefined;
-            }
-            const provider = IteratorValue(next);
-            if (provider.isProviderFor(O, P)) {
-                IteratorClose(iterator);
-                return provider;
+        if (!IsUndefined(first)) {
+            if (first.isProviderFor(O, P)) return first;
+            if (!IsUndefined(second)) {
+                if (second.isProviderFor(O, P)) return first;
+                if (!IsUndefined(rest)) {
+                    const iterator = GetIterator(rest);
+                    while (true) {
+                        const next = IteratorStep(iterator);
+                        if (!next) {
+                            return undefined;
+                        }
+                        const provider = IteratorValue(next);
+                        if (provider.isProviderFor(O, P)) {
+                            IteratorClose(iterator);
+                            return provider;
+                        }
+                    }
+                }
             }
         }
+        if (!IsUndefined(fallback) && fallback.isProviderFor(O, P)) {
+            return fallback;
+        }
+        return undefined;
     }
 
     function getProvider(O: object, P: string | symbol | undefined) {
@@ -1400,7 +1416,8 @@ function CreateMetadataRegistry(): MetadataRegistry {
     }
 
     function hasProvider(provider: MetadataProvider) {
-        return first === provider || second === provider || !IsUndefined(rest) && rest.has(provider);
+        if (IsUndefined(provider)) throw new TypeError();
+        return fallback === provider || first === provider || second === provider || !IsUndefined(rest) && rest.has(provider);
     }
 
     function setProvider(O: object, P: string | symbol | undefined, provider: MetadataProvider) {
@@ -1435,10 +1452,6 @@ function GetOrCreateMetadataRegistry(): MetadataRegistry {
         metadataRegistry = CreateMetadataRegistry();
     }
     if (!IsUndefined(registrySymbol) && IsObject(Reflect) && Object.isExtensible(Reflect)) {
-        if (typeof Reflect.defineMetadata === "function") {
-            // `/no-conflict` used in an environment with an older copy of `reflect-metadata`. Add a legacy fallback.
-            metadataRegistry.registerProvider(CreateFallbackProvider(Reflect));
-        }
         Object.defineProperty(Reflect, registrySymbol, {
             enumerable: false,
             configurable: false,

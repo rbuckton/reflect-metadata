@@ -554,20 +554,19 @@ namespace Reflect {
             sloppyModeThis();
 
         let exporter = makeExporter(Reflect);
-        if (typeof root.Reflect === "undefined") {
-            root.Reflect = Reflect;
-        }
-        else {
+        if (typeof root.Reflect !== "undefined") {
             exporter = makeExporter(root.Reflect, exporter);
         }
 
         factory(exporter, root);
 
+        if (typeof root.Reflect === "undefined") {
+            root.Reflect = Reflect;
+        }
+
         function makeExporter(target: typeof Reflect, previous?: <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => void) {
             return <K extends keyof typeof Reflect>(key: K, value: typeof Reflect[K]) => {
-                if (typeof target[key] !== "function") {
-                    Object.defineProperty(target, key, { configurable: true, writable: true, value });
-                }
+                Object.defineProperty(target, key, { configurable: true, writable: true, value });
                 if (previous) previous(key, value);
             };
         }
@@ -595,6 +594,9 @@ namespace Reflect {
         const _Map: typeof Map = typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : fail("A valid Map constructor could not be found.");
         const _Set: typeof Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : fail("A valid Set constructor could not be found.");
         const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : fail("A valid WeakMap constructor could not be found.");
+        const registrySymbol = supportsSymbol ? Symbol.for("@reflect-metadata:registry") : undefined;
+        const metadataRegistry = GetOrCreateMetadataRegistry();
+        const metadataProvider = CreateMetadataProvider(metadataRegistry);
 
         function decorate(decorators: ClassDecorator[], target: Function): Function;
         function decorate(decorators: (PropertyDecorator | MethodDecorator)[], target: any, propertyKey: string | symbol, attributes?: PropertyDescriptor | null): PropertyDescriptor | undefined;
@@ -1455,14 +1457,19 @@ namespace Reflect {
         // - Allows `import "reflect-metadata"` and `import "reflect-metadata/no-conflict"` to interoperate.
         // - Uses isolated metadata if `Reflect` is frozen before the registry can be installed.
 
-        const registrySymbol = supportsSymbol ? Symbol.for("@reflect-metadata:registry") : undefined;
-        const metadataRegistry = GetOrCreateMetadataRegistry();
-        const metadataProvider = CreateMetadataProvider(metadataRegistry);
-
         /**
          * Creates a registry used to allow multiple `reflect-metadata` providers.
          */
         function CreateMetadataRegistry(): MetadataRegistry {
+            let fallback: MetadataProvider | undefined;
+            if (!IsUndefined(registrySymbol) &&
+                typeof root.Reflect !== "undefined" &&
+                !(registrySymbol in root.Reflect) &&
+                typeof root.Reflect.defineMetadata === "function") {
+                // interoperate with older version of `reflect-metadata` that did not support a registry.
+                fallback = CreateFallbackProvider(root.Reflect);
+            }
+        
             let first: MetadataProvider | undefined;
             let second: MetadataProvider | undefined;
             let rest: Set<MetadataProvider> | undefined;
@@ -1479,6 +1486,7 @@ namespace Reflect {
                     throw new Error("Cannot add provider to a frozen registry.");
                 }
                 switch (true) {
+                    case fallback === provider: break;
                     case IsUndefined(first): first = provider; break;
                     case first === provider: break;
                     case IsUndefined(second): second = provider; break;
@@ -1489,27 +1497,34 @@ namespace Reflect {
                         break;
                 }
             }
-        
+
             function getProviderNoCache(O: object, P: string | symbol | undefined) {
-                if (IsUndefined(first)) return undefined;
-                if (first.isProviderFor(O, P)) return first;
-                if (IsUndefined(second)) return undefined;
-                if (second.isProviderFor(O, P)) return first;
-                if (IsUndefined(rest)) return undefined;
-                const iterator = GetIterator(rest);
-                while (true) {
-                    const next = IteratorStep(iterator);
-                    if (!next) {
-                        return undefined;
-                    }
-                    const provider = IteratorValue(next);
-                    if (provider.isProviderFor(O, P)) {
-                        IteratorClose(iterator);
-                        return provider;
+                if (!IsUndefined(first)) {
+                    if (first.isProviderFor(O, P)) return first;
+                    if (!IsUndefined(second)) {
+                        if (second.isProviderFor(O, P)) return first;
+                        if (!IsUndefined(rest)) {
+                            const iterator = GetIterator(rest);
+                            while (true) {
+                                const next = IteratorStep(iterator);
+                                if (!next) {
+                                    return undefined;
+                                }
+                                const provider = IteratorValue(next);
+                                if (provider.isProviderFor(O, P)) {
+                                    IteratorClose(iterator);
+                                    return provider;
+                                }
+                            }
+                        }
                     }
                 }
+                if (!IsUndefined(fallback) && fallback.isProviderFor(O, P)) {
+                    return fallback;
+                }
+                return undefined;
             }
-        
+
             function getProvider(O: object, P: string | symbol | undefined) {
                 let providerMap = targetProviderMap.get(O);
                 let provider: MetadataProvider | undefined;
@@ -1519,7 +1534,7 @@ namespace Reflect {
                 if (!IsUndefined(provider)) {
                     return provider;
                 }
-        
+
                 provider = getProviderNoCache(O, P);
                 if (!IsUndefined(provider)) {
                     if (IsUndefined(providerMap)) {
@@ -1530,11 +1545,12 @@ namespace Reflect {
                 }
                 return provider;
             }
-        
+
             function hasProvider(provider: MetadataProvider) {
+                if (IsUndefined(provider)) throw new TypeError();
                 return first === provider || second === provider || !IsUndefined(rest) && rest.has(provider);
             }
-        
+
             function setProvider(O: object, P: string | symbol | undefined, provider: MetadataProvider) {
                 if (!hasProvider(provider)) {
                     throw new Error("Metadata provider not registered.");
@@ -1694,6 +1710,33 @@ namespace Reflect {
                 }
                 return true;
             }
+        }
+
+        function CreateFallbackProvider(reflect: typeof Reflect): MetadataProvider {
+            const metadataOwner = new _WeakMap<object, Set<string | symbol | undefined>>();
+            const provider: MetadataProvider = {
+                isProviderFor(O, P) {
+                    let metadataPropertySet = metadataOwner.get(O);
+                    if (!IsUndefined(metadataPropertySet)) {
+                        return metadataPropertySet.has(P);
+                    }
+                    if (reflect.getOwnMetadataKeys(O, P!).length) {
+                        if (IsUndefined(metadataPropertySet)) {
+                            metadataPropertySet = new _Set();
+                            metadataOwner.set(O, metadataPropertySet);
+                        }
+                        metadataPropertySet.add(P);
+                        return true;
+                    }
+                    return false;
+                },
+                OrdinaryDefineOwnMetadata: reflect.defineMetadata,
+                OrdinaryHasOwnMetadata: reflect.hasOwnMetadata,
+                OrdinaryGetOwnMetadata: reflect.getOwnMetadata,
+                OrdinaryOwnMetadataKeys: reflect.getOwnMetadataKeys,
+                OrdinaryDeleteMetadata: reflect.deleteMetadata,
+            };
+            return provider;
         }
 
         function GetMetadataProvider(O: object, P: string | symbol | undefined, Create: true): MetadataProvider;
