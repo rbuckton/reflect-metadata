@@ -8,6 +8,12 @@
 npm install reflect-metadata
 ```
 
+Alternatively you can include it via CDN:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/reflect-metadata@0/Reflect.min.js"></script>
+```
+
 ## Background
 
 * Decorators add the ability to augment a class and its members as the class is defined, through a declarative syntax.
