@@ -1,15 +1,29 @@
-import * as fs from "fs";
 import { assert } from "chai";
+import { script } from "./vm";
+import { suites } from "./suites";
 
-describe("Reflect", () => {
-    it("does not overwrite existing implementation", () => {
-        const defineMetadata = Reflect.defineMetadata;
+for (const { name, header, context } of suites.filter(s => s.global)) {
+    describe(name, () => {
+        describe("Reflect", () => {
+            it("does not clobber existing implementation", () => {
+                const { Reflect, defineMetadata, obj } = script(context)`
+                    const fs = require("fs");
+                    ${header}
 
-        const reflectPath = require.resolve("../Reflect.js");
-        const reflectContent = fs.readFileSync(reflectPath, "utf8");
-        const reflectFunction = Function(reflectContent);
-        reflectFunction();
+                    exports.Reflect = Reflect;
+                    exports.defineMetadata = Reflect.defineMetadata;
+                    exports.obj = {};
+                    Reflect.defineMetadata("key", "value", exports.obj);
 
-        assert.strictEqual(Reflect.defineMetadata, defineMetadata);
+                    const reflectPath = require.resolve("../Reflect.js");
+                    const reflectContent = fs.readFileSync(reflectPath, "utf8");
+                    const reflectFunction = Function(reflectContent);
+                    reflectFunction();
+                `;
+
+                assert.notStrictEqual(Reflect.defineMetadata, defineMetadata);
+                assert.strictEqual(Reflect.getOwnMetadata("key", obj), "value");
+            });
+        });
     });
-});
+}

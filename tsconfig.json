@@ -12,6 +12,9 @@
     "noImplicitThis": true
   },
   "files": [
-    "Reflect.ts"
+    "globals.d.ts",
+    "Reflect.ts",
+    "ReflectLite.ts",
+    "ReflectNoConflict.ts",
   ]
 }
