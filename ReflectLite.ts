@@ -571,16 +571,8 @@ namespace Reflect {
             };
         }
 
-        function functionThis() {
-            try { return Function("return this;")(); } catch (_) { }
-        }
-
-        function indirectEvalThis() {
-            try { return (void 0, eval)("(function() { return this; })()"); } catch (_) { }
-        }
-
-        function sloppyModeThis() {
-            return functionThis() || indirectEvalThis();
+        function sloppyModeThis(): never {
+            throw new ReferenceError("globalThis could not be found. Please polyfill globalThis before loading this module.");
         }
     })
     (function (exporter, root) {

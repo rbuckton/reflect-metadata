@@ -1,6 +1,6 @@
 {
   "name": "reflect-metadata",
-  "version": "0.2.0-pre.0",
+  "version": "0.2.0",
   "description": "Polyfill for Metadata Reflection API",
   "type": "commonjs",
   "main": "Reflect.js",
