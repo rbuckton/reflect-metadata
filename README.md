@@ -6,7 +6,7 @@ proposed below is no longer being considered for standardization. However, this 
 projects that leverage TypeScript's legacy `--experimentalDecorators` option as some projects may not be able to migrate
 to use standard decorators.
 
-* [Detailed proposal][Metadata-Spec]
+* [Detailed proposal][metadata-spec]
 
 ## Installation
 
@@ -64,7 +64,7 @@ require("reflect-metadata/lite");
 ## Background
 
 * Decorators add the ability to augment a class and its members as the class is defined, through a declarative syntax.
-* Traceur attaches annotations to a static property on the class.
+* [Traceur][traceur] attaches annotations to a static property on the class.
 * Languages like C# (.NET), and Java support attributes or annotations that add metadata to types, along with a reflective API for reading metadata.
 
 ## Goals
@@ -228,4 +228,5 @@ function ParamTypes(...types) {
   * This is mitigated if the mutating decorator returns a class expression that extends from the target, or returns a proxy for the decorator. @rbuckton
 * Metadata for a method is attached to the class (or prototype) via the property key. It would not then be available if trying to read metadata on the function of the method (e.g. "tearing-off" the method from the class). @rbuckton
 
-[Metadata-Spec]: https://rbuckton.github.io/reflect-metadata
+[metadata-spec]: https://rbuckton.github.io/reflect-metadata
+[traceur]:       https://github.com/google/traceur-compiler
