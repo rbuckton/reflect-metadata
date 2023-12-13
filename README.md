@@ -1,11 +1,64 @@
 # Metadata Reflection API
 
+NOTE: Now that both [Decorators](https://github.com/tc39/proposal-decorators) and 
+[Decorator Metadata](https://github.com/tc39/proposal-decorator-metadata) have achieved Stage 3 within TC39, the API
+proposed below is no longer being considered for standardization. However, this package will continue to support
+projects that leverage TypeScript's legacy `--experimentalDecorators` option as some projects may not be able to migrate
+to use standard decorators.
+
 * [Detailed proposal][Metadata-Spec]
 
 ## Installation
 
 ```
 npm install reflect-metadata
+```
+
+## Usage
+
+### ES Modules in NodeJS/Browser, TypeScript/Babel, Bundlers
+```ts
+// - Modifies global `Reflect` object (or defines one in ES5 runtimes).
+// - Supports ESM and CommonJS.
+// - Contains internal polyfills for `Map`, `Set`, and `WeakMap` for older runtimes.
+import "reflect-metadata";
+
+// - Modifies global `Reflect` object (or defines one in ES5 runtimes).
+// - Supports ESM and CommonJS.
+// - Requires runtime support for `"exports"` in `package.json`.
+// - Does not include internal polyfills.
+import "reflect-metadata/lite";
+```
+
+### CommonJS
+```ts
+// - Modifies global `Reflect` object (or defines one in ES5 runtimes).
+// - Contains internal polyfills for `Map`, `Set`, and `WeakMap` for older runtimes.
+require("reflect-metadata");
+
+// - Modifies global `Reflect` object (or defines one in ES5 runtimes).
+// - Requires runtime support for `"exports"` in `package.json`.
+// - Does not include internal polyfills.
+require("reflect-metadata/lite");
+```
+
+### In the Browser via `<script>`
+**HTML**
+```html
+<!-- Modifies global `Reflect` object (or defines one in ES5 runtimes). -->
+<!-- Contains internal polyfills for `Map`, `Set`, and `WeakMap` for older runtimes. -->
+<script src="path/to/reflect-metadata/Reflect.js"></script>
+
+<!-- Modifies global `Reflect` object (or defines one in ES5 runtimes). -->
+<!-- Does not include internal polyfills. -->
+<script src="path/to/reflect-metadata/ReflectLite.js"></script>
+```
+
+**Script**
+```js
+// - Makes types available in your editor.
+/// <reference path="path/to/reflect-metadata/standalone.d.ts" />
+
 ```
 
 ## Background

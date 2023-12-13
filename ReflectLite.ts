@@ -17,19 +17,11 @@ namespace Reflect {
     // Metadata Proposal
     // https://rbuckton.github.io/reflect-metadata/
 
-    type HashMap<V> = Record<string, V>;
-
-    interface BufferLike {
-        [offset: number]: number;
-        length: number;
-    }
-
     type MemberDecorator = (target: Object, propertyKey: string | symbol, descriptor?: PropertyDescriptor) => PropertyDescriptor | void;
 
     declare const global: any;
     declare const globalThis: any;
-    declare const crypto: Crypto;
-    declare const msCrypto: Crypto;
+    declare const self: any;
 
     /**
       * Applies a set of decorators to a target object.
@@ -592,38 +584,16 @@ namespace Reflect {
         }
     })
     (function (exporter, root) {
-        const hasOwn = Object.prototype.hasOwnProperty;
-
         // feature test for Symbol support
         const supportsSymbol = typeof Symbol === "function";
-        const toPrimitiveSymbol = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
-        const iteratorSymbol = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
-        const supportsCreate = typeof Object.create === "function"; // feature test for Object.create support
-        const supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
-        const downLevel = !supportsCreate && !supportsProto;
-
-        const HashMap = {
-            // create an object in dictionary mode (a.k.a. "slow" mode in v8)
-            create: supportsCreate
-                ? <V>() => MakeDictionary(Object.create(null) as HashMap<V>)
-                : supportsProto
-                    ? <V>() => MakeDictionary({ __proto__: null as any } as HashMap<V>)
-                    : <V>() => MakeDictionary({} as HashMap<V>),
-
-            has: downLevel
-                ? <V>(map: HashMap<V>, key: string | number | symbol) => hasOwn.call(map, key)
-                : <V>(map: HashMap<V>, key: string | number | symbol) => key in map,
-
-            get: downLevel
-                ? <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => hasOwn.call(map, key) ? map[key as string | number] : undefined
-                : <V>(map: HashMap<V>, key: string | number | symbol): V | undefined => map[key as string | number],
-        };
+        const toPrimitiveSymbol = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : fail("Symbol.toPrimitive not found.");
+        const iteratorSymbol = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : fail("Symbol.iterator not found.");
 
         // Load global or shim versions of Map, Set, and WeakMap
         const functionPrototype = Object.getPrototypeOf(Function);
-        const _Map: typeof Map = typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
-        const _Set: typeof Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
-        const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : CreateWeakMapPolyfill();
+        const _Map: typeof Map = typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : fail("A valid Map constructor could not be found.");
+        const _Set: typeof Set = typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : fail("A valid Set constructor could not be found.");
+        const _WeakMap: typeof WeakMap = typeof WeakMap === "function" ? WeakMap : fail("A valid WeakMap constructor could not be found.");
         const registrySymbol = supportsSymbol ? Symbol.for("@reflect-metadata:registry") : undefined;
         const metadataRegistry = GetOrCreateMetadataRegistry();
         const metadataProvider = CreateMetadataProvider(metadataRegistry);
@@ -1127,8 +1097,6 @@ namespace Reflect {
         function deleteMetadata(metadataKey: any, target: any, propertyKey?: string | symbol): boolean {
             if (!IsObject(target)) throw new TypeError();
             if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
-            if (!IsObject(target)) throw new TypeError();
-            if (!IsUndefined(propertyKey)) propertyKey = ToPropertyKey(propertyKey);
             const provider = GetMetadataProvider(target, propertyKey, /*Create*/ false);
             if (IsUndefined(provider)) return false;
             return provider.OrdinaryDeleteMetadata(metadataKey, target, propertyKey);
@@ -1403,10 +1371,6 @@ namespace Reflect {
             }
         }
 
-        function SameValueZero(x: any, y: any) {
-            return x === y || x !== x && y !== y;
-        }
-
         // 7.3 Operations on Objects
         // https://tc39.github.io/ecma262/#sec-operations-on-objects
 
@@ -1485,6 +1449,10 @@ namespace Reflect {
             return constructor;
         }
 
+        function fail(e: any): never {
+            throw e;
+        }
+
         // Global metadata registry
         // - Allows `import "reflect-metadata"` and `import "reflect-metadata/no-conflict"` to interoperate.
         // - Uses isolated metadata if `Reflect` is frozen before the registry can be installed.
@@ -1501,7 +1469,7 @@ namespace Reflect {
                 // interoperate with older version of `reflect-metadata` that did not support a registry.
                 fallback = CreateFallbackProvider(root.Reflect);
             }
-
+        
             let first: MetadataProvider | undefined;
             let second: MetadataProvider | undefined;
             let rest: Set<MetadataProvider> | undefined;
@@ -1789,250 +1757,6 @@ namespace Reflect {
                 throw new Error("Illegal state.");
             }
             return undefined;
-        }
-
-        // naive Map shim
-        function CreateMapPolyfill(): MapConstructor {
-            const cacheSentinel = {};
-            const arraySentinel: any[] = [];
-
-            class MapIterator<K, V, R extends (K | V | [K, V])> implements IterableIterator<R> {
-                private _keys: K[];
-                private _values: V[];
-                private _index = 0;
-                private _selector: (key: K, value: V) => R;
-                constructor(keys: K[], values: V[], selector: (key: K, value: V) => R) {
-                    this._keys = keys;
-                    this._values = values;
-                    this._selector = selector;
-                }
-                "@@iterator"(): IterableIterator<R> { return this; }
-                [iteratorSymbol](): IterableIterator<R> { return this; }
-                next(): __IteratorResult<R> {
-                    const index = this._index;
-                    if (index >= 0 && index < this._keys.length) {
-                        const result = this._selector(this._keys[index], this._values[index]);
-                        if (index + 1 >= this._keys.length) {
-                            this._index = -1;
-                            this._keys = arraySentinel;
-                            this._values = arraySentinel;
-                        }
-                        else {
-                            this._index++;
-                        }
-                        return { value: result, done: false };
-                    }
-                    return { value: <never>undefined, done: true };
-                }
-                throw(error: any): __IteratorResult<R> {
-                    if (this._index >= 0) {
-                        this._index = -1;
-                        this._keys = arraySentinel;
-                        this._values = arraySentinel;
-                    }
-                    throw error;
-                }
-                return(value?: R): __IteratorResult<R> {
-                    if (this._index >= 0) {
-                        this._index = -1;
-                        this._keys = arraySentinel;
-                        this._values = arraySentinel;
-                    }
-                    return { value: <never>value, done: true };
-                }
-            }
-
-            interface MapIterator<K, V, R extends (K | V | [K, V])> {
-                [Symbol.iterator](): IterableIterator<R>;
-            }
-
-            class Map<K, V> {
-                private _keys: K[] = [];
-                private _values: (V | undefined)[] = [];
-                private _cacheKey: any = cacheSentinel;
-                private _cacheIndex = -2;
-                get size() { return this._keys.length; }
-                has(key: K): boolean { return this._find(key, /*insert*/ false) >= 0; }
-                get(key: K): V | undefined {
-                    const index = this._find(key, /*insert*/ false);
-                    return index >= 0 ? this._values[index] : undefined;
-                }
-                set(key: K, value: V): this {
-                    const index = this._find(key, /*insert*/ true);
-                    this._values[index] = value;
-                    return this;
-                }
-                delete(key: K): boolean {
-                    const index = this._find(key, /*insert*/ false);
-                    if (index >= 0) {
-                        const size = this._keys.length;
-                        for (let i = index + 1; i < size; i++) {
-                            this._keys[i - 1] = this._keys[i];
-                            this._values[i - 1] = this._values[i];
-                        }
-                        this._keys.length--;
-                        this._values.length--;
-                        if (SameValueZero(key, this._cacheKey)) {
-                            this._cacheKey = cacheSentinel;
-                            this._cacheIndex = -2;
-                        }
-                        return true;
-                    }
-                    return false;
-                }
-                clear(): void {
-                    this._keys.length = 0;
-                    this._values.length = 0;
-                    this._cacheKey = cacheSentinel;
-                    this._cacheIndex = -2;
-                }
-                keys() { return new MapIterator(this._keys, this._values, getKey); }
-                values() { return new MapIterator(this._keys, this._values, getValue); }
-                entries() { return new MapIterator(this._keys, this._values, getEntry); }
-                "@@iterator"() { return this.entries(); }
-                [iteratorSymbol]() { return this.entries(); }
-                private _find(key: K, insert?: boolean): number {
-                    if (!SameValueZero(this._cacheKey, key)) {
-                        this._cacheIndex = -1;
-                        for (let i = 0; i < this._keys.length; i++) {
-                            if (SameValueZero(this._keys[i], key)) {
-                                this._cacheIndex = i;
-                                break;
-                            }
-                        }
-                    }
-                    if (this._cacheIndex < 0 && insert) {
-                        this._cacheIndex = this._keys.length;
-                        this._keys.push(key);
-                        this._values.push(undefined);
-                    }
-                    return this._cacheIndex;
-                }
-            }
-
-            interface Map<K, V> {
-                [Symbol.iterator](): IterableIterator<[K, V]>;
-            }
-
-            return Map;
-
-            function getKey<K, V>(key: K, _: V) {
-                return key;
-            }
-
-            function getValue<K, V>(_: K, value: V) {
-                return value;
-            }
-
-            function getEntry<K, V>(key: K, value: V) {
-                return [key, value] as [K, V];
-            }
-        }
-
-        // naive Set shim
-        function CreateSetPolyfill(): SetConstructor {
-            class Set<T> {
-                private _map = new _Map<any, any>();
-                get size() { return this._map.size; }
-                has(value: T): boolean { return this._map.has(value); }
-                add(value: T): Set<T> { return this._map.set(value, value), this; }
-                delete(value: T): boolean { return this._map.delete(value); }
-                clear(): void { this._map.clear(); }
-                keys() { return this._map.keys(); }
-                values() { return this._map.keys(); }
-                entries() { return this._map.entries(); }
-                "@@iterator"() { return this.keys(); }
-                [iteratorSymbol]() { return this.keys(); }
-            }
-            interface Set<T> {
-                [Symbol.iterator](): IterableIterator<T>;
-            }
-            return Set;
-        }
-
-        // naive WeakMap shim
-        function CreateWeakMapPolyfill(): WeakMapConstructor {
-            const UUID_SIZE = 16;
-            const keys = HashMap.create<boolean>();
-            const rootKey = CreateUniqueKey();
-            return class WeakMap<K, V> {
-                private _key = CreateUniqueKey();
-                has(target: K): boolean {
-                    const table = GetOrCreateWeakMapTable<K>(target, /*create*/ false);
-                    return table !== undefined ? HashMap.has(table, this._key) : false;
-                }
-                get(target: K): V {
-                    const table = GetOrCreateWeakMapTable<K>(target, /*create*/ false);
-                    return table !== undefined ? HashMap.get(table, this._key) : undefined;
-                }
-                set(target: K, value: V): WeakMap<K, V> {
-                    const table = GetOrCreateWeakMapTable<K>(target, /*create*/ true);
-                    table[this._key] = value;
-                    return this;
-                }
-                delete(target: K): boolean {
-                    const table = GetOrCreateWeakMapTable<K>(target, /*create*/ false);
-                    return table !== undefined ? delete table[this._key] : false;
-                }
-                clear(): void {
-                    // NOTE: not a real clear, just makes the previous data unreachable
-                    this._key = CreateUniqueKey();
-                }
-            };
-
-            function CreateUniqueKey(): string {
-                let key: string;
-                do key = "@@WeakMap@@" + CreateUUID();
-                while (HashMap.has(keys, key));
-                keys[key] = true;
-                return key;
-            }
-
-            function GetOrCreateWeakMapTable<K>(target: K, create: true): HashMap<any>;
-            function GetOrCreateWeakMapTable<K>(target: K, create: false): HashMap<any> | undefined;
-            function GetOrCreateWeakMapTable<K>(target: K, create: boolean): HashMap<any> | undefined {
-                if (!hasOwn.call(target, rootKey)) {
-                    if (!create) return undefined;
-                    Object.defineProperty(target, rootKey, { value: HashMap.create<any>() });
-                }
-                return (<any>target)[rootKey];
-            }
-
-            function FillRandomBytes(buffer: BufferLike, size: number): BufferLike {
-                for (let i = 0; i < size; ++i) buffer[i] = Math.random() * 0xff | 0;
-                return buffer;
-            }
-
-            function GenRandomBytes(size: number): BufferLike {
-                if (typeof Uint8Array === "function") {
-                    if (typeof crypto !== "undefined") return crypto.getRandomValues(new Uint8Array(size)) as Uint8Array;
-                    if (typeof msCrypto !== "undefined") return msCrypto.getRandomValues(new Uint8Array(size)) as Uint8Array;
-                    return FillRandomBytes(new Uint8Array(size), size);
-                }
-                return FillRandomBytes(new Array(size), size);
-            }
-
-            function CreateUUID() {
-                const data = GenRandomBytes(UUID_SIZE);
-                // mark as random - RFC 4122 § 4.4
-                data[6] = data[6] & 0x4f | 0x40;
-                data[8] = data[8] & 0xbf | 0x80;
-                let result = "";
-                for (let offset = 0; offset < UUID_SIZE; ++offset) {
-                    const byte = data[offset];
-                    if (offset === 4 || offset === 6 || offset === 8) result += "-";
-                    if (byte < 16) result += "0";
-                    result += byte.toString(16).toLowerCase();
-                }
-                return result;
-            }
-        }
-
-        // uses a heuristic used by v8 and chakra to force an object into dictionary mode.
-        function MakeDictionary<T>(obj: T): T {
-            (<any>obj).__ = undefined;
-            delete (<any>obj).__;
-            return obj;
         }
     });
 }

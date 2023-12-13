@@ -2,3 +2,9 @@
 node_modules/
 test/**/*.js
 test/**/*.js.map
+index.d.mts
+no-conflict.d.mts
+*.js
+*.js.map
+*.mjs
+*.mjs.map
