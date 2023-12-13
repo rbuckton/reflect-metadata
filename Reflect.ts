@@ -1241,7 +1241,7 @@ namespace Reflect {
             return provider.OrdinaryOwnMetadataKeys(O, P);
         }
 
-        // 6 ECMAScript Data Typ0es and Values
+        // 6 ECMAScript Data Types and Values
         // https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values
         function Type(x: any): Tag {
             if (x === null) return Tag.Null;
