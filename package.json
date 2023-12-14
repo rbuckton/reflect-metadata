@@ -17,7 +17,9 @@
     "./no-conflict": {
       "types": "./no-conflict.d.ts",
       "default": "./ReflectNoConflict.js"
-    }
+    },
+    "./Reflect": "./Reflect.js",
+    "./Reflect.js": "./Reflect.js"
   },
   "scripts": {
     "prepublishOnly": "gulp prepublish",
