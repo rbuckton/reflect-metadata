@@ -25,5 +25,17 @@ for (const { name, header, context } of suites.filter(s => s.global)) {
                 assert.strictEqual(Reflect.getOwnMetadata("key", obj), "value");
             });
         });
+
+        it("isProviderFor crash", () => {
+            const { Reflect } = script(context)`
+                Reflect.defineMetadata = function() {};
+                Reflect.getOwnMetadataKeys = function() { return [] };
+                Reflect.getMetadataKeys = function() { return []; }
+                ${header}
+                exports.Reflect = Reflect;
+            `;
+            let obj = {};
+            Reflect.getMetadataKeys(obj);
+        });
     });
 }
