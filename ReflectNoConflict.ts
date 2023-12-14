@@ -1582,6 +1582,7 @@ function CreateMetadataProvider(registry: MetadataRegistry): MetadataProvider {
 }
 
 function CreateFallbackProvider(reflect: typeof Reflect): MetadataProvider {
+    const { defineMetadata, hasOwnMetadata, getOwnMetadata, getOwnMetadataKeys, deleteMetadata } = reflect;
     const metadataOwner = new _WeakMap<object, Set<string | symbol | undefined>>();
     const provider: MetadataProvider = {
         isProviderFor(O, P) {
@@ -1589,7 +1590,7 @@ function CreateFallbackProvider(reflect: typeof Reflect): MetadataProvider {
             if (!IsUndefined(metadataPropertySet)) {
                 return metadataPropertySet.has(P);
             }
-            if (reflect.getOwnMetadataKeys(O, P!).length) {
+            if (getOwnMetadataKeys(O, P!).length) {
                 if (IsUndefined(metadataPropertySet)) {
                     metadataPropertySet = new _Set();
                     metadataOwner.set(O, metadataPropertySet);
@@ -1599,11 +1600,11 @@ function CreateFallbackProvider(reflect: typeof Reflect): MetadataProvider {
             }
             return false;
         },
-        OrdinaryDefineOwnMetadata: reflect.defineMetadata,
-        OrdinaryHasOwnMetadata: reflect.hasOwnMetadata,
-        OrdinaryGetOwnMetadata: reflect.getOwnMetadata,
-        OrdinaryOwnMetadataKeys: reflect.getOwnMetadataKeys,
-        OrdinaryDeleteMetadata: reflect.deleteMetadata,
+        OrdinaryDefineOwnMetadata: defineMetadata,
+        OrdinaryHasOwnMetadata: hasOwnMetadata,
+        OrdinaryGetOwnMetadata: getOwnMetadata,
+        OrdinaryOwnMetadataKeys: getOwnMetadataKeys,
+        OrdinaryDeleteMetadata: deleteMetadata,
     };
     return provider;
 }
