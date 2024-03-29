@@ -10,7 +10,6 @@ for (const { name, header, context } of suites) {
     describe(name, () => {
         describe("Reflect.defineMetadata", () => {
             it("InvalidTarget", () => {
-                debugger;
                 const { Reflect, TypeError } = script(context)`
                     ${header}
                     exports.Reflect = Reflect;

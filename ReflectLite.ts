@@ -1710,8 +1710,8 @@ namespace Reflect {
             const provider: MetadataProvider = {
                 isProviderFor(O, P) {
                     let metadataPropertySet = metadataOwner.get(O);
-                    if (!IsUndefined(metadataPropertySet)) {
-                        return metadataPropertySet.has(P);
+                    if (!IsUndefined(metadataPropertySet) && metadataPropertySet.has(P)) {
+                        return true;
                     }
                     if (getOwnMetadataKeys(O, P!).length) {
                         if (IsUndefined(metadataPropertySet)) {
