@@ -57,3 +57,63 @@ for (const { name, header, context } of suites.filter(s => s.global && !s.polyfi
         });
     });
 }
+
+for (const { name, header, context } of suites) {
+    describe(`fallback + ${name}`, () => {
+        it("MetadataRegistry", () => {
+            const { provider1, provider2 } = script({ ESMap: Map, ...context })`
+                {
+                    const Map = ESMap;
+                    const map = new Map();
+                    Reflect.defineMetadata = function(key, value, target, prop) {
+                        let props = map.get(target);
+                        if (!props) map.set(target, props = new Map());
+                        let meta = props.get(prop);
+                        if (!meta) props.set(prop, meta = new Map());
+                        meta.set(key, value);
+                    };
+                    Reflect.hasOwnMetadata = function(key, target, prop) {
+                        let props = map.get(target);
+                        let meta = props && props.get(prop);
+                        return meta && meta.has(key) || false;
+                    };
+                    Reflect.getOwnMetadata = function(key, target, prop) {
+                        let props = map.get(target);
+                        let meta = props && props.get(prop);
+                        return meta && meta.get(key);
+                    };
+                    Reflect.getOwnMetadataKeys = function(target, prop) {
+                        let props = map.get(target);
+                        let meta = props && props.get(prop);
+                        const keys = meta && meta.keys() || [];
+                        return [...keys];
+                    };
+                    Reflect.deleteMetadata = function(key, target, prop) {
+                        let props = map.get(target);
+                        let meta = props && props.get(prop);
+                        return meta && meta.delete(key) || false;
+                    };
+                }
+
+                const obj = {};
+                Reflect.defineMetadata("a", 1, obj);
+                Reflect.defineMetadata("b", 2, obj, "c");
+
+                {
+                    ${header}
+                }
+
+                const registrySymbol = Symbol.for("@reflect-metadata:registry");
+                const registry = Reflect[registrySymbol];
+                const provider1 = registry.getProvider(obj, undefined);
+                const provider2 = registry.getProvider(obj, "c");
+
+                exports.provider1 = provider1;
+                exports.provider2 = provider2;
+            `;
+            assert.isDefined(provider1);
+            assert.isDefined(provider2);
+            assert.strictEqual(provider1, provider2);
+        });
+    });
+}
